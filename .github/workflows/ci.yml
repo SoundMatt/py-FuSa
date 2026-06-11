@@ -137,7 +137,7 @@ jobs:
         run: pyfusa diff check-report.json check-report.json
 
       - name: badge
-        run: pyfusa badge --from check-report.json --output badge.svg
+        run: pyfusa badge --report check-report.json --output badge.svg
 
       - name: sign keygen
         run: pyfusa sign keygen --output .fusa-key.bin
