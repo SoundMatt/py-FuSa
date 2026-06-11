@@ -178,6 +178,12 @@ jobs:
       - name: unece gap report
         run: pyfusa unece --dir . --format json --output unece-gap-report.json || true
 
+      - name: iec62443 gap report
+        run: pyfusa iec62443 --dir . --format json --output iec62443-gap-report.json || true
+
+      - name: slsa gap report
+        run: pyfusa slsa --dir . --format json --output slsa-gap-report.json || true
+
       - name: sas (Software Accomplishment Summary)
         run: pyfusa sas --dir . --format json --output sas.json
 

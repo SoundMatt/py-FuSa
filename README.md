@@ -61,6 +61,8 @@ pyfusa iec61508
 pyfusa do178
 pyfusa iso21434
 pyfusa unece
+pyfusa iec62443
+pyfusa slsa
 
 # Query tool capabilities
 pyfusa capabilities --format json
@@ -173,6 +175,20 @@ pyfusa version
 | IEC62443-002 | WARNING | `target_sl` not in range 1–4 |
 | IEC62443-003 | INFO | No security policy document (`SECURITY.md`) found |
 | IEC62443-004 | INFO | No cyber incident response plan found |
+
+## Compliance gap reports
+
+Two §9.3 gap reports surface structured coverage for supply-chain and IACS security standards:
+
+| Command | Standard | Level flag | Default |
+|---|---|---|---|
+| `pyfusa iec62443` | IEC 62443 IACS cybersecurity (12 objectives) | `--sl` | `SL-2` |
+| `pyfusa slsa` | SLSA supply-chain levels (10 objectives) | `--level` | `L2` |
+
+```bash
+pyfusa iec62443 --sl SL-3 --format json --output iec62443-gap.json
+pyfusa slsa --level L3 --format json --output slsa-gap.json
+```
 
 ## Source annotations
 

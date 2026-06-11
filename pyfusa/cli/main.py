@@ -61,6 +61,8 @@ from pyfusa.compliance import iso26262 as _iso26262
 from pyfusa.compliance import iec61508 as _iec61508
 from pyfusa.compliance import iso21434 as _iso21434
 from pyfusa.compliance import unece as _unece
+from pyfusa.compliance import iec62443 as _iec62443_gap
+from pyfusa.compliance import slsa as _slsa_gap
 
 
 def _is_tty() -> bool:
@@ -140,7 +142,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "version", "capabilities", "init", "check", "lint", "analyze", "cyber",
             "report", "trace", "verify", "qualify", "release", "audit-pack", "coverage",
             "fmea", "boundary", "coupling", "tara", "hara", "safety-case", "sas", "sci",
-            "iso26262", "iec61508", "do178", "iso21434", "unece", "misra",
+            "iso26262", "iec61508", "do178", "iso21434", "unece", "iec62443", "slsa", "misra",
             "req", "diff", "badge", "fix", "hooks", "sign", "vuln",
             "disposition", "pr", "impact", "metrics", "template",
         ],
@@ -158,7 +160,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "misra":    ["text", "json"],
             "safety-case": ["json", "md", "mermaid"],
         },
-        "standards": ["iso26262", "iec61508", "iso21434", "do178c", "unece-r155"],
+        "standards": ["iso26262", "iec61508", "iso21434", "do178c", "unece-r155", "iec62443", "slsa"],
         "ruleCount": 47,
     }
 
@@ -1461,7 +1463,7 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 
 
 # ---------------------------------------------------------------------------
-# do178 / iso26262 / iec61508 / iso21434 / unece
+# do178 / iso26262 / iec61508 / iso21434 / unece / iec62443 / slsa
 # ---------------------------------------------------------------------------
 
 def _cmd_gap_report(name: str, runner, render_fn, default_level: str, level_arg: str):
@@ -1513,6 +1515,8 @@ cmd_do178 = _cmd_gap_report("do178", _do178.run, _do178.render_text, "DAL-B", "d
 cmd_iso26262 = _cmd_gap_report("iso26262", _iso26262.run, _iso26262.render_text, "ASIL-B", "asil")
 cmd_iec61508 = _cmd_gap_report("iec61508", _iec61508.run, _iec61508.render_text, "SIL-2", "sil")
 cmd_iso21434 = _cmd_gap_report("iso21434", _iso21434.run, _iso21434.render_text, "CAL-2", "cal")
+cmd_iec62443 = _cmd_gap_report("iec62443", _iec62443_gap.run, _iec62443_gap.render_text, "SL-2", "sl")
+cmd_slsa = _cmd_gap_report("slsa", _slsa_gap.run, _slsa_gap.render_text, "L2", "level")
 
 
 def cmd_unece(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
@@ -1834,6 +1838,8 @@ _COMMANDS = {
     "iec61508": cmd_iec61508,
     "iso21434": cmd_iso21434,
     "unece": cmd_unece,
+    "iec62443": cmd_iec62443,
+    "slsa": cmd_slsa,
     "sas": cmd_sas,
     "sci": cmd_sci,
     "coverage": cmd_coverage,
@@ -1884,6 +1890,8 @@ def _usage(w=sys.stdout) -> None:
     print("  do178         DO-178C Annex A compliance gap report", file=w)
     print("  iso21434      ISO 21434 cybersecurity compliance gap report", file=w)
     print("  unece         UN R.155 cybersecurity compliance gap report", file=w)
+    print("  iec62443      IEC 62443 IACS cybersecurity compliance gap report", file=w)
+    print("  slsa          SLSA supply-chain levels compliance gap report", file=w)
     print("  misra         Show MISRA C:2023 → py-FuSa rule mapping", file=w)
     print("\nDeveloper workflow:", file=w)
     print("  req           Show/import/export requirements (CSV)", file=w)
