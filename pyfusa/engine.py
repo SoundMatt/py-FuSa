@@ -12,6 +12,9 @@ from pyfusa.rules import project as _project_rules
 from pyfusa.rules import lint as _lint_rules
 from pyfusa.rules import security as _sec_rules
 from pyfusa.rules import concurrency as _conc_rules
+from pyfusa.rules import analyze as _ana_rules
+from pyfusa.rules import cyber as _cyber_rules
+from pyfusa.rules import coupling as _coup_rules
 
 
 @dataclass
@@ -145,6 +148,12 @@ def _build_default() -> Engine:
     for r in _sec_rules.ALL:
         eng.must_register(r)
     for r in _conc_rules.ALL:
+        eng.must_register(r)
+    for r in _ana_rules.ALL:
+        eng.must_register(r)
+    for r in _cyber_rules.ALL:
+        eng.must_register(r)
+    for r in _coup_rules.ALL:
         eng.must_register(r)
     return eng
 
