@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyfusa"
+version = "0.1.0"
+description = "Functional safety enablement toolkit for Python projects"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+keywords = ["functional-safety", "iso26262", "iec61508", "do178c", "safety"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.scripts]
+pyfusa = "pyfusa.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyfusa*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["pyfusa"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 80

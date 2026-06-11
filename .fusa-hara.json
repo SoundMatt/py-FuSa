@@ -1,0 +1,40 @@
+{
+  "hazards": [
+    {
+      "id": "H-001",
+      "hazard": "False negative — tool fails to detect a safety-critical coding violation",
+      "severity": "S2",
+      "exposure": "E4",
+      "controllability": "C2",
+      "asil": "ASIL-B",
+      "safetyGoal": "The tool shall detect all MUST-check rules listed in the x-FuSa spec §9.1 with no systematic omission"
+    },
+    {
+      "id": "H-002",
+      "hazard": "False positive — tool reports a violation that does not exist",
+      "severity": "S1",
+      "exposure": "E4",
+      "controllability": "C1",
+      "asil": "QM",
+      "safetyGoal": "False positive rate shall not cause users to disable the tool"
+    },
+    {
+      "id": "H-003",
+      "hazard": "Non-deterministic fingerprint — same finding produces different fingerprints across runs",
+      "severity": "S2",
+      "exposure": "E3",
+      "controllability": "C2",
+      "asil": "ASIL-A",
+      "safetyGoal": "The fingerprint algorithm shall be deterministic per §4.2"
+    },
+    {
+      "id": "H-004",
+      "hazard": "Incorrect exit code — gate failure not reported as exit 1",
+      "severity": "S2",
+      "exposure": "E4",
+      "controllability": "C2",
+      "asil": "ASIL-B",
+      "safetyGoal": "Exit codes shall conform to §2.3 in all circumstances"
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-FUSA001",
+      "title": "Core types and fingerprint algorithm",
+      "text": "The tool shall implement the §4 Finding type and §4.2 fingerprint algorithm exactly as specified in the x-FuSa spec.",
+      "standard": "iso26262",
+      "level": "HLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-LINT001",
+      "title": "Python coding-standard lint rules",
+      "text": "The tool shall check Python source files for function length, nesting depth, cyclomatic complexity, mutable defaults, star imports, and assert statements.",
+      "standard": "iso26262",
+      "level": "HLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-LINT002",
+      "title": "File length check",
+      "text": "The tool shall warn when a Python source file exceeds the configured maximum line count.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-LINT003",
+      "title": "Nesting depth check",
+      "text": "The tool shall warn when a Python function exceeds the maximum allowed block nesting depth.",
+      "standard": "iso26262",
+      "level": "LLR"
+    },
+    {
+      "id": "REQ-LINT004",
+      "title": "Cyclomatic complexity check",
+      "text": "The tool shall warn when a Python function exceeds the maximum allowed cyclomatic complexity.",
+      "standard": "iso26262",
+      "level": "LLR"
+    },
+    {
+      "id": "REQ-LINT005",
+      "title": "Mutable default argument check",
+      "text": "The tool shall warn when a Python function has a mutable default argument (list, dict, or set).",
+      "standard": "iso26262",
+      "level": "LLR"
+    },
+    {
+      "id": "REQ-LINT006",
+      "title": "Star import check",
+      "text": "The tool shall warn on wildcard imports that obscure module dependencies.",
+      "standard": "iso26262",
+      "level": "LLR"
+    },
+    {
+      "id": "REQ-LINT007",
+      "title": "Assert statement check",
+      "text": "The tool shall warn when assert statements are used in place of explicit safety checks.",
+      "standard": "iso26262",
+      "level": "LLR"
+    },
+    {
+      "id": "REQ-SEC001",
+      "title": "Bare except clause detection",
+      "text": "The tool shall report an ERROR for bare except clauses (CWE-703).",
+      "standard": "iso26262",
+      "level": "HLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-SEC002",
+      "title": "eval() usage detection",
+      "text": "The tool shall report an ERROR when eval() is used (CWE-95).",
+      "standard": "iso21434",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-SEC003",
+      "title": "exec() usage detection",
+      "text": "The tool shall report an ERROR when exec() is used (CWE-78).",
+      "standard": "iso21434",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-SEC004",
+      "title": "Pickle deserialization detection",
+      "text": "The tool shall report an ERROR when pickle.load/loads is used (CWE-502).",
+      "standard": "iso21434",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CONC001",
+      "title": "Thread synchronization check",
+      "text": "The tool shall warn when threading.Thread is created without apparent synchronization.",
+      "standard": "iso26262",
+      "level": "HLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-CLI001",
+      "title": "CLI exit codes",
+      "text": "The tool shall use exit codes 0 (success), 1 (gate failure), 2 (usage error), 3 (runtime error) per x-FuSa spec §2.3.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CLI002",
+      "title": "Version command",
+      "text": "The tool shall implement the version command per x-FuSa spec §9.1.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CLI003",
+      "title": "Capabilities command",
+      "text": "The tool shall implement the capabilities command per x-FuSa spec §9.1.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CLI004",
+      "title": "Check command",
+      "text": "The tool shall implement the check command per x-FuSa spec §4.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CLI005",
+      "title": "Trace command",
+      "text": "The tool shall implement the trace command per x-FuSa spec §5.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CLI006",
+      "title": "Qualify command",
+      "text": "The tool shall implement the qualify command per x-FuSa spec §6.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CLI007",
+      "title": "Release command",
+      "text": "The tool shall implement the release command per x-FuSa spec §7.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-CLI008",
+      "title": "Audit-pack command",
+      "text": "The tool shall implement the audit-pack command per x-FuSa spec §8.",
+      "standard": "iso26262",
+      "level": "HLR"
+    },
+    {
+      "id": "REQ-NF001",
+      "title": "No external dependencies",
+      "text": "The tool shall have no external runtime dependencies beyond the Python standard library.",
+      "standard": "iso26262",
+      "level": "HLR"
+    }
+  ]
+}
