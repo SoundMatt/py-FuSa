@@ -107,7 +107,7 @@ jobs:
         run: pyfusa coupling --dir . --format json --output coupling-report.json
 
       - name: tara (from check-report)
-        run: pyfusa tara --dir . --from check-report.json --format json --output tara.json || true
+        run: pyfusa tara --dir . --from-report check-report.json --format json --output tara.json || true
 
       - name: hara init
         run: pyfusa hara init --dir . || true
@@ -140,13 +140,13 @@ jobs:
         run: pyfusa badge --report check-report.json --output badge.svg
 
       - name: sign keygen
-        run: pyfusa sign keygen --output .fusa-key.bin
+        run: pyfusa sign keygen --key .fusa-key.bin
 
       - name: sign file
-        run: pyfusa sign sign --key .fusa-key.bin check-report.json --output check-report.json.sig
+        run: pyfusa sign sign --key .fusa-key.bin --file check-report.json
 
       - name: sign verify
-        run: pyfusa sign verify --key .fusa-key.bin check-report.json --sig check-report.json.sig
+        run: pyfusa sign verify --key .fusa-key.bin --file check-report.json
 
       - name: vuln scan
         run: pyfusa vuln --dir . || true
@@ -157,8 +157,8 @@ jobs:
       - name: impact
         run: pyfusa impact --dir . || true
 
-      - name: metrics collect
-        run: pyfusa metrics collect --dir .
+      - name: metrics record
+        run: pyfusa metrics record --dir .
 
       - name: safety-case
         run: pyfusa safety-case --dir . --format json --output safety-case.json || true
