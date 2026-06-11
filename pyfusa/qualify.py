@@ -206,7 +206,7 @@ def to_dict(report: QualifyReport, project_root: str, cfg: "Config") -> dict:
     from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
     from pyfusa.config import Config
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    return {
+    doc = {
         "schemaVersion": SPEC_VERSION,
         "kind": "qualification",
         "tool": TOOL,
@@ -220,3 +220,10 @@ def to_dict(report: QualifyReport, project_root: str, cfg: "Config") -> dict:
         "results": [r.to_dict() for r in report.results],
         "hash": report.hash,
     }
+    if cfg.asil:
+        doc["asil"] = cfg.asil
+    elif cfg.sil:
+        doc["sil"] = cfg.sil
+    elif cfg.dal:
+        doc["dal"] = cfg.dal
+    return doc

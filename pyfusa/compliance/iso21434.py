@@ -33,38 +33,42 @@ def run(project_root: str, cfg: Config, cal: str = "CAL-2") -> dict:
     cal_rank = _CAL_RANK.get(cal, 2)
 
     objectives = []
-    counts = {"PASS": 0, "GAP": 0, "N/A": 0}
+    counts = {"satisfied": 0, "gap": 0, "partial": 0}
     for obj_id, clause, title, cal_min, evidence_file in _OBJECTIVES:
         req_rank = _CAL_RANK.get(cal_min, 1)
         if cal_rank < req_rank:
-            status, evidence, gap = "N/A", "", ""
+            status, evidence = "partial", []
         elif os.path.exists(os.path.join(project_root, evidence_file)):
-            status, evidence, gap = "PASS", evidence_file, ""
+            status, evidence = "satisfied", [evidence_file]
         else:
-            status, evidence, gap = "GAP", "", f"generate {evidence_file}"
+            status, evidence = "gap", []
         counts[status] = counts.get(status, 0) + 1
-        objectives.append({
-            "id": obj_id, "clause": clause, "title": title,
-            "calMin": cal_min, "status": status, "evidence": evidence, "gap": gap,
-        })
+        obj = {"id": obj_id, "clause": clause, "title": title,
+               "calMin": cal_min, "status": status, "evidence": evidence}
+        if status == "gap":
+            obj["remediation"] = f"run 'pyfusa' to generate {evidence_file}"
+        objectives.append(obj)
 
     return {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "iso21434-gap-report",
         "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE, "generatedAt": now,
-        "project": module, "cal": cal,
-        "pass": counts["PASS"], "gap": counts["GAP"], "na": counts["N/A"],
+        "projectRoot": os.path.abspath(project_root),
+        "project": module, "standard": "iso21434", "cal": cal,
+        "summary": {"total": len(objectives), "satisfied": counts["satisfied"],
+                    "partial": counts["partial"], "gaps": counts["gap"]},
         "objectives": objectives,
     }
 
 
 def render_text(doc: dict) -> str:
+    s = doc.get("summary", {})
     lines = [
         f"ISO 21434 gap report  project={doc['project']}  CAL={doc['cal']}",
-        f"PASS={doc['pass']}  GAP={doc['gap']}  N/A={doc['na']}", "",
+        f"satisfied={s.get('satisfied',0)}  gaps={s.get('gaps',0)}  partial={s.get('partial',0)}", "",
     ]
     for obj in doc["objectives"]:
-        marker = {"PASS": "✓", "GAP": "✗", "N/A": "–"}.get(obj["status"], "?")
-        lines.append(f"  {marker} {obj['id']:10s} {obj['clause']:8s} {obj['status']:5s} {obj['title']}")
+        marker = {"satisfied": "✓", "gap": "✗", "partial": "–"}.get(obj["status"], "?")
+        lines.append(f"  {marker} {obj['id']:10s} {obj['clause']:8s} {obj['status']:10s} {obj['title']}")
     return "\n".join(lines)

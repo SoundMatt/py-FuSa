@@ -52,6 +52,7 @@ import pyfusa.safetycase as _safetycase
 import pyfusa.req_mgmt as _req_mgmt
 import pyfusa.template as _template
 import pyfusa.misra as _misra
+import pyfusa.verify as _verify
 import pyfusa.sas as _sas
 import pyfusa.sci as _sci
 import pyfusa.coverage as _coverage
@@ -1504,7 +1505,7 @@ def _cmd_gap_report(name: str, runner, render_fn, default_level: str, level_arg:
         if out_path:
             print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
 
-        return EXIT_GATE_FAIL if doc.get("gap", 0) > 0 else EXIT_OK
+        return EXIT_GATE_FAIL if doc.get("summary", {}).get("gaps", 0) > 0 else EXIT_OK
     return cmd
 
 
@@ -1551,7 +1552,7 @@ def cmd_unece(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if out_path:
         print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
-    return EXIT_GATE_FAIL if doc.get("gap", 0) > 0 else EXIT_OK
+    return EXIT_GATE_FAIL if doc.get("summary", {}).get("gaps", 0) > 0 else EXIT_OK
 
 
 # ---------------------------------------------------------------------------
@@ -1741,6 +1742,59 @@ def cmd_misra(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
 
 # ---------------------------------------------------------------------------
+# verify
+# ---------------------------------------------------------------------------
+
+def cmd_verify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa verify", add_help=True)
+    p.add_argument("--dir", default="")
+    p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
+    p.add_argument("--output", default="")
+    p.add_argument("--timeout", type=int, default=120)
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    project_root = _resolve_dir(ns.dir)
+    cfg = _load_config(project_root)
+    doc = _verify.run(project_root, cfg, timeout=ns.timeout)
+
+    out_path = ns.output
+    w = stdout
+    f_out = None
+    if out_path:
+        try:
+            f_out = open(out_path, "w", encoding="utf-8")
+            w = f_out
+        except OSError as e:
+            print(f"pyfusa verify: {e}", file=stderr)
+            return EXIT_RUNTIME
+    try:
+        if ns.fmt == "json":
+            json.dump(doc, w, indent=2, ensure_ascii=False)
+            w.write("\n")
+        else:
+            w.write(_verify.render_text(doc))
+            w.write("\n")
+    finally:
+        if f_out:
+            f_out.close()
+
+    # Auto-save evidence bundle
+    if not out_path or out_path.endswith(".json"):
+        ev_path = os.path.join(project_root, _verify.EVIDENCE_FILE)
+        if not out_path:
+            _verify.save(doc, project_root)
+            print(f"wrote {_verify.EVIDENCE_FILE}", file=stdout)
+        elif out_path:
+            print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
+    s = doc.get("summary", {})
+    return EXIT_GATE_FAIL if (s.get("failed", 0) + s.get("errored", 0)) > 0 else EXIT_OK
+
+
+# ---------------------------------------------------------------------------
 # Main dispatch
 # ---------------------------------------------------------------------------
 
@@ -1754,6 +1808,7 @@ _COMMANDS = {
     "cyber": cmd_cyber,
     "report": cmd_report,
     "trace": cmd_trace,
+    "verify": cmd_verify,
     "qualify": cmd_qualify,
     "release": cmd_release,
     "audit-pack": cmd_audit_pack,

@@ -29,35 +29,39 @@ def run(project_root: str, cfg: Config) -> dict:
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
 
     objectives = []
-    counts = {"PASS": 0, "GAP": 0}
+    counts = {"satisfied": 0, "gap": 0}
     for obj_id, clause, title, evidence_file in _OBJECTIVES:
         if os.path.exists(os.path.join(project_root, evidence_file)):
-            status, evidence, gap = "PASS", evidence_file, ""
+            status, evidence = "satisfied", [evidence_file]
         else:
-            status, evidence, gap = "GAP", "", f"generate {evidence_file}"
+            status, evidence = "gap", []
         counts[status] = counts.get(status, 0) + 1
-        objectives.append({
-            "id": obj_id, "clause": clause, "title": title,
-            "status": status, "evidence": evidence, "gap": gap,
-        })
+        obj = {"id": obj_id, "clause": clause, "title": title,
+               "status": status, "evidence": evidence}
+        if status == "gap":
+            obj["remediation"] = f"run 'pyfusa' to generate {evidence_file}"
+        objectives.append(obj)
 
     return {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "unece-r155-gap-report",
         "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE, "generatedAt": now,
-        "project": module,
-        "pass": counts["PASS"], "gap": counts["GAP"],
+        "projectRoot": os.path.abspath(project_root),
+        "project": module, "standard": "unece-r155",
+        "summary": {"total": len(objectives), "satisfied": counts["satisfied"],
+                    "partial": 0, "gaps": counts["gap"]},
         "objectives": objectives,
     }
 
 
 def render_text(doc: dict) -> str:
+    s = doc.get("summary", {})
     lines = [
         f"UN R.155 gap report  project={doc['project']}",
-        f"PASS={doc['pass']}  GAP={doc['gap']}", "",
+        f"satisfied={s.get('satisfied',0)}  gaps={s.get('gaps',0)}", "",
     ]
     for obj in doc["objectives"]:
-        marker = "✓" if obj["status"] == "PASS" else "✗"
-        lines.append(f"  {marker} {obj['id']:8s} {obj['clause']:8s} {obj['status']:5s} {obj['title']}")
+        marker = "✓" if obj["status"] == "satisfied" else "✗"
+        lines.append(f"  {marker} {obj['id']:8s} {obj['clause']:8s} {obj['status']:10s} {obj['title']}")
     return "\n".join(lines)

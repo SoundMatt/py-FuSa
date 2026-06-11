@@ -42,11 +42,11 @@ def _status(project_root: str, evidence_file: str, asil_min: str, project_asil: 
     proj_rank = _ASIL_RANK.get(project_asil, 2)
     req_rank = _ASIL_RANK.get(asil_min, 0)
     if proj_rank < req_rank:
-        return "N/A", ""
+        return "partial", []
     path = os.path.join(project_root, evidence_file)
     if os.path.exists(path):
-        return "PASS", evidence_file
-    return "GAP", f"{evidence_file} not found"
+        return "satisfied", [evidence_file]
+    return "gap", []
 
 
 def run(project_root: str, cfg: Config, asil: str = "ASIL-B") -> dict:
@@ -55,42 +55,51 @@ def run(project_root: str, cfg: Config, asil: str = "ASIL-B") -> dict:
     project_asil = asil or cfg.asil or "ASIL-B"
 
     objectives = []
-    counts = {"PASS": 0, "GAP": 0, "N/A": 0}
+    counts = {"satisfied": 0, "gap": 0, "partial": 0}
 
     for obj_id, clause, title, asil_min, evidence_file in _OBJECTIVES:
         status, evidence = _status(project_root, evidence_file, asil_min, project_asil)
         counts[status] = counts.get(status, 0) + 1
-        objectives.append({
+        obj = {
             "id": obj_id, "clause": clause, "title": title,
             "asilMin": asil_min, "status": status, "evidence": evidence,
-            "gap": f"run 'pyfusa' to generate {evidence_file}" if status == "GAP" else "",
-        })
+        }
+        if status == "gap":
+            obj["remediation"] = f"run 'pyfusa' to generate {evidence_file}"
+        objectives.append(obj)
 
-    return {
+    doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "iso26262-gap-report",
         "tool": pyfusa.TOOL,
         "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE,
         "generatedAt": now,
+        "projectRoot": os.path.abspath(project_root),
         "project": module,
+        "standard": "iso26262",
         "asil": project_asil,
-        "pass": counts["PASS"],
-        "gap": counts["GAP"],
-        "na": counts["N/A"],
+        "summary": {
+            "total": len(objectives),
+            "satisfied": counts["satisfied"],
+            "partial": counts["partial"],
+            "gaps": counts["gap"],
+        },
         "objectives": objectives,
     }
+    return doc
 
 
 def render_text(doc: dict) -> str:
+    s = doc.get("summary", {})
     lines = [
         f"ISO 26262 gap report  project={doc['project']}  ASIL={doc['asil']}",
-        f"PASS={doc['pass']}  GAP={doc['gap']}  N/A={doc['na']}",
+        f"satisfied={s.get('satisfied',0)}  gaps={s.get('gaps',0)}  partial={s.get('partial',0)}",
         "",
     ]
     for obj in doc["objectives"]:
-        marker = {"PASS": "✓", "GAP": "✗", "N/A": "–"}.get(obj["status"], "?")
-        lines.append(f"  {marker} {obj['id']:12s} {obj['clause']:10s} {obj['status']:5s} {obj['title']}")
-        if obj.get("gap"):
-            lines.append(f"              → {obj['gap']}")
+        marker = {"satisfied": "✓", "gap": "✗", "partial": "–"}.get(obj["status"], "?")
+        lines.append(f"  {marker} {obj['id']:12s} {obj['clause']:10s} {obj['status']:10s} {obj['title']}")
+        if obj.get("remediation"):
+            lines.append(f"              → {obj['remediation']}")
     return "\n".join(lines)

@@ -40,11 +40,11 @@ _OBJECTIVES = [
 
 def _status(project_root: str, evidence_file: str, dal: str, dals_apply: List[str]) -> tuple:
     if dal not in dals_apply:
-        return "N/A", ""
+        return "partial", []
     path = os.path.join(project_root, evidence_file)
     if os.path.exists(path):
-        return "PASS", evidence_file
-    return "GAP", f"{evidence_file} not found"
+        return "satisfied", [evidence_file]
+    return "gap", []
 
 
 def run(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
@@ -52,47 +52,44 @@ def run(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
 
     objectives = []
-    counts = {"PASS": 0, "FAIL": 0, "GAP": 0, "MANUAL": 0, "N/A": 0}
+    counts = {"satisfied": 0, "gap": 0, "partial": 0}
 
     for obj_id, table, section, description, dals_apply, evidence_file in _OBJECTIVES:
         status, evidence = _status(project_root, evidence_file, dal, dals_apply)
-        gap = ""
-        if status == "GAP":
-            gap = f"run 'pyfusa' to generate {evidence_file}"
         counts[status] = counts.get(status, 0) + 1
-        objectives.append({
+        obj = {
             "id": obj_id, "table": table, "section": section,
-            "description": description, "dalsApply": dals_apply,
-            "status": status, "evidence": evidence, "gap": gap,
-        })
+            "title": description, "dalsApply": dals_apply,
+            "status": status, "evidence": evidence,
+        }
+        if status == "gap":
+            obj["remediation"] = f"run 'pyfusa' to generate {evidence_file}"
+        objectives.append(obj)
 
-    return {
+    doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "do178c-gap-report",
-        "tool": pyfusa.TOOL,
-        "toolVersion": pyfusa.VERSION,
-        "language": pyfusa.LANGUAGE,
-        "generatedAt": now,
-        "project": module,
-        "dal": dal,
-        "pass": counts["PASS"],
-        "fail": counts["FAIL"],
-        "gap": counts["GAP"],
-        "manual": counts["MANUAL"],
-        "na": counts["N/A"],
+        "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
+        "language": pyfusa.LANGUAGE, "generatedAt": now,
+        "projectRoot": os.path.abspath(project_root),
+        "project": module, "standard": "do178c", "dal": dal,
+        "summary": {"total": len(objectives), "satisfied": counts["satisfied"],
+                    "partial": counts["partial"], "gaps": counts["gap"]},
         "objectives": objectives,
     }
+    return doc
 
 
 def render_text(doc: dict) -> str:
+    s = doc.get("summary", {})
     lines = [
         f"DO-178C gap report  project={doc['project']}  dal={doc['dal']}",
-        f"PASS={doc['pass']}  GAP={doc['gap']}  N/A={doc['na']}",
+        f"satisfied={s.get('satisfied',0)}  gaps={s.get('gaps',0)}  partial={s.get('partial',0)}",
         "",
     ]
     for obj in doc["objectives"]:
-        marker = {"PASS": "✓", "GAP": "✗", "N/A": "–", "FAIL": "✗", "MANUAL": "?"}.get(obj["status"], "?")
-        lines.append(f"  {marker} {obj['id']:8s} {obj['status']:6s} {obj['description']}")
-        if obj.get("gap"):
-            lines.append(f"           → {obj['gap']}")
+        marker = {"satisfied": "✓", "gap": "✗", "partial": "–"}.get(obj["status"], "?")
+        lines.append(f"  {marker} {obj['id']:8s} {obj['status']:10s} {obj.get('title','')}")
+        if obj.get("remediation"):
+            lines.append(f"           → {obj['remediation']}")
     return "\n".join(lines)

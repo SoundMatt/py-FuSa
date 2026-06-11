@@ -15,6 +15,10 @@ from pyfusa.rules import concurrency as _conc_rules
 from pyfusa.rules import analyze as _ana_rules
 from pyfusa.rules import cyber as _cyber_rules
 from pyfusa.rules import coupling as _coup_rules
+from pyfusa.rules import evidence as _evidence_rules
+from pyfusa.rules import slsa as _slsa_rules
+from pyfusa.rules import comp as _comp_rules
+from pyfusa.rules import iec62443 as _iec62443_rules
 
 
 @dataclass
@@ -154,6 +158,14 @@ def _build_default() -> Engine:
     for r in _cyber_rules.ALL:
         eng.must_register(r)
     for r in _coup_rules.ALL:
+        eng.must_register(r)
+    for r in _evidence_rules.ALL:
+        eng.must_register(r)
+    for r in _slsa_rules.ALL:
+        eng.must_register(r)
+    for r in _comp_rules.ALL:
+        eng.must_register(r)
+    for r in _iec62443_rules.ALL:
         eng.must_register(r)
     return eng
 
