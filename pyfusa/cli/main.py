@@ -138,7 +138,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
         "specVersion": SPEC_VERSION,
         "commands": [
             "version", "capabilities", "init", "check", "lint", "analyze", "cyber",
-            "report", "trace", "qualify", "release", "audit-pack", "coverage",
+            "report", "trace", "verify", "qualify", "release", "audit-pack", "coverage",
             "fmea", "boundary", "coupling", "tara", "hara", "safety-case", "sas", "sci",
             "iso26262", "iec61508", "do178", "iso21434", "unece", "misra",
             "req", "diff", "badge", "fix", "hooks", "sign", "vuln",

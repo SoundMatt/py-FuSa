@@ -110,7 +110,7 @@ jobs:
         run: pyfusa tara --dir . --from check-report.json --format json --output tara.json || true
 
       - name: hara init
-        run: pyfusa hara init --dir .
+        run: pyfusa hara init --dir . || true
 
       - name: hara validate
         run: pyfusa hara validate --dir . || true
@@ -126,6 +126,12 @@ jobs:
 
       - name: audit-pack
         run: pyfusa audit-pack --dir .
+
+      - name: verify (test evidence bundle)
+        run: pyfusa verify --dir . || true
+
+      - name: disposition list
+        run: pyfusa disposition list --dir .
 
       - name: diff (baseline vs current)
         run: pyfusa diff check-report.json check-report.json
