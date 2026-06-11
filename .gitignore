@@ -17,6 +17,6 @@ htmlcov/
 sbom.json
 provenance.json
 artifact-manifest.json
-qualify-report.json
+# qualify-report.json  # tracked in repo as evidence
 audit-pack.zip
 .DS_Store
