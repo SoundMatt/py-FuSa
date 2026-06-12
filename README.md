@@ -1,4 +1,4 @@
-# py-FuSa — v0.1.3
+# py-FuSa — v0.1.4
 
 A functional safety enablement toolkit for Python projects. py-FuSa provides static checks,
 coding rules, traceability helpers, CI evidence bundles, and tool qualification support to help
