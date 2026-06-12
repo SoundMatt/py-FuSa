@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.1 — 2026-06-12
+
+### Added
+
+- `pyfusa iec62443` — IEC 62443 IACS cybersecurity compliance gap report (12 objectives, SL-1 to SL-4, spec §9.3)
+- `pyfusa slsa` — SLSA supply-chain levels compliance gap report (10 objectives, L1 to L4, spec §9.3)
+
+### Fixed
+
+- CI: `tara` uses `--from-report` not `--from`
+- CI: `sign keygen/sign/verify` use `--key`/`--file` flags
+- CI: `metrics record` not `metrics collect`
+- Dockerfile OCI version label was stuck at `0.1.0`
+
+---
+
 ## 0.1.0 — 2026-06-11
 
 Initial release. Implements x-FuSa spec v1.9.

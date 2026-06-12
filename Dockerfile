@@ -34,7 +34,7 @@ COPY --from=builder /install /usr/local
 
 LABEL org.opencontainers.image.title="py-FuSa" \
       org.opencontainers.image.description="Functional safety enablement toolkit for Python" \
-      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.version="0.1.1" \
       org.opencontainers.image.source="https://github.com/SoundMatt/py-FuSa" \
       org.opencontainers.image.licenses="MPL-2.0" \
       io.x-fusa.tool="py-FuSa" \
