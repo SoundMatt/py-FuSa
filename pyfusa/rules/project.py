@@ -11,6 +11,8 @@ from pyfusa.rules import Rule
 #fusa:req REQ-FUSA001
 class RuleConfigPresent(Rule):
     rule_id = "FUSA001"
+    standard = "iso26262"
+    clause = "4.6"
     description = "Project must have a .fusa.json configuration file."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -29,6 +31,8 @@ class RuleConfigPresent(Rule):
 #fusa:req REQ-FUSA002
 class RulePythonProjectPresent(Rule):
     rule_id = "FUSA002"
+    standard = "iso26262"
+    clause = "4.6"
     description = "Project must have a Python packaging file (pyproject.toml, setup.py, or setup.cfg)."
 
     _CANDIDATES = ["pyproject.toml", "setup.py", "setup.cfg"]
@@ -49,6 +53,8 @@ class RulePythonProjectPresent(Rule):
 #fusa:req REQ-FUSA003
 class RuleLicensePresent(Rule):
     rule_id = "FUSA003"
+    standard = "iso26262"
+    clause = "4.6"
     description = "Project must have a LICENSE file for IP clarity in safety cases."
 
     _CANDIDATES = ["LICENSE", "LICENSE.txt", "LICENSE.md", "LICENCE"]
@@ -69,6 +75,8 @@ class RuleLicensePresent(Rule):
 #fusa:req REQ-FUSA004
 class RuleReadmePresent(Rule):
     rule_id = "FUSA004"
+    standard = "iso26262"
+    clause = "4.6"
     description = "Project must have a README for assessor orientation."
 
     _CANDIDATES = ["README.md", "README.txt", "README.rst", "README"]
@@ -89,6 +97,8 @@ class RuleReadmePresent(Rule):
 #fusa:req REQ-FUSA005
 class RuleCIPresent(Rule):
     rule_id = "FUSA005"
+    standard = "iso26262"
+    clause = "4.6"
     description = "Project must have CI configuration for automated evidence generation."
 
     _CANDIDATES = [
@@ -116,6 +126,8 @@ class RuleCIPresent(Rule):
 #fusa:req REQ-FUSA006
 class RuleRequirementsPresent(Rule):
     rule_id = "FUSA006"
+    standard = "iso26262"
+    clause = "5.4.6"
     description = "Project must have a .fusa-reqs.json requirements registry."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:

@@ -13,6 +13,8 @@ from pyfusa.rules.lint import _python_files, _parse_file
 #fusa:req REQ-CONC001
 class RuleThreadWithoutLock(Rule):
     rule_id = "CONC001"
+    standard = "iso26262"
+    clause = "5.4.7"
     description = "Thread creation without apparent synchronization context may introduce data races."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -54,6 +56,8 @@ class RuleThreadWithoutLock(Rule):
 #fusa:req REQ-CONC002
 class RuleGlobalMutation(Rule):
     rule_id = "CONC002"
+    standard = "iso26262"
+    clause = "5.4.7"
     description = "Module-level global variables are a shared-state hazard in multi-threaded code."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -82,6 +86,8 @@ class RuleGlobalMutation(Rule):
 #fusa:req REQ-CONC003
 class RuleAsyncWithoutAwait(Rule):
     rule_id = "CONC003"
+    standard = "do178c"
+    clause = "6.3.4"
     description = "async functions that never await may block the event loop."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:

@@ -36,6 +36,8 @@ def _complexity(tree: ast.FunctionDef) -> int:
 
 class COMP001(Rule):
     rule_id = "COMP001"
+    standard = "do178c"
+    clause = "6.3.4"
     description = "Cyclomatic complexity V(G) must not exceed the ASIL/DAL threshold (DO-178C §6.3.4)."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:

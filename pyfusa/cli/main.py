@@ -296,6 +296,30 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         result = _engine.Default.run(project_root, cfg)
     except Exception as e:
         print(f"pyfusa check: engine error: {e}", file=stderr)
+        fmt = (cfg.report_format or "text").lower()
+        if fmt == "json":
+            from datetime import datetime, timezone as _tz
+            now = datetime.now(tz=_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            err_doc = {
+                "schemaVersion": SPEC_VERSION, "kind": "check-report",
+                "tool": TOOL, "toolVersion": VERSION, "language": LANGUAGE,
+                "generatedAt": now, "projectRoot": project_root,
+                "error": {"code": "internal", "message": str(e)},
+            }
+            w = stdout
+            f_out = None
+            if cfg.report_output:
+                try:
+                    f_out = open(cfg.report_output, "w", encoding="utf-8")
+                    w = f_out
+                except OSError:
+                    pass
+            try:
+                json.dump(err_doc, w, indent=2)
+                w.write("\n")
+            finally:
+                if f_out:
+                    f_out.close()
         return EXIT_RUNTIME
 
     for err in result.errors:

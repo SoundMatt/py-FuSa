@@ -1,4 +1,4 @@
-# py-FuSa — v0.1.2
+# py-FuSa — v0.1.3
 
 A functional safety enablement toolkit for Python projects. py-FuSa provides static checks,
 coding rules, traceability helpers, CI evidence bundles, and tool qualification support to help
@@ -222,7 +222,7 @@ def test_injection_prevention():
 
 ## Findings output
 
-Every finding carries the §4.2 canonical SHA-256 fingerprint for stable cross-tool identification:
+Every finding carries the §4.2 canonical SHA-256 fingerprint for stable cross-tool identification, along with `standard`, `clause`, and `remediation` fields:
 
 ```json
 {
@@ -240,7 +240,7 @@ Every finding carries the §4.2 canonical SHA-256 fingerprint for stable cross-t
 
 ## x-FuSa spec conformance
 
-py-FuSa implements x-FuSa spec **v1.9**. All §9.1 required commands are implemented:
+py-FuSa implements x-FuSa spec **v1.10**. All §9.1 required commands are implemented:
 `version`, `capabilities`, `init`, `check`, `report`, `trace`, `verify`, `qualify`, `release`, `audit-pack`.
 
 | Item | Status |
@@ -256,7 +256,7 @@ py-FuSa implements x-FuSa spec **v1.9**. All §9.1 required commands are impleme
 | `remediation` (MUST) | ✅ |
 | `capabilities` command (MUST) | ✅ |
 | SARIF 2.1.0 with physicalLocation | ✅ |
-| `sbom.json` with `module` + `components` | ✅ |
+| `sbom.json` with `module` + `components` + `hash` (§2.7) | ✅ |
 | `audit-pack.zip` flat ZIP + `manifest.json` | ✅ |
 | `qualify` with `total/passed/failed` + `hash` | ✅ |
 | `trace` with `requirements/tags/coverage` schema | ✅ |
@@ -264,6 +264,8 @@ py-FuSa implements x-FuSa spec **v1.9**. All §9.1 required commands are impleme
 | §9.3 gap-report schema: `satisfied\|gap\|partial` status | ✅ |
 | §9.3 `evidence` field as array | ✅ |
 | §9.3 summary keys `satisfied/partial/gaps` | ✅ |
+| `standard` + `clause` on all findings (§4) | ✅ |
+| §3.2 structured `error: {code, message}` on exit-3 (json format) | ✅ |
 | Disposition support (§4.1) | ✅ |
 | Project-relative `location.file` | ✅ |
 

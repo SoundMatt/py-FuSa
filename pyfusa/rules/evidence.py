@@ -40,6 +40,8 @@ def _presence(rule_id: str, filename: str, message: str, remediation: str,
 
 class RELEASE001(Rule):
     rule_id = "RELEASE001"
+    standard = "iso26262"
+    clause = "13.3"
     description = "Project should have an sbom.json Software Bill of Materials."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -56,6 +58,8 @@ class RELEASE001(Rule):
 
 class RELEASE002(Rule):
     rule_id = "RELEASE002"
+    standard = "iso26262"
+    clause = "13.3"
     description = "Project should have a provenance.json build provenance record."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -74,6 +78,8 @@ class RELEASE002(Rule):
 
 class QUALIFY001(Rule):
     rule_id = "QUALIFY001"
+    standard = "iso26262"
+    clause = "8.4"
     description = "Tool qualification evidence (qualify-report.json) should be present."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -92,6 +98,8 @@ class QUALIFY001(Rule):
 
 class FMEA001(Rule):
     rule_id = "FMEA001"
+    standard = "iso26262"
+    clause = "7.5"
     description = "FMEA analysis (fmea.json) should be present."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -108,6 +116,8 @@ class FMEA001(Rule):
 
 class TARA001(Rule):
     rule_id = "TARA001"
+    standard = "iso21434"
+    clause = "8"
     description = "TARA cybersecurity risk assessment (tara.json) should be present."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -124,6 +134,8 @@ class TARA001(Rule):
 
 class BOUNDARY001(Rule):
     rule_id = "BOUNDARY001"
+    standard = "iso26262"
+    clause = "7.2"
     description = "System boundary diagram (boundary.json / .mermaid / .dot) should be present."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -141,6 +153,8 @@ class BOUNDARY001(Rule):
 
 class SAFETYCASE001(Rule):
     rule_id = "SAFETYCASE001"
+    standard = "iec61508"
+    clause = "7.4"
     description = "Safety case (safety-case.json) should be assembled."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -157,6 +171,8 @@ class SAFETYCASE001(Rule):
 
 class AUDITPACK001(Rule):
     rule_id = "AUDITPACK001"
+    standard = "iso26262"
+    clause = "13.3"
     description = "Audit pack bundle (audit-pack.zip) should be present."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -175,6 +191,8 @@ class AUDITPACK001(Rule):
 
 class VERIFY001(Rule):
     rule_id = "VERIFY001"
+    standard = "do178c"
+    clause = "11.4"
     description = "Test evidence bundle (.fusa-evidence.json) should be present."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -191,6 +209,8 @@ class VERIFY001(Rule):
 
 class VERIFY002(Rule):
     rule_id = "VERIFY002"
+    standard = "do178c"
+    clause = "11.4"
     description = "Test evidence bundle must report zero failed tests."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -220,6 +240,8 @@ class VERIFY002(Rule):
 
 class HARA001(Rule):
     rule_id = "HARA001"
+    standard = "iso26262"
+    clause = "7.4"
     description = "HARA file (.fusa-hara.json) should be present for functional-safety standards."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -237,6 +259,8 @@ class HARA001(Rule):
 
 
 class HARA002(Rule):
+    standard = "iso26262"
+    clause = "7.4"
     rule_id = "HARA002"
     description = "Every hazard must have a complete risk rating (severity, exposure, controllability)."
 
@@ -262,6 +286,8 @@ class HARA002(Rule):
 
 
 class HARA003(Rule):
+    standard = "iso26262"
+    clause = "7.4"
     rule_id = "HARA003"
     description = "Every hazard must be linked to at least one safety goal."
 
@@ -296,6 +322,8 @@ class HARA003(Rule):
 
 
 class HARA004(Rule):
+    standard = "iso26262"
+    clause = "7.4"
     rule_id = "HARA004"
     description = "Every safety goal must have an ASIL assigned."
 
@@ -320,6 +348,8 @@ class HARA004(Rule):
 
 
 class HARA005(Rule):
+    standard = "iso26262"
+    clause = "7.4"
     rule_id = "HARA005"
     description = "Safety goal ASIL must not exceed the project ASIL ceiling."
 
@@ -351,6 +381,8 @@ class HARA005(Rule):
 # ── Disposition rule ──────────────────────────────────────────────────────────
 
 class DISP001(Rule):
+    standard = "iso26262"
+    clause = "4.1"
     rule_id = "DISP001"
     description = "Every ERROR finding in check-report.json must have a disposition entry."
 

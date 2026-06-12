@@ -95,6 +95,8 @@ def _max_nesting(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
 #fusa:req REQ-LINT001
 class RuleFunctionLength(Rule):
     rule_id = "LINT001"
+    standard = "do178c"
+    clause = "6.3.4"
     description = f"Functions must not exceed {_MAX_FUNC_LINES} lines (excluding blank lines and comments)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -123,6 +125,8 @@ class RuleFunctionLength(Rule):
 #fusa:req REQ-LINT002
 class RuleFileLength(Rule):
     rule_id = "LINT002"
+    standard = "do178c"
+    clause = "6.3.4"
     description = f"Source files must not exceed {_MAX_FILE_LINES} lines."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -147,6 +151,8 @@ class RuleFileLength(Rule):
 #fusa:req REQ-LINT003
 class RuleNestingDepth(Rule):
     rule_id = "LINT003"
+    standard = "do178c"
+    clause = "6.3.4"
     description = f"Functions must not exceed {_MAX_NESTING} levels of block nesting."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -173,6 +179,8 @@ class RuleNestingDepth(Rule):
 #fusa:req REQ-LINT004
 class RuleCyclomaticComplexity(Rule):
     rule_id = "LINT004"
+    standard = "do178c"
+    clause = "6.3.4"
     description = f"Functions must not exceed cyclomatic complexity {_MAX_COMPLEXITY}."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -199,6 +207,8 @@ class RuleCyclomaticComplexity(Rule):
 #fusa:req REQ-LINT005
 class RuleMutableDefaultArg(Rule):
     rule_id = "LINT005"
+    standard = "iso26262"
+    clause = "6.4.3"
     description = "Function default arguments must not be mutable (list, dict, set)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -228,6 +238,8 @@ class RuleMutableDefaultArg(Rule):
 #fusa:req REQ-LINT006
 class RuleStarImport(Rule):
     rule_id = "LINT006"
+    standard = "do178c"
+    clause = "6.3.4"
     description = "Wildcard imports (from x import *) pollute the namespace and obscure dependencies."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -255,6 +267,8 @@ class RuleStarImport(Rule):
 #fusa:req REQ-LINT007
 class RuleAssertStatement(Rule):
     rule_id = "LINT007"
+    standard = "iso26262"
+    clause = "6.4.3"
     description = "assert statements are removed by Python -O flag and must not be used for safety checks."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:

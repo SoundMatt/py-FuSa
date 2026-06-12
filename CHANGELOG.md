@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.3 — 2026-06-12
+
+### Changed
+
+- Bumped SPEC_VERSION to 1.10 (was 1.9) to match current x-FuSa spec
+
+### Fixed
+
+- **§4 findings:** All rule classes now emit `standard` and `clause` fields via engine injection — every finding has a traceable standard reference
+- **§2.7 sbom components:** `sbom.json` now includes `hash: "sha256:<hex>"` for each component (METADATA hash)
+- **§3.2 structured error:** `check --format json` now emits a JSON error envelope with `error: {code, message}` on exit-3 runtime failures
+
+---
+
 ## 0.1.2 — 2026-06-12
 
 ### Added

@@ -11,8 +11,8 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Optional
 
-VERSION = "0.1.2"
-SPEC_VERSION = "1.9"
+VERSION = "0.1.3"
+SPEC_VERSION = "1.10"
 LANGUAGE = "python"
 TOOL = "py-FuSa"
 BINARY = "pyfusa"

@@ -17,6 +17,8 @@ _BRANCH_PROT = [".github/branch-protection.json", ".github/rulesets.json", "docs
 
 class SLSA001(Rule):
     rule_id = "SLSA001"
+    standard = "slsa"
+    clause = "2.1"
     description = "provenance.json must record vcsRevision to satisfy SLSA L1."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -39,6 +41,8 @@ class SLSA001(Rule):
 
 class SLSA002(Rule):
     rule_id = "SLSA002"
+    standard = "slsa"
+    clause = "2.2"
     description = "provenance.json must include a builder field to satisfy SLSA L2."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
@@ -61,6 +65,8 @@ class SLSA002(Rule):
 
 class SLSA003(Rule):
     rule_id = "SLSA003"
+    standard = "slsa"
+    clause = "2.3"
     description = "CODEOWNERS and branch-protection policy required for SLSA L3 two-party review."
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:

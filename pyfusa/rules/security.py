@@ -20,6 +20,8 @@ _SECRET_RE = re.compile(
 #fusa:req REQ-SEC001
 class RuleBareExcept(Rule):
     rule_id = "SEC001"
+    standard = "iso26262"
+    clause = "7.4.4"
     description = "Bare 'except:' clauses suppress all exceptions including SystemExit and KeyboardInterrupt (CWE-703)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -47,6 +49,8 @@ class RuleBareExcept(Rule):
 #fusa:req REQ-SEC002
 class RuleEvalUsage(Rule):
     rule_id = "SEC002"
+    standard = "cert-c"
+    clause = "ENV33-C"
     description = "eval() executes arbitrary code and must not be used (CWE-95)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -74,6 +78,8 @@ class RuleEvalUsage(Rule):
 #fusa:req REQ-SEC003
 class RuleExecUsage(Rule):
     rule_id = "SEC003"
+    standard = "cert-c"
+    clause = "ENV33-C"
     description = "exec() executes arbitrary code and must not be used (CWE-78)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -101,6 +107,8 @@ class RuleExecUsage(Rule):
 #fusa:req REQ-SEC004
 class RulePickleUsage(Rule):
     rule_id = "SEC004"
+    standard = "iso21434"
+    clause = "9.5"
     description = "pickle.load/loads deserialises arbitrary Python objects (CWE-502)."
 
     _FUNCS = {"load", "loads", "Unpickler"}
@@ -131,6 +139,8 @@ class RulePickleUsage(Rule):
 #fusa:req REQ-SEC005
 class RuleOsSystem(Rule):
     rule_id = "SEC005"
+    standard = "cert-c"
+    clause = "ENV33-C"
     description = "os.system() passes commands to a shell and is vulnerable to injection (CWE-78)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -160,6 +170,8 @@ class RuleOsSystem(Rule):
 #fusa:req REQ-SEC006
 class RuleSubprocessShell(Rule):
     rule_id = "SEC006"
+    standard = "cert-c"
+    clause = "ENV33-C"
     description = "subprocess with shell=True is vulnerable to command injection (CWE-78)."
 
     _FUNCS = {"Popen", "call", "check_call", "check_output", "run"}
@@ -198,6 +210,8 @@ class RuleSubprocessShell(Rule):
 #fusa:req REQ-SEC007
 class RuleHardcodedSecret(Rule):
     rule_id = "SEC007"
+    standard = "iso21434"
+    clause = "9.4.2"
     description = "Hardcoded credentials or secrets must not appear in source (CWE-312)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -224,6 +238,8 @@ class RuleHardcodedSecret(Rule):
 #fusa:req REQ-SEC008
 class RuleTempfileMktemp(Rule):
     rule_id = "SEC008"
+    standard = "cert-c"
+    clause = "FIO21-C"
     description = "tempfile.mktemp() creates a race condition; use tempfile.mkstemp() (CWE-377)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
@@ -251,6 +267,8 @@ class RuleTempfileMktemp(Rule):
 #fusa:req REQ-SEC009
 class RuleRandomForSecurity(Rule):
     rule_id = "SEC009"
+    standard = "iso21434"
+    clause = "9.5"
     description = "random module must not be used for security-sensitive values; use secrets (CWE-330)."
 
     _SEC_FUNCS = {"randint", "random", "choice", "choices", "sample", "randrange", "uniform"}

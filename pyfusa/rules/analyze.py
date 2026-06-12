@@ -195,6 +195,8 @@ class _NoneDerefVisitor(ast.NodeVisitor):
 # ANA001 — thread/task creation without termination signal
 # ---------------------------------------------------------------------------
 class ANA001(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA001"
     description = "Thread or task created without a stop/done event signal"
 
@@ -244,6 +246,8 @@ class ANA001(Rule):
 # ANA002 — thread/task creation inside a loop
 # ---------------------------------------------------------------------------
 class ANA002(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA002"
     description = "Thread or task spawned inside a loop without concurrency bound"
 
@@ -278,6 +282,8 @@ class ANA002(Rule):
 # ANA003 — time.sleep inside thread worker
 # ---------------------------------------------------------------------------
 class ANA003(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA003"
     description = "time.sleep() inside thread worker cannot be interrupted"
 
@@ -305,6 +311,8 @@ class ANA003(Rule):
 # ANA004 — resource cleanup in finally block that itself raises
 # ---------------------------------------------------------------------------
 class ANA004(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA004"
     description = "except/finally block that may raise swallows original exception"
 
@@ -333,6 +341,8 @@ class ANA004(Rule):
 # ANA005 — re-fetching context/config inside function that already has it
 # ---------------------------------------------------------------------------
 class ANA005(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA005"
     description = "Redundant global/config lookup inside a function that accepts it as a parameter"
 
@@ -375,6 +385,8 @@ class ANA005(Rule):
 # ANA006 — unchecked return value (None check omitted)
 # ---------------------------------------------------------------------------
 class ANA006(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA006"
     description = "Return value of function call discarded without inspection"
 
@@ -409,6 +421,8 @@ class ANA006(Rule):
 # ANA007 — potential None dereference
 # ---------------------------------------------------------------------------
 class ANA007(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA007"
     description = "Potential None dereference: attribute access on value that may be None"
 
@@ -446,6 +460,8 @@ class ANA007(Rule):
 # ANA008 — mutable shared state modified in thread context
 # ---------------------------------------------------------------------------
 class ANA008(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA008"
     description = "Mutable variable from enclosing scope modified inside thread worker"
 
@@ -479,6 +495,8 @@ class ANA008(Rule):
 # ANA009 — dead code (unreachable after return/raise/break/continue)
 # ---------------------------------------------------------------------------
 class ANA009(Rule):
+    standard = "iso26262"
+    clause = "6.4.3"
     rule_id = "ANA009"
     description = "Unreachable code detected after return/raise/break/continue"
 

@@ -82,6 +82,14 @@ class Engine:
         for rule in self._rules:
             try:
                 findings = rule.run(project_root, cfg)
+                rule_std = getattr(type(rule), 'standard', '')
+                rule_clause = getattr(type(rule), 'clause', '')
+                if rule_std or rule_clause:
+                    for f in findings:
+                        if not f.standard and rule_std:
+                            f.standard = rule_std
+                        if not f.clause and rule_clause:
+                            f.clause = rule_clause
                 result.findings.extend(findings)
             except Exception as e:
                 result.errors.append(f"rule {rule.rule_id}: {e}")

@@ -42,6 +42,19 @@ def _get_vcs_revision(project_root: str) -> tuple[str, bool]:
         return "", False
 
 
+def _pkg_hash(dist_name: str) -> str:
+    """Return sha256:<hex> of the package METADATA file (§2.7 hash convention)."""
+    try:
+        dist = importlib.metadata.distribution(dist_name)
+        metadata_text = dist.read_text("METADATA")
+        if metadata_text:
+            h = hashlib.sha256(metadata_text.encode("utf-8", errors="replace")).hexdigest()
+            return f"sha256:{h}"
+    except Exception:
+        pass
+    return ""
+
+
 def _collect_dependencies() -> list[dict]:
     """Collect installed Python package dependencies."""
     deps = []
@@ -57,7 +70,11 @@ def _collect_dependencies() -> list[dict]:
                     meta = importlib.metadata.metadata(dist_name)
                     version = meta.get("Version", "")
                     if version:
-                        deps.append({"name": dist_name, "version": version})
+                        pkg_hash = _pkg_hash(dist_name)
+                        entry: dict = {"name": dist_name, "version": version}
+                        if pkg_hash:
+                            entry["hash"] = pkg_hash
+                        deps.append(entry)
                 except importlib.metadata.PackageNotFoundError:
                     pass
     except Exception:
@@ -83,7 +100,7 @@ def generate_sbom(project_root: str, cfg: Config) -> dict:
         "format": "x-FuSa SBOM v1",
         "module": module,
         "components": [
-            {"name": c["name"], "version": c["version"]}
+            {k: v for k, v in c.items() if k in ("name", "version", "hash")}
             for c in components
         ],
     }

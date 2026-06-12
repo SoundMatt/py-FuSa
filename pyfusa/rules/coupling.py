@@ -54,6 +54,8 @@ def _is_callable_annotation(ann) -> bool:
 # ---------------------------------------------------------------------------
 class COUP001(Rule):
     rule_id = "COUP001"
+    standard = "iso26262"
+    clause = "6.4.3"
     description = "Module-level mutable variable creates data coupling"
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
@@ -94,6 +96,8 @@ class COUP001(Rule):
 # ---------------------------------------------------------------------------
 class COUP002(Rule):
     rule_id = "COUP002"
+    standard = "iso26262"
+    clause = "6.4.3"
     description = "Public function accepts callable parameter — control coupling"
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
@@ -125,6 +129,8 @@ class COUP002(Rule):
 # ---------------------------------------------------------------------------
 class COUP003(Rule):
     rule_id = "COUP003"
+    standard = "iso26262"
+    clause = "6.4.3"
     description = "Coupling analysis report (coupling-report.json) must be present"
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
