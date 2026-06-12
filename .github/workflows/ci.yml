@@ -190,6 +190,9 @@ jobs:
       - name: sci (Software Configuration Index)
         run: pyfusa sci --dir . --format json --output sci.json
 
+      - name: comp (cyclomatic complexity report)
+        run: pyfusa comp --dir . --format json --output comp-report.json || true
+
       - name: coverage report
         run: pyfusa coverage --dir . || true
 
@@ -209,6 +212,7 @@ jobs:
           path: |
             check-report.json
             qualify-report.json
+            comp-report.json
             fmea.json
             boundary.json
             coupling-report.json

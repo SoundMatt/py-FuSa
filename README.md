@@ -1,4 +1,4 @@
-# py-FuSa — v0.1.1
+# py-FuSa — v0.1.2
 
 A functional safety enablement toolkit for Python projects. py-FuSa provides static checks,
 coding rules, traceability helpers, CI evidence bundles, and tool qualification support to help
@@ -63,6 +63,10 @@ pyfusa iso21434
 pyfusa unece
 pyfusa iec62443
 pyfusa slsa
+
+# Generate cyclomatic complexity report (DO-178C §6.3.4)
+pyfusa comp
+pyfusa comp --format json --output comp-report.json
 
 # Query tool capabilities
 pyfusa capabilities --format json
@@ -137,6 +141,13 @@ pyfusa version
 | Rule | Severity | Description |
 |---|---|---|
 | COMP001 | WARNING | Cyclomatic complexity V(G) exceeds ASIL/DAL threshold |
+
+Use `pyfusa comp` to generate a full per-function complexity report (`comp-report.json`) without running all checks:
+
+```bash
+pyfusa comp                          # writes comp-report.json, exits 1 if any FAIL
+pyfusa comp --format json            # JSON report
+```
 
 ### Evidence presence (RELEASE / QUALIFY / HARA / VERIFY / DISP series)
 

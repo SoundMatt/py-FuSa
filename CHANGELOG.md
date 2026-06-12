@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — 2026-06-12
+
+### Added
+
+- `pyfusa comp` — standalone cyclomatic complexity report → `comp-report.json` (DO-178C §6.3.4). Scans all non-test Python functions, reports V(G) per function, exits 1 if any exceed the ASIL/DAL threshold. Achieves full feature parity with java-FuSa.
+
+---
+
 ## 0.1.1 — 2026-06-12
 
 ### Added

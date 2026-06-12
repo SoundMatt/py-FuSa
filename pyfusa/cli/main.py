@@ -51,6 +51,7 @@ import pyfusa.metrics as _metrics
 import pyfusa.safetycase as _safetycase
 import pyfusa.req_mgmt as _req_mgmt
 import pyfusa.template as _template
+import pyfusa.comp as _comp
 import pyfusa.misra as _misra
 import pyfusa.verify as _verify
 import pyfusa.sas as _sas
@@ -143,6 +144,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "report", "trace", "verify", "qualify", "release", "audit-pack", "coverage",
             "fmea", "boundary", "coupling", "tara", "hara", "safety-case", "sas", "sci",
             "iso26262", "iec61508", "do178", "iso21434", "unece", "iec62443", "slsa", "misra",
+            "comp",
             "req", "diff", "badge", "fix", "hooks", "sign", "vuln",
             "disposition", "pr", "impact", "metrics", "template",
         ],
@@ -1726,6 +1728,46 @@ def cmd_template(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
 
 # ---------------------------------------------------------------------------
+# comp
+# ---------------------------------------------------------------------------
+
+def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa comp", add_help=True)
+    p.add_argument("--dir", default="")
+    p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
+    p.add_argument("--output", default="")
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    project_root = _resolve_dir(ns.dir)
+    cfg = _load_config(project_root)
+    doc = _comp.run(project_root, cfg)
+
+    out_path = ns.output or os.path.join(project_root, _comp.COMP_REPORT)
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            if ns.fmt == "json":
+                json.dump(doc, f, indent=2, ensure_ascii=False)
+                f.write("\n")
+            else:
+                f.write(_comp.render_text(doc))
+                f.write("\n")
+    except OSError as e:
+        print(f"pyfusa comp: {e}", file=stderr)
+        return EXIT_RUNTIME
+
+    s = doc["summary"]
+    print(
+        f"Complexity: {s['total']} functions, {s['fail']} over threshold={doc['threshold']}",
+        file=stdout,
+    )
+    print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    return EXIT_GATE_FAIL if s["fail"] > 0 else EXIT_OK
+
+
+# ---------------------------------------------------------------------------
 # misra
 # ---------------------------------------------------------------------------
 
@@ -1844,6 +1886,7 @@ _COMMANDS = {
     "sci": cmd_sci,
     "coverage": cmd_coverage,
     "template": cmd_template,
+    "comp": cmd_comp,
     "misra": cmd_misra,
 }
 
@@ -1884,6 +1927,7 @@ def _usage(w=sys.stdout) -> None:
     print("  safety-case   Assemble structured safety case from evidence", file=w)
     print("  sas           Generate Software Accomplishment Summary (DO-178C §11.20)", file=w)
     print("  sci           Generate Software Configuration Index (DO-178C §11.16)", file=w)
+    print("  comp          Cyclomatic complexity report → comp-report.json (DO-178C §6.3.4)", file=w)
     print("\nCompliance gap reports:", file=w)
     print("  iso26262      ISO 26262 Part 6 compliance gap report", file=w)
     print("  iec61508      IEC 61508 Parts 1-3 compliance gap report", file=w)
