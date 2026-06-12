@@ -238,6 +238,44 @@ def test_format_invariant_standard_clause_present_in_json():
 
 
 # ---------------------------------------------------------------------------
+# §4 MAY — endLine/endColumn on AST-based findings
+# ---------------------------------------------------------------------------
+
+def test_endline_on_ast_findings():
+    """AST-based findings (e.g. LINT001) must carry endLine (§4 MAY)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir)
+        # Write a function long enough to trigger LINT001
+        with open(os.path.join(tmpdir, "big.py"), "w") as f:
+            f.write("def big_func(x):\n")
+            for i in range(65):
+                f.write(f"    x = x + {i}\n")
+            f.write("    return x\n")
+        out = io.StringIO()
+        run(["check", "--dir", tmpdir, "--format", "json"], stdout=out)
+        doc = json.loads(out.getvalue())
+        lint1 = [f for f in doc.get("findings", []) if f["ruleId"] == "LINT001"]
+        assert lint1, "Expected at least one LINT001 finding"
+        for f in lint1:
+            loc = f["location"]
+            assert "endLine" in loc, f"LINT001 finding missing endLine: {loc}"
+            assert loc["endLine"] >= loc["line"], "endLine must be >= line"
+
+
+def test_endline_omitted_for_file_level_findings():
+    """File-level findings (LINT002, FUSA001) must NOT have endLine."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Don't call _make_project so FUSA001 fires (no .fusa.json)
+        out = io.StringIO()
+        run(["check", "--dir", tmpdir, "--format", "json"], stdout=out)
+        doc = json.loads(out.getvalue())
+        fusa1 = [f for f in doc.get("findings", []) if f["ruleId"] == "FUSA001"]
+        for f in fusa1:
+            loc = f["location"]
+            assert "endLine" not in loc, f"FUSA001 should not have endLine: {loc}"
+
+
+# ---------------------------------------------------------------------------
 # §2.7 — sbom components[].hash must be sha256:<hex>
 # ---------------------------------------------------------------------------
 

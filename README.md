@@ -268,6 +268,7 @@ py-FuSa implements x-FuSa spec **v1.10**. All §9.1 required commands are implem
 | §3.2 structured `error: {code, message}` on exit-3 (json format) | ✅ |
 | Disposition support (§4.1) | ✅ |
 | Project-relative `location.file` | ✅ |
+| `location.endLine` / `endColumn` on AST findings (§4 MAY) | ✅ |
 
 ## Standards
 

@@ -170,7 +170,7 @@ class RuleNestingDepth(Rule):
                         rule_id=self.rule_id,
                         severity=pyfusa.SEVERITY_WARNING,
                         message=f"function '{node.name}' has nesting depth {depth} (limit: {_MAX_NESTING})",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno),
+                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                         remediation="extract nested blocks into helper functions to reduce cognitive complexity",
                     ))
         return findings
@@ -198,7 +198,7 @@ class RuleCyclomaticComplexity(Rule):
                         rule_id=self.rule_id,
                         severity=pyfusa.SEVERITY_WARNING,
                         message=f"function '{node.name}' has cyclomatic complexity {cc} (limit: {_MAX_COMPLEXITY})",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno),
+                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                         remediation="reduce branches or extract decision logic into separate functions",
                     ))
         return findings
@@ -229,7 +229,7 @@ class RuleMutableDefaultArg(Rule):
                             rule_id=self.rule_id,
                             severity=pyfusa.SEVERITY_WARNING,
                             message=f"function '{node.name}' has mutable default argument ({kind})",
-                            location=pyfusa.Location(file=rel_path, line=node.lineno),
+                            location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             remediation="use 'None' as default and create the mutable object inside the function body",
                         ))
         return findings
@@ -258,7 +258,7 @@ class RuleStarImport(Rule):
                             rule_id=self.rule_id,
                             severity=pyfusa.SEVERITY_WARNING,
                             message=f"wildcard import 'from {mod} import *' obscures module interface",
-                            location=pyfusa.Location(file=rel_path, line=node.lineno),
+                            location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             remediation=f"import only what is needed: 'from {mod} import Name1, Name2'",
                         ))
         return findings
@@ -283,7 +283,7 @@ class RuleAssertStatement(Rule):
                         rule_id=self.rule_id,
                         severity=pyfusa.SEVERITY_WARNING,
                         message="assert statement removed by Python -O; use explicit if/raise for safety checks",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno),
+                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                         standard="iso26262",
                         remediation="replace 'assert cond' with 'if not cond: raise ValueError(...)' for safety-critical checks",
                     ))

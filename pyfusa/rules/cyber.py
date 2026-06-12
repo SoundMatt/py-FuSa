@@ -96,7 +96,7 @@ class CYBER001(Rule):
                             rule_id=self.rule_id,
                             severity=SEVERITY_ERROR,
                             message=f"weak hash algorithm '{name}' is cryptographically broken",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             standard="iso26262", clause="CWE-327",
                             remediation="use hashlib.sha256() or hashlib.sha3_256() instead",
                         ))
@@ -236,7 +236,7 @@ class CYBER005(Rule):
                                     rule_id=self.rule_id,
                                     severity=SEVERITY_ERROR,
                                     message=f"'{name}' with dynamic command — command injection risk",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                     standard="iso26262", clause="CWE-78",
                                     remediation="use a literal list of arguments; never pass shell=True with user-controlled input",
                                 ))
@@ -286,7 +286,7 @@ class CYBER006(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_ERROR,
                                 message=f"hardcoded credential in '{target_name}'",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 standard="iso26262", clause="CWE-798",
                                 remediation="load from environment variable or secret manager; never hardcode credentials",
                             ))
@@ -317,7 +317,7 @@ class CYBER007(Rule):
                                     rule_id=self.rule_id,
                                     severity=SEVERITY_ERROR,
                                     message="TLS certificate verification disabled (verify=False)",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                     standard="iso26262", clause="CWE-295",
                                     remediation="remove verify=False; use a proper CA bundle or client certificate",
                                 ))
@@ -328,7 +328,7 @@ class CYBER007(Rule):
                             rule_id=self.rule_id,
                             severity=SEVERITY_ERROR,
                             message="ssl.CERT_NONE disables TLS certificate verification",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             standard="iso26262", clause="CWE-295",
                             remediation="use ssl.CERT_REQUIRED and provide a trusted CA bundle",
                         ))
@@ -362,7 +362,7 @@ class CYBER008(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_WARNING,
                                 message=f"'{name}' created without request timeout — vulnerable to slowloris",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 standard="iso26262", clause="CWE-400",
                                 remediation="set socket.settimeout() or use a WSGI server with configurable timeouts",
                             ))
@@ -395,7 +395,7 @@ class CYBER009(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_WARNING,
                                 message=f"integer narrowing via '{name}' may truncate value",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 standard="iso26262", clause="CWE-190",
                                 remediation="validate value range before narrowing; add assertion on bounds",
                             ))
@@ -431,7 +431,7 @@ class CYBER010(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_ERROR,
                                 message=f"string concatenation in '{name}' — SQL injection or path traversal risk",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 standard="iso26262", clause="CWE-89",
                                 remediation="use parameterised queries or pathlib.Path() with validated components",
                             ))
@@ -466,7 +466,7 @@ class CYBER011(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_WARNING,
                                 message=f"'{name}' called with non-literal URL — SSRF risk if URL is user-controlled",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 standard="iso26262", clause="CWE-918",
                                 remediation="validate and whitelist URLs before making outbound requests",
                             ))
@@ -499,7 +499,7 @@ class CYBER012(Rule):
                                         rule_id=self.rule_id,
                                         severity=SEVERITY_ERROR,
                                         message="debug=True in app.run() — exposes interactive debugger",
-                                        location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                         standard="iso26262", clause="CWE-215",
                                         remediation="set debug=False; use environment variable DEBUG=0 in production",
                                     ))
@@ -530,7 +530,7 @@ class CYBER013(Rule):
                             rule_id=self.rule_id,
                             severity=SEVERITY_ERROR,
                             message="extractall() without member validation — zip slip path traversal risk",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             standard="iso26262", clause="CWE-23",
                             remediation="validate each member path: reject entries with '..' or absolute paths",
                         ))
@@ -560,7 +560,7 @@ class CYBER014(Rule):
                         rule_id=self.rule_id,
                         severity=SEVERITY_ERROR,
                         message=f"weak TLS version '{node.attr}' — deprecated and vulnerable",
-                        location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                         standard="iso26262", clause="CWE-326",
                         remediation="use ssl.TLSVersion.TLSv1_2 or TLSv1_3 as minimum_version",
                     ))
@@ -604,7 +604,7 @@ class CYBER015(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_ERROR,
                                 message="SQL query built with '%' string format — SQL injection risk",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 standard="iso26262", clause="CWE-89",
                                 remediation="use parameterised queries: cursor.execute(sql, params)",
                             ))
@@ -637,7 +637,7 @@ class CYBER016(Rule):
                                         rule_id=self.rule_id,
                                         severity=SEVERITY_WARNING,
                                         message=f"'{name}' with mode=0o777 — world-writable directory",
-                                        location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                         standard="iso26262", clause="CWE-732",
                                         remediation="use mode=0o755 or 0o700 and set umask appropriately",
                                     ))
@@ -669,7 +669,7 @@ class CYBER017(Rule):
                                         rule_id=self.rule_id,
                                         severity=SEVERITY_WARNING,
                                         message=f"'{name}' with permissive mode 0o{kw.value.value:o} — world-readable/writable",
-                                        location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                         standard="iso26262", clause="CWE-732",
                                         remediation="use mode=0o600 for sensitive files; apply principle of least privilege",
                                     ))
@@ -718,7 +718,7 @@ class CYBER018(Rule):
                                     rule_id=self.rule_id,
                                     severity=SEVERITY_ERROR,
                                     message=f"user-controlled variable '{arg.id}' used in file path '{name}'",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                     standard="iso26262", clause="CWE-22",
                                     remediation="use pathlib.Path(base / name).resolve() and verify it is inside the allowed directory",
                                 ))
@@ -794,7 +794,7 @@ class CYBER020(Rule):
                             rule_id=self.rule_id,
                             severity=SEVERITY_ERROR,
                             message="tempfile.mktemp() is insecure — file may be created by attacker between check and use",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             standard="iso26262", clause="CWE-377",
                             remediation="use tempfile.NamedTemporaryFile() or tempfile.mkstemp() instead",
                         ))

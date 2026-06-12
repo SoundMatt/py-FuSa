@@ -236,7 +236,7 @@ class ANA001(Rule):
                             rule_id=self.rule_id,
                             severity=SEVERITY_WARNING,
                             message=f"thread/task created without apparent stop-event signal",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             remediation="create a threading.Event() and pass it to the worker; check it in the loop",
                         ))
         return findings
@@ -272,7 +272,7 @@ class ANA002(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_WARNING,
                                 message="thread/task created inside loop — may cause unbounded concurrency",
-                                location=Location(file=rel, line=getattr(child, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(child, "lineno", 0), end_line=getattr(child, "end_lineno", 0), end_column=getattr(child, 'end_col_offset', -1) + 1),
                                 remediation="use a thread pool (ThreadPoolExecutor) with a max_workers bound",
                             ))
         return findings
@@ -301,7 +301,7 @@ class ANA003(Rule):
                     rule_id=self.rule_id,
                     severity=SEVERITY_WARNING,
                     message="time.sleep() inside thread target cannot be interrupted; use Event.wait(timeout)",
-                    location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                     remediation="replace time.sleep(t) with stop_event.wait(timeout=t)",
                 ))
         return findings
@@ -331,7 +331,7 @@ class ANA004(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_WARNING,
                                 message="raise inside finally block will swallow original exception",
-                                location=Location(file=rel, line=getattr(stmt, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(stmt, "lineno", 0), end_line=getattr(stmt, "end_lineno", 0), end_column=getattr(stmt, 'end_col_offset', -1) + 1),
                                 remediation="avoid raising in finally; use contextlib.suppress or re-raise explicitly",
                             ))
         return findings
@@ -374,7 +374,7 @@ class ANA005(Rule):
                                             rule_id=self.rule_id,
                                             severity=SEVERITY_WARNING,
                                             message=f"'{name}' call may duplicate parameter '{p}' — prefer passing values explicitly",
-                                            location=Location(file=rel, line=getattr(child, "lineno", 0)),
+                                            location=Location(file=rel, line=getattr(child, "lineno", 0), end_line=getattr(child, "end_lineno", 0), end_column=getattr(child, 'end_col_offset', -1) + 1),
                                             remediation="pass the value as a parameter rather than fetching from global state",
                                         ))
                                         break
@@ -411,7 +411,7 @@ class ANA006(Rule):
                             rule_id=self.rule_id,
                             severity=SEVERITY_WARNING,
                             message=f"return value of '{name}' discarded — check for errors",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             remediation=f"assign result = {name}(...) and inspect return code or exceptions",
                         ))
         return findings
@@ -450,7 +450,7 @@ class ANA007(Rule):
                             rule_id=self.rule_id,
                             severity=SEVERITY_WARNING,
                             message=f"'{node.value.id}' may be None; attribute access '.{node.attr}' is unsafe",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             remediation=f"guard with 'if {node.value.id} is not None:' before accessing attributes",
                         ))
         return findings
@@ -485,7 +485,7 @@ class ANA008(Rule):
                                             rule_id=self.rule_id,
                                             severity=SEVERITY_WARNING,
                                             message="thread target modifies shared mutable state via 'global' — use a Lock",
-                                            location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                             remediation="protect shared mutable state with threading.Lock()",
                                         ))
         return findings
@@ -514,7 +514,7 @@ class ANA009(Rule):
                     rule_id=self.rule_id,
                     severity=SEVERITY_WARNING,
                     message="unreachable code after return/raise/break/continue",
-                    location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                     remediation="remove dead code or restructure control flow",
                 ))
         return findings

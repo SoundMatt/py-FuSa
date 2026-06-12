@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.4 — 2026-06-12
+
+### Added
+
+- **§4 MAY — endLine/endColumn:** All AST-based findings now carry `endLine` and `endColumn` in their `location` object. File-level findings (no AST node) correctly omit these fields. 186/234 findings in a typical scan carry span info.
+- **`pyfusa.ast_loc(file, node)`:** New public helper that constructs a `Location` from a file path and an `ast.AST` node, including `end_line`/`end_column`.
+- **Conformance tests:** `tests/test_spec_conformance.py` now covers §4 MAY endLine presence (LINT001) and correct omission for file-level findings (FUSA001).
+
+---
+
 ## 0.1.3 — 2026-06-12
 
 ### Changed

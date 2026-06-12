@@ -75,7 +75,7 @@ class COUP001(Rule):
                                     rule_id=self.rule_id,
                                     severity=SEVERITY_INFO,
                                     message=f"module-level mutable variable '{t.id}' creates data coupling",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                     remediation="encapsulate mutable state in a class or use module-private names (_name)",
                                 ))
                 elif isinstance(node, ast.AnnAssign):
@@ -85,7 +85,7 @@ class COUP001(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_INFO,
                                 message=f"module-level mutable variable '{node.target.id}' creates data coupling",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 remediation="encapsulate mutable state in a class or use module-private names (_name)",
                             ))
         return findings
@@ -118,7 +118,7 @@ class COUP002(Rule):
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_INFO,
                                 message=f"public function '{node.name}' accepts Callable parameter '{arg.arg}' — control coupling",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0)),
+                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 remediation="document control coupling; prefer strategy objects or well-defined protocols",
                             ))
         return findings

@@ -46,7 +46,7 @@ class RuleThreadWithoutLock(Rule):
                         rule_id=self.rule_id,
                         severity=pyfusa.SEVERITY_WARNING,
                         message="Thread created; ensure shared state is protected by threading.Lock or Queue",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno),
+                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                         standard="iso26262",
                         remediation="use threading.Lock(), threading.RLock(), or queue.Queue to synchronize shared state",
                     ))
@@ -76,7 +76,7 @@ class RuleGlobalMutation(Rule):
                                 rule_id=self.rule_id,
                                 severity=pyfusa.SEVERITY_WARNING,
                                 message=f"'global {name}' in function '{node.name}' introduces mutable shared state",
-                                location=pyfusa.Location(file=rel_path, line=child.lineno),
+                                location=pyfusa.Location(file=rel_path, line=child.lineno, end_line=getattr(child, 'end_lineno', 0), end_column=getattr(child, 'end_col_offset', -1) + 1),
                                 standard="iso26262",
                                 remediation=f"pass '{name}' as a parameter or encapsulate in a class with explicit locking",
                             ))
@@ -105,7 +105,7 @@ class RuleAsyncWithoutAwait(Rule):
                         rule_id=self.rule_id,
                         severity=pyfusa.SEVERITY_INFO,
                         message=f"async function '{node.name}' contains no await expressions",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno),
+                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                         remediation=f"add await expressions or remove 'async' from '{node.name}' if not needed",
                     ))
         return findings

@@ -78,7 +78,7 @@ class COMP001(Rule):
                                     f"function {node.name} has cyclomatic complexity {cc} "
                                     f"(threshold {threshold}) — DO-178C §6.3.4"
                                 ),
-                                location=pyfusa.Location(file=rel, line=node.lineno),
+                                location=pyfusa.Location(file=rel, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                                 category=pyfusa.CATEGORY_LINT,
                                 remediation=f"refactor {node.name} to reduce branching; extract helper functions",
                             ))
