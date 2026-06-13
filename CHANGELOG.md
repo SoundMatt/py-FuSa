@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6 — 2026-06-13
+
+### Changed
+
+- Bumped SPEC_VERSION to 1.10.7 (was 1.10.6). No new MUST gaps for py-FuSa — spec update covers cpp-FuSa v0.12.5 location.file fix and c-FuSa v0.5.14 hara command only.
+
+---
+
 ## 0.1.5 — 2026-06-13
 
 ### Fixed

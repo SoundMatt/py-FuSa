@@ -1,4 +1,4 @@
-# py-FuSa — v0.1.5
+# py-FuSa — v0.1.6
 
 A functional safety enablement toolkit for Python projects. py-FuSa provides static checks,
 coding rules, traceability helpers, CI evidence bundles, and tool qualification support to help
@@ -240,7 +240,7 @@ Every finding carries the §4.2 canonical SHA-256 fingerprint for stable cross-t
 
 ## x-FuSa spec conformance
 
-py-FuSa implements x-FuSa spec **v1.10.6**. All §9.1 required commands are implemented:
+py-FuSa implements x-FuSa spec **v1.10.7**. All §9.1 required commands are implemented:
 `version`, `capabilities`, `init`, `check`, `report`, `trace`, `verify`, `qualify`, `release`, `audit-pack`.
 
 | Item | Status |
