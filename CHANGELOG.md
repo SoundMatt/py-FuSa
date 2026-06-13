@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7 — 2026-06-13
+
+### Changed
+
+- Bumped SPEC_VERSION to 1.10.8 (was 1.10.7). Spec update covers c-FuSa v0.5.16 exit-code fixes only; no new MUST gaps for py-FuSa.
+
+---
+
 ## 0.1.6 — 2026-06-13
 
 ### Changed
