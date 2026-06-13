@@ -249,6 +249,31 @@ jobs:
         with:
           sarif_file: results.sarif
 
+  # ── DCO sign-off check ───────────────────────────────────────────────────
+  dco:
+    name: DCO
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check DCO sign-off on all PR commits
+        run: |
+          FAIL=0
+          for sha in $(git log origin/${{ github.base_ref }}..HEAD --format="%H"); do
+            body=$(git log -1 --format="%B" "$sha")
+            author=$(git log -1 --format="%an <%ae>" "$sha")
+            if echo "$body" | grep -qE "^Signed-off-by: .+ <.+@.+>"; then
+              echo "PASS: $sha"
+            else
+              echo "FAIL: $sha — missing Signed-off-by (author: $author)"
+              FAIL=1
+            fi
+          done
+          exit $FAIL
+
   # ── Doc / version consistency check ──────────────────────────────────────
   docs:
     name: Doc version check

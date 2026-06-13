@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8 — 2026-06-13
+
+### Added
+
+- **DCO check in CI:** New `dco` job in `.github/workflows/ci.yml` enforces Developer Certificate of Origin sign-off (`Signed-off-by:`) on all commits in pull requests.
+
+---
+
 ## 0.1.7 — 2026-06-13
 
 ### Changed
