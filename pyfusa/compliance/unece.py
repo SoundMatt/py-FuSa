@@ -44,7 +44,7 @@ def run(project_root: str, cfg: Config) -> dict:
 
     return {
         "schemaVersion": pyfusa.SPEC_VERSION,
-        "kind": "unece-r155-gap-report",
+        "kind": "gap-report",
         "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE, "generatedAt": now,
         "projectRoot": os.path.abspath(project_root),

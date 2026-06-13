@@ -384,7 +384,7 @@ def test_iso26262_json_schema():
         out = io.StringIO()
         code = run(["iso26262", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "iso26262-gap-report"
+        assert doc["kind"] == "gap-report"
         assert "objectives" in doc
 
 
@@ -394,7 +394,7 @@ def test_iec61508_json_schema():
         out = io.StringIO()
         code = run(["iec61508", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "iec61508-gap-report"
+        assert doc["kind"] == "gap-report"
 
 
 #fusa:test REQ-CLI001
@@ -403,7 +403,7 @@ def test_do178_json_schema():
         out = io.StringIO()
         code = run(["do178", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "do178c-gap-report"
+        assert doc["kind"] == "gap-report"
         assert "objectives" in doc
 
 
@@ -413,7 +413,7 @@ def test_iso21434_json_schema():
         out = io.StringIO()
         code = run(["iso21434", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "iso21434-gap-report"
+        assert doc["kind"] == "gap-report"
 
 
 #fusa:test REQ-CLI001
@@ -422,7 +422,7 @@ def test_unece_json_schema():
         out = io.StringIO()
         code = run(["unece", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "unece-r155-gap-report"
+        assert doc["kind"] == "gap-report"
 
 
 # ---------------------------------------------------------------------------

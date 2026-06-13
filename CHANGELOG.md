@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.5 — 2026-06-13
+
+### Fixed
+
+- **§3.1 gap-report `kind` (MUST):** All 7 compliance gap-report modules now emit `"kind": "gap-report"` instead of `"kind": "<std>-gap-report"`. This was the last open MUST conformance gap against x-FuSa spec v1.10.6.
+
+### Changed
+
+- Bumped SPEC_VERSION to 1.10.6 (was 1.10).
+
+---
+
 ## 0.1.4 — 2026-06-12
 
 ### Added

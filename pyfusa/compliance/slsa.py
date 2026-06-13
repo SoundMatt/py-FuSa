@@ -82,7 +82,7 @@ def run(project_root: str, cfg: Config, level: str = "L2") -> dict:
 
     return {
         "schemaVersion": pyfusa.SPEC_VERSION,
-        "kind": "slsa-gap-report",
+        "kind": "gap-report",
         "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE, "generatedAt": now,
         "projectRoot": os.path.abspath(project_root),

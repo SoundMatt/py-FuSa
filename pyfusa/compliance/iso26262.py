@@ -70,7 +70,7 @@ def run(project_root: str, cfg: Config, asil: str = "ASIL-B") -> dict:
 
     doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
-        "kind": "iso26262-gap-report",
+        "kind": "gap-report",
         "tool": pyfusa.TOOL,
         "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE,

@@ -20,7 +20,7 @@ def test_iec62443_run_empty_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg)
-        assert doc["kind"] == "iec62443-gap-report"
+        assert doc["kind"] == "gap-report"
         assert doc["standard"] == "iec62443"
         assert doc["sl"] == "SL-2"
         assert doc["summary"]["total"] == 12
@@ -165,7 +165,7 @@ def test_iec62443_cli_json():
         code = run(["iec62443", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err)
     assert code in (0, 1, 3)
     doc = json.loads(out.getvalue())
-    assert doc["kind"] == "iec62443-gap-report"
+    assert doc["kind"] == "gap-report"
 
 
 def test_iec62443_cli_sl_flag():
@@ -189,7 +189,7 @@ def test_iec62443_cli_output_file():
         assert code in (0, 1, 3)
         with open(out_path) as f:
             doc = json.load(f)
-        assert doc["kind"] == "iec62443-gap-report"
+        assert doc["kind"] == "gap-report"
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ def test_slsa_run_empty_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = slsa_run(tmpdir, cfg)
-        assert doc["kind"] == "slsa-gap-report"
+        assert doc["kind"] == "gap-report"
         assert doc["standard"] == "slsa"
         assert doc["level"] == "L2"
         assert doc["summary"]["total"] == 10
@@ -400,7 +400,7 @@ def test_slsa_cli_json():
         code = run(["slsa", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err)
     assert code in (0, 1, 3)
     doc = json.loads(out.getvalue())
-    assert doc["kind"] == "slsa-gap-report"
+    assert doc["kind"] == "gap-report"
 
 
 def test_slsa_cli_level_flag():
@@ -424,4 +424,4 @@ def test_slsa_cli_output_file():
         assert code in (0, 1, 3)
         with open(out_path) as f:
             doc = json.load(f)
-        assert doc["kind"] == "slsa-gap-report"
+        assert doc["kind"] == "gap-report"

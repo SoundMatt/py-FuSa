@@ -68,7 +68,7 @@ def run(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
 
     doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
-        "kind": "do178c-gap-report",
+        "kind": "gap-report",
         "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE, "generatedAt": now,
         "projectRoot": os.path.abspath(project_root),

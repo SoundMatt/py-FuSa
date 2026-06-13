@@ -51,7 +51,7 @@ def run(project_root: str, cfg: Config, sl: str = "SL-2") -> dict:
 
     return {
         "schemaVersion": pyfusa.SPEC_VERSION,
-        "kind": "iec62443-gap-report",
+        "kind": "gap-report",
         "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE, "generatedAt": now,
         "projectRoot": os.path.abspath(project_root),

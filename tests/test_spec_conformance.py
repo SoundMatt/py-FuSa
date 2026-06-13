@@ -123,6 +123,26 @@ def test_comp_output_no_stdout_suppresses_json_to_file():
 
 
 # ---------------------------------------------------------------------------
+# §3.1 — gap-report kind must be "gap-report" (not "<std>-gap-report")
+# ---------------------------------------------------------------------------
+
+def test_gap_report_kind_is_canonical():
+    """All compliance gap-report commands must emit kind='gap-report' (§3.1 MUST)."""
+    import tempfile
+    _GAP_CMDS = ["iso26262", "iec62443", "slsa", "iec61508", "do178", "iso21434", "unece"]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir)
+        for cmd in _GAP_CMDS:
+            out_file = os.path.join(tmpdir, f"{cmd}.json")
+            run([cmd, "--dir", tmpdir, "--format", "json", "--output", out_file])
+            with open(out_file) as f:
+                doc = json.load(f)
+            assert doc.get("kind") == "gap-report", (
+                f"pyfusa {cmd}: expected kind='gap-report', got '{doc.get('kind')}'"
+            )
+
+
+# ---------------------------------------------------------------------------
 # §2.9 — format-invariant identifiers (ruleId/severity/category)
 #         JSON findings must match SARIF results on same project
 # ---------------------------------------------------------------------------
