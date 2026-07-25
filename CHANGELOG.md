@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.9 — 2026-07-25
+
+- Fix SPEC_VERSION from "1.10.8" to "1.10.4"
+- Add docker-publish.yml — publish ghcr.io/soundmatt/py-fusa on tag push
+- First tagged release
+
+---
+
 ## 0.1.8 — 2026-06-13
 
 ### Added
