@@ -262,7 +262,7 @@ jobs:
       - name: Check DCO sign-off on all PR commits
         run: |
           FAIL=0
-          for sha in $(git log origin/${{ github.base_ref }}..HEAD --format="%H"); do
+          for sha in $(git log origin/${{ github.base_ref }}..HEAD --no-merges --format="%H"); do
             body=$(git log -1 --format="%B" "$sha")
             author=$(git log -1 --format="%an <%ae>" "$sha")
             if echo "$body" | grep -qE "^Signed-off-by: .+ <.+@.+>"; then
