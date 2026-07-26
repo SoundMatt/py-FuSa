@@ -6,7 +6,7 @@ import ast
 import os
 import re
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Set
 
 import pyfusa
 from pyfusa.config import Config
@@ -132,7 +132,7 @@ def to_dict(graph: dict, project_root: str, cfg: Config) -> dict:
 
 
 def to_mermaid(graph: dict, module: str) -> str:
-    lines = [f"graph TD", f"    %% {module} component boundary"]
+    lines = ["graph TD", f"    %% {module} component boundary"]
     for node in graph["nodes"]:
         label = node["package"]
         style = ":::external" if node["trust_level"] == "external" else ""
@@ -144,7 +144,7 @@ def to_mermaid(graph: dict, module: str) -> str:
 
 
 def to_dot(graph: dict, module: str) -> str:
-    lines = [f'digraph boundary {{', f'  label="{module}";', '  rankdir=LR;']
+    lines = ['digraph boundary {', f'  label="{module}";', '  rankdir=LR;']
     for node in graph["nodes"]:
         shape = "box" if node["trust_level"] == "internal" else "ellipse"
         lines.append(f'  {node["id"]} [label="{node["package"]}" shape={shape}];')

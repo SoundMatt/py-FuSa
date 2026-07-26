@@ -6,9 +6,9 @@ import ast
 import os
 from typing import List
 
-from pyfusa import Finding, Location, SEVERITY_INFO, SEVERITY_WARNING
-from pyfusa.rules import Rule
+from pyfusa import SEVERITY_INFO, SEVERITY_WARNING, Finding, Location
 from pyfusa.config import Config
+from pyfusa.rules import Rule
 
 
 def _python_files(root: str, cfg: Config) -> List[str]:

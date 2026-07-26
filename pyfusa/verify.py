@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 
 import pyfusa
 from pyfusa.config import Config
@@ -83,7 +83,7 @@ def _parse_pytest_output(output: str, returncode: int) -> dict:
     }
 
 
-def run(project_root: str, cfg: Config, timeout: int = 120) -> dict:
+def run(project_root: str, cfg: Config, timeout: int = 120) -> dict:  # fusa:req REQ-QUAL002
     """Run tests and build the evidence bundle."""
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))

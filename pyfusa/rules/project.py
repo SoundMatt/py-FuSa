@@ -8,6 +8,7 @@ import pyfusa
 from pyfusa.config import Config
 from pyfusa.rules import Rule
 
+
 #fusa:req REQ-FUSA001
 class RuleConfigPresent(Rule):
     rule_id = "FUSA001"

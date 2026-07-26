@@ -6,7 +6,7 @@ import csv
 import io
 import json
 import os
-from typing import List, Optional
+from typing import List
 
 from pyfusa.config import REQS_FILE
 

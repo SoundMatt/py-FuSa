@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 
 
 def _status(errors: int, warnings: int) -> tuple:

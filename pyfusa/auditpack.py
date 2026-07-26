@@ -6,14 +6,16 @@ import hashlib
 import json
 import os
 import zipfile
-from datetime import timezone, datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-import pyfusa
 from pyfusa.config import (
-    CONFIG_FILE, REQS_FILE, DISPOSITIONS_FILE, HARA_FILE, EVIDENCE_FILE
+    CONFIG_FILE,
+    DISPOSITIONS_FILE,
+    EVIDENCE_FILE,
+    HARA_FILE,
+    REQS_FILE,
 )
-
 
 _GENERATED_FILES = [
     "sbom.json",
@@ -64,8 +66,7 @@ def create(project_root: str, output_path: Optional[str] = None) -> str:
 
     §8: flat ZIP with manifest.json listing all packed files.
     """
-    from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
-    from pyfusa.config import Config
+    from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
 
     if output_path is None:
         output_path = os.path.join(project_root, "audit-pack.zip")

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-from typing import List, Tuple
 
 
 def _key(finding: dict) -> str:

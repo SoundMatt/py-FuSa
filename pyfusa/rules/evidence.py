@@ -12,7 +12,7 @@ from pyfusa.rules import Rule
 
 
 def _presence(rule_id: str, filename: str, message: str, remediation: str,
-               severity: str = pyfusa.SEVERITY_INFO) -> "type":
+               severity: str = pyfusa.SEVERITY_INFO) -> type:
     """Factory that creates a presence-check Rule class."""
     class _Rule(Rule):
         pass
@@ -373,7 +373,7 @@ class HARA005(Rule):
                     message=f"safety goal {g.get('id','')} ASIL {asil} exceeds project ASIL {project_asil}",
                     location=pyfusa.Location(file=".fusa-hara.json"),
                     category=pyfusa.CATEGORY_CONFIG,
-                    remediation=f"increase project ASIL in .fusa.json or lower the safety goal ASIL",
+                    remediation="increase project ASIL in .fusa.json or lower the safety goal ASIL",
                 ))
         return findings
 

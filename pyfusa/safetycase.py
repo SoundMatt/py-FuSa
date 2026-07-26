@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import List
 
 import pyfusa
 from pyfusa.config import Config
@@ -91,7 +90,7 @@ def assemble(project_root: str, cfg: Config) -> dict:
 
 
 def to_markdown(doc: dict) -> str:
-    lines = [f"# Safety Case — {doc['module']}", f"", f"**Standard:** {doc['standard']}  **Generated:** {doc['generatedAt']}", ""]
+    lines = [f"# Safety Case — {doc['module']}", "", f"**Standard:** {doc['standard']}  **Generated:** {doc['generatedAt']}", ""]
     lines.append("## Evidence")
     lines.append("")
     lines.append("| ID | Description | File | Status |")

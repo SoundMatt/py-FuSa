@@ -8,10 +8,9 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 SPEC_VERSION = "1.10.4"
 LANGUAGE = "python"
 TOOL = "py-FuSa"
@@ -150,7 +149,7 @@ class Location:
         return d
 
 
-def ast_loc(file: str, node: object) -> "Location":
+def ast_loc(file: str, node: object) -> Location:
     """Create a Location from a file path and an ast.AST node (§4 endLine/endColumn MAY)."""
     return Location(
         file=file,

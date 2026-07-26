@@ -6,10 +6,11 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import timezone, datetime
+from datetime import datetime, timezone
 from typing import Callable
 
 import pyfusa
+from pyfusa.config import Config
 
 RESULT_PASS = "PASS"
 RESULT_FAIL = "FAIL"
@@ -205,7 +206,7 @@ def compute_hash(report: QualifyReport) -> str:
     return "sha256:" + digest
 
 
-def _qualification_badge(report: QualifyReport) -> str:
+def _qualification_badge(report: QualifyReport) -> str:  # fusa:req REQ-QUAL001
     """Compute qualification badge string."""
     if report.qualification_method == "independent" or report.qualifier_identity:
         return BADGE_INDEPENDENT
@@ -214,7 +215,7 @@ def _qualification_badge(report: QualifyReport) -> str:
     return BADGE_UNQUALIFIED
 
 
-def _independence_status(report: QualifyReport) -> str:
+def _independence_status(report: QualifyReport) -> str:  # fusa:req REQ-QUAL002
     """Compute V&V independence status."""
     author = report.implementation_author
     reviewer = report.independent_reviewer
@@ -257,9 +258,8 @@ def run(
     return report
 
 
-def to_dict(report: QualifyReport, project_root: str, cfg: "Config") -> dict:
-    from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
-    from pyfusa.config import Config
+def to_dict(report: QualifyReport, project_root: str, cfg: Config) -> dict:  # fusa:req REQ-QUAL001
+    from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     doc = {
         "schemaVersion": SPEC_VERSION,

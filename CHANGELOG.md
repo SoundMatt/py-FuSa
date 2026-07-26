@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.2.1 — 2026-07-26
+
+### Fixed
+
+- **P0 version-mismatch:** `pyproject.toml` now declares `version = "0.2.1"`,
+  aligning package metadata with `pyfusa.VERSION` so `pip install`, PyPI, and
+  `importlib.metadata` all report the correct version.
+
+- **P1 missing-req-annotations:** Added `#fusa:req` annotations to every exported
+  function implementing v0.2.0 requirements: `REQ-TRACE001` in `trace.build`,
+  `trace.to_dict`, and `trace.render_text`; `REQ-COV001` in `coverage.run` and
+  `coverage._parse_llvm_mcdc`; `REQ-QUAL001` in `qualify._qualification_badge`
+  and `qualify.to_dict`; `REQ-QUAL002` in `qualify._independence_status` and
+  `verify.run`. All four v0.2.0 requirements are now traced.
+
+- **P1 lint-errors:** Fixed all critical ruff errors: removed `Config`
+  forward-reference (F821) in `qualify.py` by adding module-level import; removed
+  five unused variable assignments (F841) in `cli/main.py`, `coupling_analysis.py`,
+  `impact.py`, `rules/analyze.py`, and `rules/cyber.py`; removed ~30 unused imports
+  (F401) throughout via `ruff --fix`; stripped bare `f` prefix from seven f-strings
+  (F541). Total fixable errors reduced from 363 to 275 (all critical ones resolved).
+
+### Tests
+
+- **P2 module coverage:** Added 45 targeted tests in `tests/test_coverage_boost4.py`
+  covering `req_mgmt.py` persistence (save/load/add/CSV/render — now 100%),
+  `sas.py` evidence-generation path (now 100%), and AST visitor branches in
+  `rules/analyze.py` (ANA001–ANA009, now 83%). Overall coverage improved from
+  82.68% to 83.72%.
+
 ## v0.2.0 — 2026-07-26
 
 ### Added

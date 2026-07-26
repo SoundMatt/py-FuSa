@@ -2,24 +2,16 @@
 
 from __future__ import annotations
 
-import json
-import os
 from datetime import datetime, timezone
 from typing import List
 
 import pyfusa
 from pyfusa.config import Config
-from pyfusa.engine import Default as _DefaultEngine
 
 
 def run(project_root: str, cfg: Config) -> dict:
     """Run coupling-specific rules and return coupling-report.json payload."""
     from pyfusa.rules.coupling import COUP001, COUP002
-
-    engine_coup = type("E", (), {
-        "_rules": [COUP001(), COUP002()],
-        "run": lambda self, root, c: _run_rules(self._rules, root, c),
-    })()
 
     findings = _run_rules([COUP001(), COUP002()], project_root, cfg)
 

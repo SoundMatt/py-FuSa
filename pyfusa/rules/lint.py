@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 import fnmatch
 import os
-from typing import Any
 
 import pyfusa
 from pyfusa.config import Config
@@ -64,13 +63,9 @@ def _cyclomatic_complexity(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
         if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor,
                                ast.ExceptHandler, ast.With, ast.AsyncWith)):
             complexity += 1
-        elif isinstance(child, ast.BoolOp) and isinstance(child.op, ast.And):
+        elif isinstance(child, ast.BoolOp) and isinstance(child.op, ast.And) or isinstance(child, ast.BoolOp) and isinstance(child.op, ast.Or):
             complexity += len(child.values) - 1
-        elif isinstance(child, ast.BoolOp) and isinstance(child.op, ast.Or):
-            complexity += len(child.values) - 1
-        elif isinstance(child, ast.comprehension):
-            complexity += 1
-        elif isinstance(child, ast.IfExp):
+        elif isinstance(child, ast.comprehension) or isinstance(child, ast.IfExp):
             complexity += 1
     return complexity
 

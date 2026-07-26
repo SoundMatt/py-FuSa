@@ -39,7 +39,7 @@ def generate(project_root: str, cfg: Config) -> dict:
                 full = os.path.join(project_root, f.lstrip("/"))
                 if f.endswith(".py"):
                     # Scan for any .py files
-                    present_files.append(f"*.py (source tree)")
+                    present_files.append("*.py (source tree)")
                     break
                 elif os.path.exists(full):
                     present_files.append(f)
