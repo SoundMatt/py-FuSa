@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.2.0 — 2026-07-26
+
+### Added
+
+- **Feature 1 — HLR/LLR Decomposition (`trace`):** Added `parent_id` field to
+  requirements in `.fusa-reqs.json`. `pyfusa trace` now validates that every LLR
+  references a valid HLR via `parent_id` and every HLR has at least one LLR
+  child. Violations are WARNING at DAL-C/ASIL-C and below, ERROR at DAL-A/ASIL-D
+  or with the new `--strict-hlr-llr` flag. Text and JSON renderers show the
+  hierarchy. JSON output includes `hlrViolations` and `coverage.hlrCount /
+  llrCount / hlrWithLlr` metrics. Closes #9.
+
+- **Feature 2 — Tool Qualification Display (`qualify`):** `pyfusa qualify` now
+  accepts `--qualification-method` (`self` | `independent`), `--qualifier`
+  (name/org), and `--record-uri` (URI to dossier). JSON output includes a
+  `qualificationBadge` field (`independently-qualified` / `self-qualified` /
+  `unqualified`). Closes #10.
+
+- **Feature 3 — MC/DC Coverage (`coverage`):** `pyfusa coverage` now accepts
+  `--mcdc`, `--mcdc-file`, and `--mcdc-threshold` flags. Parses LLVM coverage
+  JSON to extract MC/DC condition coverage per function. A condition is covered
+  iff `covered_true_count > 0` AND `covered_false_count > 0`. Hard gate: any
+  function with uncovered conditions fails the overall report. JSON output
+  includes a structured `mcdc` sub-object. Closes #11.
+
+- **Feature 4 — V&V Independence (`qualify`):** `pyfusa qualify` now accepts
+  `--implementation-author`, `--independent-reviewer`,
+  `--independent-test-executor`, and `--achievable-asil` flags. JSON output
+  includes `independenceStatus` (`independent` / `same-author` / `unknown`) and
+  the corresponding fields. Closes #12.
+
+- **14 new requirements** added to `.fusa-reqs.json` (REQ-TRACE001 with 3 LLRs,
+  REQ-QUAL001 with 2 LLRs, REQ-QUAL002 with 2 LLRs, REQ-COV001 with 2 LLRs).
+
+- **36 new tests** in `tests/test_hlr_llr_qualify_mcdc_vv.py`.
+
+---
+
 ## v0.1.9 — 2026-07-25
 
 - Fix SPEC_VERSION from "1.10.8" to "1.10.4"

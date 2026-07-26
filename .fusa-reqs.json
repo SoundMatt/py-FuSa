@@ -158,6 +158,113 @@
       "text": "The tool shall have no external runtime dependencies beyond the Python standard library.",
       "standard": "iso26262",
       "level": "HLR"
+    },
+    {
+      "id": "REQ-TRACE001",
+      "title": "HLR/LLR decomposition validation",
+      "text": "The trace command shall validate that every LLR references a valid HLR via parent_id, every HLR has at least one LLR child, and gate on violations per the active integrity level.",
+      "standard": "iso26262",
+      "level": "HLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-TRACE001-LLR1",
+      "title": "Orphan LLR detection",
+      "text": "The trace validator shall emit an orphan-llr violation for any LLR that lacks a parent_id or references a non-existent HLR.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-TRACE001",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-TRACE001-LLR2",
+      "title": "Empty HLR detection",
+      "text": "The trace validator shall emit an empty-hlr violation for any HLR that has no LLR children.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-TRACE001",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-TRACE001-LLR3",
+      "title": "HLR/LLR severity gating",
+      "text": "Violations shall be WARNING for DAL-C/ASIL-C and below; ERROR for DAL-A/ASIL-D or when --strict-hlr-llr is set.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-TRACE001",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-QUAL001",
+      "title": "Tool qualification display",
+      "text": "The qualify command shall show a qualification badge (independently-qualified / self-qualified / unqualified) and accept --qualification-method, --qualifier, and --record-uri flags.",
+      "standard": "iso26262",
+      "level": "HLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-QUAL001-LLR1",
+      "title": "Qualification badge derivation",
+      "text": "The badge shall be independently-qualified when qualification_method=independent or qualifier_identity is non-empty; self-qualified when method=self; unqualified otherwise.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-QUAL001"
+    },
+    {
+      "id": "REQ-QUAL001-LLR2",
+      "title": "Qualification record URI in JSON output",
+      "text": "When --record-uri is provided, the qualify JSON output shall include qualificationRecordUri.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-QUAL001"
+    },
+    {
+      "id": "REQ-QUAL002",
+      "title": "V&V independence reporting",
+      "text": "The qualify command shall accept --implementation-author, --independent-reviewer, --independent-test-executor flags and emit an independenceStatus field.",
+      "standard": "iso26262",
+      "level": "HLR",
+      "asil": "ASIL-B"
+    },
+    {
+      "id": "REQ-QUAL002-LLR1",
+      "title": "Independence status derivation",
+      "text": "Status shall be independent when reviewer != author; same-author when equal; unknown when either is absent.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-QUAL002"
+    },
+    {
+      "id": "REQ-QUAL002-LLR2",
+      "title": "Achievable ASIL field",
+      "text": "When --achievable-asil is provided, the qualify JSON output shall include achievableAsil.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-QUAL002"
+    },
+    {
+      "id": "REQ-COV001",
+      "title": "MC/DC coverage analysis",
+      "text": "The coverage command shall accept --mcdc, --mcdc-file, and --mcdc-threshold flags and parse LLVM coverage JSON to produce a structured MC/DC report with hard gate on uncovered conditions.",
+      "standard": "do178c",
+      "level": "HLR",
+      "dal": "DAL-A"
+    },
+    {
+      "id": "REQ-COV001-LLR1",
+      "title": "LLVM MC/DC JSON parsing",
+      "text": "A condition is MC/DC covered iff covered_true_count > 0 AND covered_false_count > 0.",
+      "standard": "do178c",
+      "level": "LLR",
+      "parent_id": "REQ-COV001"
+    },
+    {
+      "id": "REQ-COV001-LLR2",
+      "title": "MC/DC hard gate",
+      "text": "If any annotated function has uncovered conditions, the overall coverage report shall fail (passed=false).",
+      "standard": "do178c",
+      "level": "LLR",
+      "parent_id": "REQ-COV001"
     }
   ]
 }

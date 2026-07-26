@@ -27,6 +27,15 @@ class TestCase:
         return {"name": self.name, "result": self.result}
 
 
+BADGE_INDEPENDENT = "independently-qualified"
+BADGE_SELF = "self-qualified"
+BADGE_UNQUALIFIED = "unqualified"
+
+INDEPENDENCE_INDEPENDENT = "independent"
+INDEPENDENCE_SAME_AUTHOR = "same-author"
+INDEPENDENCE_UNKNOWN = "unknown"
+
+
 @dataclass
 class QualifyReport:
     total: int = 0
@@ -34,6 +43,15 @@ class QualifyReport:
     failed: int = 0
     results: list[TestCase] = field(default_factory=list)
     hash: str = ""
+    # Feature 2: Tool Qualification Display
+    qualification_method: str = ""        # "self" | "independent"
+    qualification_record_uri: str = ""    # URI to dossier
+    qualifier_identity: str = ""          # name/org
+    # Feature 4: V&V Independence
+    implementation_author: str = ""
+    independent_reviewer: str = ""
+    independent_test_executor: str = ""
+    achievable_asil: str = ""
 
 
 def _run_test(name: str, fn: Callable[[], bool]) -> TestCase:
@@ -187,7 +205,35 @@ def compute_hash(report: QualifyReport) -> str:
     return "sha256:" + digest
 
 
-def run() -> QualifyReport:
+def _qualification_badge(report: QualifyReport) -> str:
+    """Compute qualification badge string."""
+    if report.qualification_method == "independent" or report.qualifier_identity:
+        return BADGE_INDEPENDENT
+    if report.qualification_method == "self":
+        return BADGE_SELF
+    return BADGE_UNQUALIFIED
+
+
+def _independence_status(report: QualifyReport) -> str:
+    """Compute V&V independence status."""
+    author = report.implementation_author
+    reviewer = report.independent_reviewer
+    if not author or not reviewer:
+        return INDEPENDENCE_UNKNOWN
+    if author == reviewer:
+        return INDEPENDENCE_SAME_AUTHOR
+    return INDEPENDENCE_INDEPENDENT
+
+
+def run(
+    qualification_method: str = "",
+    qualification_record_uri: str = "",
+    qualifier_identity: str = "",
+    implementation_author: str = "",
+    independent_reviewer: str = "",
+    independent_test_executor: str = "",
+    achievable_asil: str = "",
+) -> QualifyReport:
     results: list[TestCase] = []
     for name, fn in _ALL_TESTS:
         tc = _run_test(name, fn)
@@ -197,7 +243,16 @@ def run() -> QualifyReport:
     passed = sum(1 for r in results if r.result == RESULT_PASS)
     failed = sum(1 for r in results if r.result == RESULT_FAIL)
 
-    report = QualifyReport(total=total, passed=passed, failed=failed, results=results)
+    report = QualifyReport(
+        total=total, passed=passed, failed=failed, results=results,
+        qualification_method=qualification_method,
+        qualification_record_uri=qualification_record_uri,
+        qualifier_identity=qualifier_identity,
+        implementation_author=implementation_author,
+        independent_reviewer=independent_reviewer,
+        independent_test_executor=independent_test_executor,
+        achievable_asil=achievable_asil,
+    )
     report.hash = compute_hash(report)
     return report
 
@@ -226,4 +281,25 @@ def to_dict(report: QualifyReport, project_root: str, cfg: "Config") -> dict:
         doc["sil"] = cfg.sil
     elif cfg.dal:
         doc["dal"] = cfg.dal
+
+    # Feature 2: Tool Qualification Display
+    doc["qualificationBadge"] = _qualification_badge(report)
+    if report.qualification_method:
+        doc["qualificationMethod"] = report.qualification_method
+    if report.qualification_record_uri:
+        doc["qualificationRecordUri"] = report.qualification_record_uri
+    if report.qualifier_identity:
+        doc["qualifierIdentity"] = report.qualifier_identity
+
+    # Feature 4: V&V Independence
+    doc["independenceStatus"] = _independence_status(report)
+    if report.implementation_author:
+        doc["implementationAuthor"] = report.implementation_author
+    if report.independent_reviewer:
+        doc["independentReviewer"] = report.independent_reviewer
+    if report.independent_test_executor:
+        doc["independentTestExecutor"] = report.independent_test_executor
+    if report.achievable_asil:
+        doc["achievableAsil"] = report.achievable_asil
+
     return doc

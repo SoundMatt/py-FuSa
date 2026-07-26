@@ -414,6 +414,8 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--req-coverage", type=int, default=0, metavar="N", help="exit 1 if req coverage < N%%")
     p.add_argument("--sec-tested", type=int, default=0, metavar="N", help="exit 1 if sec-test coverage < N%%")
     p.add_argument("--strict", action="store_true", help="equivalent to --req-coverage 100 --sec-tested 100")
+    p.add_argument("--strict-hlr-llr", action="store_true", dest="strict_hlr_llr",
+                   help="treat HLR/LLR hierarchy violations as errors regardless of integrity level")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -423,7 +425,7 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     cfg = _load_config(project_root)
 
     try:
-        matrix = _trace.build(project_root, cfg)
+        matrix = _trace.build(project_root, cfg, strict_hlr_llr=ns.strict_hlr_llr)
     except Exception as e:
         print(f"pyfusa trace: {e}", file=stderr)
         return EXIT_RUNTIME
@@ -431,6 +433,14 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     # Determine thresholds (§5)
     req_threshold = 100 if ns.strict and ns.req_coverage == 0 else ns.req_coverage
     sec_threshold = 100 if ns.strict and ns.sec_tested == 0 else ns.sec_tested
+
+    # Gate on HLR/LLR violations when --strict-hlr-llr is set
+    if ns.strict_hlr_llr and matrix.hlr_violations:
+        for v in matrix.hlr_violations:
+            print(f"pyfusa trace: HLR/LLR violation: {v.detail}", file=stderr)
+        if ns.fmt != "json":
+            # also flush output first
+            pass
 
     w = stdout
     f_out = None
@@ -469,6 +479,10 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             print(f"pyfusa trace: sec-test coverage {pct}% < {sec_threshold}%", file=stderr)
             return EXIT_GATE_FAIL
 
+    # HLR/LLR gate (errors already emitted above for --strict-hlr-llr)
+    if ns.strict_hlr_llr and matrix.hlr_violations:
+        return EXIT_GATE_FAIL
+
     return EXIT_OK
 
 
@@ -481,6 +495,20 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--dir", default="", help="project root directory")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
     p.add_argument("--output", default="", help="write output to file (default: qualify-report.json for json)")
+    p.add_argument("--qualification-method", default="", dest="qualification_method",
+                   choices=["", "self", "independent"], help="qualification method: self or independent")
+    p.add_argument("--qualifier", default="", dest="qualifier_identity",
+                   help="name/org of the qualifying entity")
+    p.add_argument("--record-uri", default="", dest="qualification_record_uri",
+                   help="URI to the qualification dossier")
+    p.add_argument("--implementation-author", default="", dest="implementation_author",
+                   help="name of the implementation author (V&V independence)")
+    p.add_argument("--independent-reviewer", default="", dest="independent_reviewer",
+                   help="name of the independent reviewer (V&V independence)")
+    p.add_argument("--independent-test-executor", default="", dest="independent_test_executor",
+                   help="name of the independent test executor (V&V independence)")
+    p.add_argument("--achievable-asil", default="", dest="achievable_asil",
+                   help="achievable ASIL when independence requirements are met")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -489,7 +517,15 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
 
-    report = _qualify.run()
+    report = _qualify.run(
+        qualification_method=ns.qualification_method,
+        qualification_record_uri=ns.qualification_record_uri,
+        qualifier_identity=ns.qualifier_identity,
+        implementation_author=ns.implementation_author,
+        independent_reviewer=ns.independent_reviewer,
+        independent_test_executor=ns.independent_test_executor,
+        achievable_asil=ns.achievable_asil,
+    )
 
     output_path = ns.output
 
@@ -512,7 +548,10 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             for tc in report.results:
                 print(f"  {tc.result:5s}  {tc.name}", file=w)
             print(file=w)
+            badge = _qualify._qualification_badge(report)
+            independence = _qualify._independence_status(report)
             print(f"Total: {report.total}  Passed: {report.passed}  Failed: {report.failed}", file=w)
+            print(f"Badge: {badge}  Independence: {independence}", file=w)
     finally:
         if f_out:
             f_out.close()
@@ -1681,6 +1720,12 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--asil", default="")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
     p.add_argument("--output", default="")
+    p.add_argument("--mcdc", action="store_true",
+                   help="analyse MC/DC coverage from LLVM JSON export")
+    p.add_argument("--mcdc-file", default="", dest="mcdc_file",
+                   help="path to LLVM coverage JSON file (default: <dir>/coverage.json)")
+    p.add_argument("--mcdc-threshold", type=float, default=100.0, dest="mcdc_threshold",
+                   help="MC/DC coverage threshold percentage (default: 100)")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1688,7 +1733,12 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
-    doc = _coverage.run(project_root, cfg, ns.dal, ns.asil)
+    doc = _coverage.run(
+        project_root, cfg, ns.dal, ns.asil,
+        mcdc=ns.mcdc,
+        mcdc_file=ns.mcdc_file,
+        mcdc_threshold=ns.mcdc_threshold,
+    )
 
     out_path = ns.output
     w = stdout
@@ -1707,6 +1757,12 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         else:
             status = "PASS" if doc["passed"] else "FAIL"
             print(f"coverage: {doc['coveragePct']}%  type: {doc['coverageType']}  threshold: {doc['threshold']}%  [{status}]", file=w)
+            if ns.mcdc and "mcdc" in doc:
+                mc = doc["mcdc"]
+                mcdc_status = "PASS" if mc["passed"] else "FAIL"
+                print(f"MC/DC:    {mc['coveragePct']}%  conditions: {mc['coveredConditions']}/{mc['totalConditions']}  [{mcdc_status}]", file=w)
+                if mc.get("uncoveredFunctions"):
+                    print(f"  uncovered functions: {', '.join(mc['uncoveredFunctions'])}", file=w)
     finally:
         if f_out:
             f_out.close()
