@@ -9,7 +9,13 @@ from typing import NamedTuple
 
 import pyfusa
 from pyfusa.config import Config
-from pyfusa.rules.comp import _complexity, _ASIL_THRESHOLD, _DAL_THRESHOLD, _DEFAULT_THRESHOLD, _SKIP_DIRS
+from pyfusa.rules.comp import (
+    _ASIL_THRESHOLD,
+    _DAL_THRESHOLD,
+    _DEFAULT_THRESHOLD,
+    _SKIP_DIRS,
+    _complexity,
+)
 
 COMP_REPORT = "comp-report.json"
 

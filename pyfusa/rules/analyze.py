@@ -6,9 +6,9 @@ import ast
 import os
 from typing import List
 
-from pyfusa import Finding, Location, SEVERITY_WARNING, SEVERITY_ERROR
-from pyfusa.rules import Rule
+from pyfusa import SEVERITY_WARNING, Finding, Location
 from pyfusa.config import Config
+from pyfusa.rules import Rule
 
 
 def _python_files(root: str, cfg: Config) -> List[str]:
@@ -235,7 +235,7 @@ class ANA001(Rule):
                         findings.append(Finding(
                             rule_id=self.rule_id,
                             severity=SEVERITY_WARNING,
-                            message=f"thread/task created without apparent stop-event signal",
+                            message="thread/task created without apparent stop-event signal",
                             location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
                             remediation="create a threading.Event() and pass it to the worker; check it in the loop",
                         ))
@@ -428,8 +428,6 @@ class ANA007(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        NULLABLE_CALLS = {".get", ".find", ".search", ".match", ".pop",
-                          "dict.get", "os.environ.get", "re.search", "re.match"}
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
             if tree is None:

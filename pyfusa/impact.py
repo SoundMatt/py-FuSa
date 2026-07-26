@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import List
 
 import pyfusa
-from pyfusa.config import Config, REQS_FILE
+from pyfusa.config import REQS_FILE, Config
 
 
 def _git_changed_files(project_root: str, from_ref: str = "HEAD", to_ref: str = "") -> List[dict]:
@@ -56,7 +56,6 @@ def _load_trace_matrix(project_root: str) -> dict:
 
 
 def _check_stale(project_root: str, changed_files: List[dict]) -> List[dict]:
-    changed_paths = {f["path"] for f in changed_files}
     stale: List[dict] = []
     ARTIFACTS = [
         "check-report.json", "qualify-report.json", "sbom.json",

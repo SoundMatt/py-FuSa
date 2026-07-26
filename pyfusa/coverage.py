@@ -59,7 +59,7 @@ def _read_coverage_xml(path: str) -> Optional[float]:
     return None
 
 
-def _parse_llvm_mcdc(path: str) -> dict:
+def _parse_llvm_mcdc(path: str) -> dict:  # fusa:req REQ-COV001
     """Parse LLVM MC/DC JSON export and compute per-function coverage.
 
     Expected structure (subset):
@@ -120,7 +120,7 @@ def _parse_llvm_mcdc(path: str) -> dict:
     }
 
 
-def run(project_root: str, cfg: Config, dal: str = "", asil: str = "",
+def run(project_root: str, cfg: Config, dal: str = "", asil: str = "",  # fusa:req REQ-COV001
         mcdc: bool = False, mcdc_file: str = "", mcdc_threshold: float = 100.0) -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))

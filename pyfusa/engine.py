@@ -8,17 +8,17 @@ from dataclasses import dataclass, field
 import pyfusa
 from pyfusa.config import Config, load_dispositions, load_requirements
 from pyfusa.rules import Rule
-from pyfusa.rules import project as _project_rules
-from pyfusa.rules import lint as _lint_rules
-from pyfusa.rules import security as _sec_rules
-from pyfusa.rules import concurrency as _conc_rules
 from pyfusa.rules import analyze as _ana_rules
-from pyfusa.rules import cyber as _cyber_rules
-from pyfusa.rules import coupling as _coup_rules
-from pyfusa.rules import evidence as _evidence_rules
-from pyfusa.rules import slsa as _slsa_rules
 from pyfusa.rules import comp as _comp_rules
+from pyfusa.rules import concurrency as _conc_rules
+from pyfusa.rules import coupling as _coup_rules
+from pyfusa.rules import cyber as _cyber_rules
+from pyfusa.rules import evidence as _evidence_rules
 from pyfusa.rules import iec62443 as _iec62443_rules
+from pyfusa.rules import lint as _lint_rules
+from pyfusa.rules import project as _project_rules
+from pyfusa.rules import security as _sec_rules
+from pyfusa.rules import slsa as _slsa_rules
 
 
 @dataclass

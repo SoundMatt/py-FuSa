@@ -5,7 +5,7 @@ from __future__ import annotations
 import html
 import json
 import os
-from datetime import timezone, datetime
+from datetime import datetime, timezone
 from typing import TextIO
 
 import pyfusa
@@ -20,7 +20,7 @@ def _now_iso() -> str:
 
 
 def _check_envelope(project_root: str, cfg: Config, result: RunResult, error: dict | None = None) -> dict:
-    from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
+    from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
     d: dict = {
         "schemaVersion": SPEC_VERSION,
         "kind": "check-report",
@@ -124,7 +124,7 @@ tr.warning td:first-child {{color:#c80;font-weight:bold;}}
 
 def render_sarif(result: RunResult, project_root: str, cfg: Config) -> dict:
     """§2.9 SARIF 2.1.0 with physicalLocation on every result."""
-    from pyfusa import VERSION, TOOL
+    from pyfusa import TOOL, VERSION
 
     # Build rules map
     rules_by_id: dict[str, pyfusa.Finding] = {}

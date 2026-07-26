@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import ast
-import os
 import re
 
 import pyfusa
 from pyfusa.config import Config
 from pyfusa.rules import Rule
-from pyfusa.rules.lint import _python_files, _parse_file
+from pyfusa.rules.lint import _parse_file, _python_files
 
 _SECRET_RE = re.compile(
     r"""(password|passwd|secret|token|api_key|apikey|private_key|auth_token)\s*=\s*['"][^'"]{4,}['"]""",

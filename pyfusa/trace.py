@@ -7,8 +7,7 @@ import json
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import timezone, datetime
-from typing import Optional
+from datetime import datetime, timezone
 
 import pyfusa
 from pyfusa.config import Config
@@ -174,7 +173,7 @@ def _validate_hlr_llr(requirements: list[dict]) -> list[HLRViolation]:
     return violations
 
 
-def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = False) -> Matrix:
+def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = False) -> Matrix:  # fusa:req REQ-TRACE001
     if cfg is None:
         from pyfusa.config import default
         cfg = default()
@@ -251,8 +250,8 @@ def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = F
     )
 
 
-def to_dict(matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = False) -> dict:
-    from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
+def to_dict(matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = False) -> dict:  # fusa:req REQ-TRACE001
+    from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     reqs = matrix.requirements
@@ -287,7 +286,7 @@ def to_dict(matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = Fa
     return doc
 
 
-def render_text(matrix: Matrix, gaps_only: bool = False) -> str:
+def render_text(matrix: Matrix, gaps_only: bool = False) -> str:  # fusa:req REQ-TRACE001
     lines: list[str] = []
     cov = matrix.coverage
 

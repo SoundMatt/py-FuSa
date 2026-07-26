@@ -7,7 +7,7 @@ import ast
 import pyfusa
 from pyfusa.config import Config
 from pyfusa.rules import Rule
-from pyfusa.rules.lint import _python_files, _parse_file
+from pyfusa.rules.lint import _parse_file, _python_files
 
 
 #fusa:req REQ-CONC001

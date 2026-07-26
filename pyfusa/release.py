@@ -8,10 +8,9 @@ import json
 import os
 import platform
 import subprocess
-from datetime import timezone, datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-import pyfusa
 from pyfusa.config import Config
 
 
@@ -84,7 +83,7 @@ def _collect_dependencies() -> list[dict]:
 
 def generate_sbom(project_root: str, cfg: Config) -> dict:
     """§7 sbom.json payload."""
-    from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
+    from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -108,7 +107,7 @@ def generate_sbom(project_root: str, cfg: Config) -> dict:
 
 def generate_provenance(project_root: str, cfg: Config) -> dict:
     """§7 provenance.json payload."""
-    from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
+    from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     rev, modified = _get_vcs_revision(project_root)
@@ -132,9 +131,9 @@ def generate_provenance(project_root: str, cfg: Config) -> dict:
     }
 
 
-def generate_artifact_manifest(output_dir: str, artifacts: "list[str]", project_root: str, cfg: Config) -> dict:
+def generate_artifact_manifest(output_dir: str, artifacts: list[str], project_root: str, cfg: Config) -> dict:
     """§7 artifact-manifest.json payload."""
-    from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL
+    from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     artifact_entries = []

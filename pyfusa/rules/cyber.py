@@ -7,9 +7,9 @@ import os
 import re
 from typing import List
 
-from pyfusa import Finding, Location, SEVERITY_ERROR, SEVERITY_WARNING, SEVERITY_INFO
-from pyfusa.rules import Rule
+from pyfusa import SEVERITY_ERROR, SEVERITY_WARNING, Finding, Location
 from pyfusa.config import Config
+from pyfusa.rules import Rule
 
 
 def _python_files(root: str, cfg: Config) -> List[str]:
@@ -515,8 +515,6 @@ class CYBER013(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        EXTRACT_CALLS = {"zipfile.ZipFile.extractall", "extractall",
-                         "tarfile.TarFile.extractall", "tar.extractall", "zf.extractall"}
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
             if tree is None:

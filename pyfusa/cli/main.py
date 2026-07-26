@@ -23,47 +23,55 @@ import argparse
 import json
 import os
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
-import pyfusa
-from pyfusa import VERSION, SPEC_VERSION, LANGUAGE, TOOL, BINARY
-from pyfusa import EXIT_OK, EXIT_GATE_FAIL, EXIT_USAGE, EXIT_RUNTIME
-import pyfusa.config as _config
-import pyfusa.engine as _engine
-import pyfusa.report as _report
-import pyfusa.trace as _trace
-import pyfusa.qualify as _qualify
-import pyfusa.release as _release
 import pyfusa.auditpack as _auditpack
-import pyfusa.fmea as _fmea
-import pyfusa.boundary as _boundary
-import pyfusa.coupling_analysis as _coupling
-import pyfusa.tara as _tara
-import pyfusa.hara as _hara
-import pyfusa.diff as _diff
 import pyfusa.badge as _badge
-import pyfusa.sign as _sign
-import pyfusa.vuln as _vuln
-import pyfusa.pr as _pr
+import pyfusa.boundary as _boundary
+import pyfusa.comp as _comp
+import pyfusa.config as _config
+import pyfusa.coupling_analysis as _coupling
+import pyfusa.coverage as _coverage
+import pyfusa.diff as _diff
 import pyfusa.disposition_mgmt as _disp_mgmt
+import pyfusa.engine as _engine
+import pyfusa.fmea as _fmea
+import pyfusa.hara as _hara
 import pyfusa.impact as _impact
 import pyfusa.metrics as _metrics
-import pyfusa.safetycase as _safetycase
-import pyfusa.req_mgmt as _req_mgmt
-import pyfusa.template as _template
-import pyfusa.comp as _comp
 import pyfusa.misra as _misra
-import pyfusa.verify as _verify
+import pyfusa.pr as _pr
+import pyfusa.qualify as _qualify
+import pyfusa.release as _release
+import pyfusa.report as _report
+import pyfusa.req_mgmt as _req_mgmt
+import pyfusa.safetycase as _safetycase
 import pyfusa.sas as _sas
 import pyfusa.sci as _sci
-import pyfusa.coverage as _coverage
+import pyfusa.sign as _sign
+import pyfusa.tara as _tara
+import pyfusa.template as _template
+import pyfusa.trace as _trace
+import pyfusa.verify as _verify
+import pyfusa.vuln as _vuln
+from pyfusa import (
+    BINARY,
+    EXIT_GATE_FAIL,
+    EXIT_OK,
+    EXIT_RUNTIME,
+    EXIT_USAGE,
+    LANGUAGE,
+    SPEC_VERSION,
+    TOOL,
+    VERSION,
+)
 from pyfusa.compliance import do178 as _do178
-from pyfusa.compliance import iso26262 as _iso26262
 from pyfusa.compliance import iec61508 as _iec61508
-from pyfusa.compliance import iso21434 as _iso21434
-from pyfusa.compliance import unece as _unece
 from pyfusa.compliance import iec62443 as _iec62443_gap
+from pyfusa.compliance import iso21434 as _iso21434
+from pyfusa.compliance import iso26262 as _iso26262
 from pyfusa.compliance import slsa as _slsa_gap
+from pyfusa.compliance import unece as _unece
 
 
 def _is_tty() -> bool:
@@ -128,7 +136,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
     except SystemExit:
         return EXIT_USAGE
 
-    from datetime import timezone, datetime
+    from datetime import datetime, timezone
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     doc = {
@@ -298,7 +306,8 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         print(f"pyfusa check: engine error: {e}", file=stderr)
         fmt = (cfg.report_format or "text").lower()
         if fmt == "json":
-            from datetime import datetime, timezone as _tz
+            from datetime import datetime
+            from datetime import timezone as _tz
             now = datetime.now(tz=_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             err_doc = {
                 "schemaVersion": SPEC_VERSION, "kind": "check-report",
@@ -1909,7 +1918,6 @@ def cmd_verify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     # Auto-save evidence bundle
     if not out_path or out_path.endswith(".json"):
-        ev_path = os.path.join(project_root, _verify.EVIDENCE_FILE)
         if not out_path:
             _verify.save(doc, project_root)
             print(f"wrote {_verify.EVIDENCE_FILE}", file=stdout)
@@ -2055,7 +2063,7 @@ def run(args: list[str] | None = None, stdout=sys.stdout, stderr=sys.stderr) -> 
 
     if cmd not in _COMMANDS:
         print(f"pyfusa: unknown command {cmd!r}", file=stderr)
-        print(f"Run 'pyfusa help' for usage.", file=stderr)
+        print("Run 'pyfusa help' for usage.", file=stderr)
         return EXIT_USAGE
 
     return _COMMANDS[cmd](rest, stdout=stdout, stderr=stderr)

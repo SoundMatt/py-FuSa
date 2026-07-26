@@ -5,10 +5,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import List, Optional, Tuple
-
-import pyfusa
-from pyfusa.config import Config
+from typing import List, Optional
 
 HARA_FILE = ".fusa-hara.json"
 
