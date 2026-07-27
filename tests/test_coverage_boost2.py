@@ -203,12 +203,14 @@ def test_lint001_long_function():
     assert any(f["ruleId"] == "LINT001" for f in findings)
 
 
+# fusa:test REQ-LINT002
 def test_lint002_long_file():
     code = "\n".join(f"x_{i} = {i}" for i in range(510))
     findings = _rule_by_id("LINT002", code)
     assert any(f["ruleId"] == "LINT002" for f in findings)
 
 
+# fusa:test REQ-LINT003
 def test_lint003_deep_nesting():
     code = (
         "def nested(a, b, c, d, e):\n"
@@ -221,6 +223,22 @@ def test_lint003_deep_nesting():
     )
     findings = _rule_by_id("LINT003", code)
     assert any(f["ruleId"] == "LINT003" for f in findings)
+
+
+# fusa:test REQ-LINT004
+def test_lint004_high_cyclomatic_complexity():
+    """A function with 11 top-level `if` branches exceeds the complexity-10 limit."""
+    body = "\n".join(f"    if x == {i}:\n        return {i}" for i in range(11))
+    code = f"def branchy(x):\n{body}\n    return -1\n"
+    findings = _rule_by_id("LINT004", code)
+    assert any(f["ruleId"] == "LINT004" for f in findings)
+
+
+def test_lint004_low_complexity_not_flagged():
+    """A simple function well under the complexity limit is not flagged."""
+    code = "def simple(x):\n    if x:\n        return 1\n    return 0\n"
+    findings = _rule_by_id("LINT004", code)
+    assert findings == []
 
 
 def test_lint005_mutable_default():
@@ -416,6 +434,7 @@ def test_analyze_cli_json():
         assert "findings" in doc
 
 
+# fusa:test REQ-CLI004
 def test_check_cli_json_with_output():
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "report.json")
@@ -438,6 +457,7 @@ def test_check_cli_strict_mode():
         assert code in (pyfusa.EXIT_OK, pyfusa.EXIT_GATE_FAIL)
 
 
+# fusa:test REQ-CLI006
 def test_qualify_cli_json_output():
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "qual.json")
@@ -450,6 +470,7 @@ def test_qualify_cli_json_output():
         assert doc["kind"] == "qualification"
 
 
+# fusa:test REQ-CLI005
 def test_trace_cli_json():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -458,6 +479,7 @@ def test_trace_cli_json():
         assert "requirements" in doc or "kind" in doc
 
 
+# fusa:test REQ-CLI002
 def test_version_command():
     out = io.StringIO()
     code = run(["version"], stdout=out)
@@ -465,6 +487,7 @@ def test_version_command():
     assert "py-FuSa" in out.getvalue() or "0." in out.getvalue()
 
 
+# fusa:test REQ-CLI003
 def test_capabilities_json():
     out = io.StringIO()
     code = run(["capabilities", "--format", "json"], stdout=out)

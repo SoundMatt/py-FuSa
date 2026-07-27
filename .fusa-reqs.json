@@ -3,7 +3,7 @@
     {
       "id": "REQ-FUSA001",
       "title": "Core types and fingerprint algorithm",
-      "text": "The tool shall implement the §4 Finding type and §4.2 fingerprint algorithm exactly as specified in the x-FuSa spec.",
+      "text": "The tool shall implement the \u00a74 Finding type and \u00a74.2 fingerprint algorithm exactly as specified in the x-FuSa spec.",
       "standard": "iso26262",
       "level": "HLR",
       "asil": "ASIL-B"
@@ -99,56 +99,56 @@
     {
       "id": "REQ-CLI001",
       "title": "CLI exit codes",
-      "text": "The tool shall use exit codes 0 (success), 1 (gate failure), 2 (usage error), 3 (runtime error) per x-FuSa spec §2.3.",
+      "text": "The tool shall use exit codes 0 (success), 1 (gate failure), 2 (usage error), 3 (runtime error) per x-FuSa spec \u00a72.3.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI002",
       "title": "Version command",
-      "text": "The tool shall implement the version command per x-FuSa spec §9.1.",
+      "text": "The tool shall implement the version command per x-FuSa spec \u00a79.1.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI003",
       "title": "Capabilities command",
-      "text": "The tool shall implement the capabilities command per x-FuSa spec §9.1.",
+      "text": "The tool shall implement the capabilities command per x-FuSa spec \u00a79.1.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI004",
       "title": "Check command",
-      "text": "The tool shall implement the check command per x-FuSa spec §4.",
+      "text": "The tool shall implement the check command per x-FuSa spec \u00a74.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI005",
       "title": "Trace command",
-      "text": "The tool shall implement the trace command per x-FuSa spec §5.",
+      "text": "The tool shall implement the trace command per x-FuSa spec \u00a75.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI006",
       "title": "Qualify command",
-      "text": "The tool shall implement the qualify command per x-FuSa spec §6.",
+      "text": "The tool shall implement the qualify command per x-FuSa spec \u00a76.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI007",
       "title": "Release command",
-      "text": "The tool shall implement the release command per x-FuSa spec §7.",
+      "text": "The tool shall implement the release command per x-FuSa spec \u00a77.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI008",
       "title": "Audit-pack command",
-      "text": "The tool shall implement the audit-pack command per x-FuSa spec §8.",
+      "text": "The tool shall implement the audit-pack command per x-FuSa spec \u00a78.",
       "standard": "iso26262",
       "level": "HLR"
     },
@@ -265,6 +265,297 @@
       "standard": "do178c",
       "level": "LLR",
       "parent_id": "REQ-COV001"
+    },
+    {
+      "id": "REQ-CYBER001",
+      "title": "Weak cryptographic hash detection",
+      "text": "The tool shall report an ERROR when a weak cryptographic hash function (MD5/SHA-1) is used.",
+      "standard": "iso21434",
+      "clause": "CWE-327"
+    },
+    {
+      "id": "REQ-CYBER002",
+      "title": "Weak symmetric cipher detection",
+      "text": "The tool shall report an ERROR when a weak symmetric cipher (DES/RC4/Triple-DES/Blowfish) is imported.",
+      "standard": "iso21434",
+      "clause": "CWE-327"
+    },
+    {
+      "id": "REQ-CYBER003",
+      "title": "Insecure random source detection",
+      "text": "The tool shall report an ERROR when the random module is used to generate security-sensitive values (tokens, secrets, keys, nonces).",
+      "standard": "iso21434",
+      "clause": "CWE-330"
+    },
+    {
+      "id": "REQ-CYBER004",
+      "title": "Unsafe memory access detection",
+      "text": "The tool shall report a WARNING when ctypes/cffi is used for unsafe memory access.",
+      "standard": "iso21434",
+      "clause": "CWE-242"
+    },
+    {
+      "id": "REQ-CYBER005",
+      "title": "Command injection detection",
+      "text": "The tool shall report an ERROR when subprocess is called with a non-literal command or shell=True.",
+      "standard": "iso21434",
+      "clause": "CWE-78"
+    },
+    {
+      "id": "REQ-CYBER006",
+      "title": "Hardcoded credential detection",
+      "text": "The tool shall report an ERROR when a credential-named variable is assigned a hardcoded string literal.",
+      "standard": "iso21434",
+      "clause": "CWE-798"
+    },
+    {
+      "id": "REQ-CYBER007",
+      "title": "TLS certificate verification disabled detection",
+      "text": "The tool shall report an ERROR when TLS certificate verification is disabled (verify=False or ssl.CERT_NONE).",
+      "standard": "iso21434",
+      "clause": "CWE-295"
+    },
+    {
+      "id": "REQ-CYBER008",
+      "title": "HTTP server without timeout detection",
+      "text": "The tool shall report a WARNING when an HTTP server is created without a request timeout.",
+      "standard": "iso21434",
+      "clause": "CWE-400"
+    },
+    {
+      "id": "REQ-CYBER009",
+      "title": "Integer narrowing detection",
+      "text": "The tool shall report a WARNING on explicit integer narrowing conversions with non-constant values.",
+      "standard": "iso21434",
+      "clause": "CWE-190"
+    },
+    {
+      "id": "REQ-CYBER010",
+      "title": "SQL/path string concatenation detection",
+      "text": "The tool shall report an ERROR when a SQL or path API call is built via string concatenation.",
+      "standard": "iso21434",
+      "clause": "CWE-89"
+    },
+    {
+      "id": "REQ-CYBER011",
+      "title": "SSRF detection",
+      "text": "The tool shall report a WARNING when an HTTP client call uses a non-literal URL.",
+      "standard": "iso21434",
+      "clause": "CWE-918"
+    },
+    {
+      "id": "REQ-CYBER012",
+      "title": "Debug mode exposure detection",
+      "text": "The tool shall report an ERROR when a web framework is run with debug=True.",
+      "standard": "iso21434",
+      "clause": "CWE-215"
+    },
+    {
+      "id": "REQ-CYBER013",
+      "title": "Zip slip detection",
+      "text": "The tool shall report an ERROR when an archive is extracted via extractall() without member validation.",
+      "standard": "iso21434",
+      "clause": "CWE-23"
+    },
+    {
+      "id": "REQ-CYBER014",
+      "title": "Weak TLS version detection",
+      "text": "The tool shall report an ERROR when a deprecated/weak TLS protocol version is configured.",
+      "standard": "iso21434",
+      "clause": "CWE-326"
+    },
+    {
+      "id": "REQ-CYBER015",
+      "title": "SQL injection via format string detection",
+      "text": "The tool shall report an ERROR when a SQL query is built using an f-string or %-format containing SQL keywords.",
+      "standard": "iso21434",
+      "clause": "CWE-89"
+    },
+    {
+      "id": "REQ-CYBER016",
+      "title": "Permissive directory mode detection",
+      "text": "The tool shall report a WARNING when a directory is created with mode=0o777.",
+      "standard": "iso21434",
+      "clause": "CWE-732"
+    },
+    {
+      "id": "REQ-CYBER017",
+      "title": "Permissive file mode detection",
+      "text": "The tool shall report a WARNING when a file is created with mode 0o666 or 0o777.",
+      "standard": "iso21434",
+      "clause": "CWE-732"
+    },
+    {
+      "id": "REQ-CYBER018",
+      "title": "Path traversal from user input detection",
+      "text": "The tool shall report an ERROR when a file path API is called with a variable derived from user-controlled input.",
+      "standard": "iso21434",
+      "clause": "CWE-22"
+    },
+    {
+      "id": "REQ-CYBER019",
+      "title": "TOCTOU race condition detection",
+      "text": "The tool shall report a WARNING when a file's existence is checked and then opened, exposing a TOCTOU race window.",
+      "standard": "iso21434",
+      "clause": "CWE-362"
+    },
+    {
+      "id": "REQ-CYBER020",
+      "title": "Insecure temporary file detection",
+      "text": "The tool shall report an ERROR when tempfile.mktemp() is used to create a temporary file.",
+      "standard": "iso21434",
+      "clause": "CWE-377"
+    },
+    {
+      "id": "REQ-EVIDENCE001",
+      "title": "SBOM presence check",
+      "text": "The tool shall warn when a project has no sbom.json Software Bill of Materials.",
+      "standard": "iso26262",
+      "clause": "13.3"
+    },
+    {
+      "id": "REQ-EVIDENCE002",
+      "title": "Build provenance presence check",
+      "text": "The tool shall warn when a project has no provenance.json build provenance record.",
+      "standard": "iso26262",
+      "clause": "13.3"
+    },
+    {
+      "id": "REQ-EVIDENCE003",
+      "title": "Tool qualification evidence presence check",
+      "text": "The tool shall report when qualify-report.json tool qualification evidence is absent.",
+      "standard": "iso26262",
+      "clause": "8.4"
+    },
+    {
+      "id": "REQ-EVIDENCE004",
+      "title": "FMEA presence check",
+      "text": "The tool shall report when fmea.json dFMEA analysis evidence is absent.",
+      "standard": "iso26262",
+      "clause": "7.5"
+    },
+    {
+      "id": "REQ-EVIDENCE005",
+      "title": "TARA presence check",
+      "text": "The tool shall report when tara.json cybersecurity risk assessment evidence is absent.",
+      "standard": "iso21434",
+      "clause": "8"
+    },
+    {
+      "id": "REQ-EVIDENCE006",
+      "title": "Boundary diagram presence check",
+      "text": "The tool shall report when no system boundary diagram (boundary.json/.mermaid/.dot) is present.",
+      "standard": "iso26262",
+      "clause": "7.2"
+    },
+    {
+      "id": "REQ-EVIDENCE007",
+      "title": "Safety case presence check",
+      "text": "The tool shall report when no safety-case.json has been assembled.",
+      "standard": "iec61508",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-EVIDENCE008",
+      "title": "Audit pack presence check",
+      "text": "The tool shall report when no audit-pack.zip evidence bundle is present.",
+      "standard": "iso26262",
+      "clause": "13.3"
+    },
+    {
+      "id": "REQ-EVIDENCE009",
+      "title": "Test evidence bundle presence check",
+      "text": "The tool shall report when no .fusa-evidence.json test evidence bundle is present.",
+      "standard": "do178c",
+      "clause": "11.4"
+    },
+    {
+      "id": "REQ-EVIDENCE010",
+      "title": "Test evidence zero-failure check",
+      "text": "The tool shall warn when the test evidence bundle reports one or more failed or errored tests.",
+      "standard": "do178c",
+      "clause": "11.4"
+    },
+    {
+      "id": "REQ-EVIDENCE011",
+      "title": "HARA presence check",
+      "text": "The tool shall warn (for iso26262/iec61508 projects) when no .fusa-hara.json hazard analysis is present.",
+      "standard": "iso26262",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-EVIDENCE012",
+      "title": "Hazard risk-rating completeness check",
+      "text": "The tool shall warn when a hazard's risk rating (severity, exposure, controllability) is incomplete.",
+      "standard": "iso26262",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-EVIDENCE013",
+      "title": "Hazard-to-safety-goal linkage check",
+      "text": "The tool shall warn when a hazard has no linked safety goal, or references an unknown one.",
+      "standard": "iso26262",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-EVIDENCE014",
+      "title": "Safety goal ASIL assignment check",
+      "text": "The tool shall warn when a safety goal has no ASIL assigned.",
+      "standard": "iso26262",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-EVIDENCE015",
+      "title": "Safety goal ASIL ceiling check",
+      "text": "The tool shall warn when a safety goal's ASIL exceeds the project's configured ASIL ceiling.",
+      "standard": "iso26262",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-EVIDENCE016",
+      "title": "Disposition completeness check",
+      "text": "The tool shall warn when an ERROR finding in check-report.json has no corresponding disposition entry.",
+      "standard": "iso26262",
+      "clause": "4.1"
+    },
+    {
+      "id": "REQ-CLI009",
+      "title": "Additional CLI subcommands",
+      "text": "The tool shall provide additional CLI subcommands (init, report, lint, analyze, cyber, fmea, boundary, coupling, tara, hara, diff, badge, req, fix, hooks, sign, vuln, pr, disposition, impact, metrics, safety-case, unece, sas, sci, coverage, template, comp, misra, verify) each running its associated analysis or report generation and exiting with the standard exit codes.",
+      "standard": "iso26262"
+    },
+    {
+      "id": "REQ-IMPACT001",
+      "title": "Change impact analysis",
+      "text": "The tool shall map git-changed files to impacted requirements and stale evidence artefacts.",
+      "standard": "iso26262",
+      "clause": "8.3"
+    },
+    {
+      "id": "REQ-DFMEA001",
+      "title": "dFMEA generation",
+      "text": "The tool shall scan Python source for raise/thread/return/req-id signals and generate a dFMEA table (fmea.json / CSV).",
+      "standard": "iso26262",
+      "clause": "7.5"
+    },
+    {
+      "id": "REQ-ENGINE001",
+      "title": "Rule registry and execution engine",
+      "text": "The tool shall register all rule implementations, execute them against a project, apply dispositions, and aggregate findings into a run result.",
+      "standard": "iso26262"
+    },
+    {
+      "id": "REQ-COUPLING001",
+      "title": "Coupling analysis report generation",
+      "text": "The tool shall run coupling-specific rules and generate a coupling-report.json summarising data/control coupling findings.",
+      "standard": "iso26262"
+    },
+    {
+      "id": "REQ-SCI001",
+      "title": "Software Configuration Index generation",
+      "text": "The tool shall generate a Software Configuration Index enumerating the presence of source, requirements, hazard analysis, and other evidence artefacts per DO-178C \u00a711.16.",
+      "standard": "do178c",
+      "clause": "11.16"
     }
   ]
 }

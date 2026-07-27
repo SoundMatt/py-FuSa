@@ -56,6 +56,7 @@ class RunResult:
         }
 
 
+# fusa:req REQ-ENGINE001
 class Engine:
     def __init__(self) -> None:
         self._rules: list[Rule] = []

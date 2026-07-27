@@ -83,6 +83,7 @@ def _import_names(tree) -> set:
 # ---------------------------------------------------------------------------
 # CYBER001 — Weak cryptographic hash (MD5 / SHA-1)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER001
 class CYBER001(Rule):
     rule_id = "CYBER001"
     description = "Weak cryptographic hash function (MD5/SHA-1) — CWE-327"
@@ -125,6 +126,7 @@ class CYBER001(Rule):
 # ---------------------------------------------------------------------------
 # CYBER002 — Weak symmetric cipher (DES / RC4 / Blowfish)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER002
 class CYBER002(Rule):
     rule_id = "CYBER002"
     description = "Weak symmetric cipher (DES/RC4) — CWE-327"
@@ -162,6 +164,7 @@ class CYBER002(Rule):
 # ---------------------------------------------------------------------------
 # CYBER003 — Insecure random source for security operations
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER003
 class CYBER003(Rule):
     rule_id = "CYBER003"
     description = "Insecure random source (random module) for security — CWE-330"
@@ -212,6 +215,7 @@ class CYBER003(Rule):
 # ---------------------------------------------------------------------------
 # CYBER004 — Unsafe memory / ctypes usage
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER004
 class CYBER004(Rule):
     rule_id = "CYBER004"
     description = "Unsafe memory access via ctypes/cffi — CWE-242"
@@ -244,6 +248,7 @@ class CYBER004(Rule):
 # ---------------------------------------------------------------------------
 # CYBER005 — Command injection (subprocess with variable as command)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER005
 class CYBER005(Rule):
     rule_id = "CYBER005"
     description = "Command injection risk: subprocess with non-literal command — CWE-78"
@@ -311,6 +316,7 @@ _CRED_RE = re.compile(
 )
 
 
+# fusa:req REQ-CYBER006
 class CYBER006(Rule):
     rule_id = "CYBER006"
     description = "Hardcoded credential in variable/constant — CWE-798"
@@ -364,6 +370,7 @@ class CYBER006(Rule):
 # ---------------------------------------------------------------------------
 # CYBER007 — TLS certificate verification disabled
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER007
 class CYBER007(Rule):
     rule_id = "CYBER007"
     description = "TLS certificate verification disabled — CWE-295"
@@ -425,6 +432,7 @@ class CYBER007(Rule):
 # ---------------------------------------------------------------------------
 # CYBER008 — HTTP server without timeout
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER008
 class CYBER008(Rule):
     rule_id = "CYBER008"
     description = "HTTP server created without request timeout — CWE-400"
@@ -472,6 +480,7 @@ class CYBER008(Rule):
 # ---------------------------------------------------------------------------
 # CYBER009 — Integer narrowing / truncation
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER009
 class CYBER009(Rule):
     rule_id = "CYBER009"
     description = "Explicit integer narrowing conversion — CWE-190"
@@ -520,6 +529,7 @@ class CYBER009(Rule):
 # ---------------------------------------------------------------------------
 # CYBER010 — String concatenation in SQL/path queries
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER010
 class CYBER010(Rule):
     rule_id = "CYBER010"
     description = "String concatenation in SQL or path API call — CWE-89/CWE-22"
@@ -573,6 +583,7 @@ class CYBER010(Rule):
 # ---------------------------------------------------------------------------
 # CYBER011 — SSRF (URL from variable in HTTP client call)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER011
 class CYBER011(Rule):
     rule_id = "CYBER011"
     description = (
@@ -629,6 +640,7 @@ class CYBER011(Rule):
 # ---------------------------------------------------------------------------
 # CYBER012 — Debug server / profiling endpoint exposed
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER012
 class CYBER012(Rule):
     rule_id = "CYBER012"
     description = "Debug mode or profiling endpoint exposed in production — CWE-215"
@@ -673,6 +685,7 @@ class CYBER012(Rule):
 # ---------------------------------------------------------------------------
 # CYBER013 — Zip slip (unsafe archive extraction)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER013
 class CYBER013(Rule):
     rule_id = "CYBER013"
     description = "Unsafe archive extraction — zip slip path traversal — CWE-23"
@@ -710,6 +723,7 @@ class CYBER013(Rule):
 # ---------------------------------------------------------------------------
 # CYBER014 — TLS minimum version too low
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER014
 class CYBER014(Rule):
     rule_id = "CYBER014"
     description = "TLS minimum version too low (SSLv2/SSLv3/TLSv1.0/TLSv1.1) — CWE-326"
@@ -754,6 +768,7 @@ class CYBER014(Rule):
 # ---------------------------------------------------------------------------
 # CYBER015 — SQL injection via format string
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER015
 class CYBER015(Rule):
     rule_id = "CYBER015"
     description = "SQL injection via f-string or % format in query — CWE-89"
@@ -814,6 +829,7 @@ class CYBER015(Rule):
 # ---------------------------------------------------------------------------
 # CYBER016 — Permissive directory creation mode
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER016
 class CYBER016(Rule):
     rule_id = "CYBER016"
     description = "Directory created with permissive mode (0o777) — CWE-732"
@@ -858,6 +874,7 @@ class CYBER016(Rule):
 # ---------------------------------------------------------------------------
 # CYBER017 — Permissive file creation mode
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER017
 class CYBER017(Rule):
     rule_id = "CYBER017"
     description = "File created with permissive mode (0o666/0o777) — CWE-732"
@@ -905,6 +922,7 @@ class CYBER017(Rule):
 # ---------------------------------------------------------------------------
 # CYBER018 — File path derived from request / user input
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER018
 class CYBER018(Rule):
     rule_id = "CYBER018"
     description = "File path derived from user-controlled input — path traversal CWE-22"
@@ -972,6 +990,7 @@ class CYBER018(Rule):
 # ---------------------------------------------------------------------------
 # CYBER019 — TOCTOU race condition (exists check + open)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER019
 class CYBER019(Rule):
     rule_id = "CYBER019"
     description = "TOCTOU race condition: existence check before file open — CWE-362"
@@ -1025,6 +1044,7 @@ class CYBER019(Rule):
 # ---------------------------------------------------------------------------
 # CYBER020 — Insecure temporary file (tempfile.mktemp)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-CYBER020
 class CYBER020(Rule):
     rule_id = "CYBER020"
     description = "Insecure temporary file creation — CWE-377"

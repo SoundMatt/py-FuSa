@@ -109,6 +109,7 @@ def _load_config(project_root: str) -> _config.Config:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI002
 def cmd_version(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa version", add_help=True)
     p.add_argument("--format", choices=["text", "json"], default="text")
@@ -130,6 +131,7 @@ def cmd_version(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI003
 def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa capabilities", add_help=True)
     p.add_argument("--format", choices=["text", "json"], default="json")
@@ -235,6 +237,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa init", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
@@ -344,6 +347,7 @@ def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI004
 def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa check", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
@@ -437,6 +441,7 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_report(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     # Same as check but always exits 0 (§9.1)
     p = argparse.ArgumentParser(prog="pyfusa report", add_help=True)
@@ -498,6 +503,7 @@ def cmd_report(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI005
 def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa trace", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
@@ -519,6 +525,18 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         default=0,
         metavar="N",
         help="exit 1 if sec-test coverage < N%%",
+    )
+    p.add_argument(
+        "--func-coverage",
+        type=int,
+        default=0,
+        dest="func_coverage",
+        metavar="N",
+        help=(
+            "exit 1 if function-tag coverage < N%% (%% of public pyfusa/ "
+            "functions/methods carrying a fusa:req tag on themselves or "
+            "their containing class); N=0 disables (§1.4.1)"
+        ),
     )
     p.add_argument(
         "--strict",
@@ -597,6 +615,18 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             )
             return EXIT_GATE_FAIL
 
+    # §1.4.1.2 --func-coverage gate: N=0 disables
+    if ns.func_coverage > 0:
+        tagged, total_funcs = _trace.compute_func_coverage(project_root, cfg)
+        func_denom = total_funcs or 1
+        func_pct = int(tagged * 100 // func_denom)
+        if func_pct < ns.func_coverage:
+            print(
+                f"pyfusa trace: func coverage {func_pct}% < {ns.func_coverage}%",
+                file=stderr,
+            )
+            return EXIT_GATE_FAIL
+
     # HLR/LLR gate (errors already emitted above for --strict-hlr-llr)
     if ns.strict_hlr_llr and matrix.hlr_violations:
         return EXIT_GATE_FAIL
@@ -609,6 +639,7 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI006
 def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa qualify", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
@@ -722,6 +753,7 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI007
 def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa release", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
@@ -765,6 +797,7 @@ def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI008
 def cmd_audit_pack(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa audit-pack", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
@@ -794,6 +827,7 @@ def cmd_audit_pack(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_lint(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa lint", add_help=True)
     p.add_argument("--dir", default="")
@@ -846,6 +880,7 @@ def cmd_lint(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_analyze(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa analyze", add_help=True)
     p.add_argument("--dir", default="")
@@ -898,6 +933,7 @@ def cmd_analyze(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_cyber(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa cyber", add_help=True)
     p.add_argument("--dir", default="")
@@ -950,6 +986,7 @@ def cmd_cyber(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa fmea", add_help=True)
     p.add_argument("--dir", default="")
@@ -1006,6 +1043,7 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_boundary(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa boundary", add_help=True)
     p.add_argument("--dir", default="")
@@ -1058,6 +1096,7 @@ def cmd_boundary(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa coupling", add_help=True)
     p.add_argument("--dir", default="")
@@ -1104,6 +1143,7 @@ def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa tara", add_help=True)
     p.add_argument("--dir", default="")
@@ -1181,6 +1221,7 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa hara", add_help=True)
     p.add_argument(
@@ -1240,6 +1281,7 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_diff(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa diff", add_help=True)
     p.add_argument("baseline", help="baseline check-report.json")
@@ -1270,6 +1312,7 @@ def cmd_diff(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_badge(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa badge", add_help=True)
     p.add_argument("--dir", default="")
@@ -1311,6 +1354,7 @@ def cmd_badge(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa req", add_help=True)
     p.add_argument(
@@ -1390,6 +1434,7 @@ def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_fix(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa fix", add_help=True)
     p.add_argument("--dir", default="")
@@ -1423,6 +1468,7 @@ def cmd_fix(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_hooks(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa hooks", add_help=True)
     p.add_argument(
@@ -1470,6 +1516,7 @@ fi
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_sign(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa sign", add_help=True)
     p.add_argument("subcommand", choices=["keygen", "sign", "verify"])
@@ -1530,6 +1577,7 @@ def cmd_sign(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_vuln(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa vuln", add_help=True)
     p.add_argument("--dir", default="")
@@ -1587,6 +1635,7 @@ def cmd_vuln(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_pr(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa pr", add_help=True)
     p.add_argument("subcommand", nargs="?", default="list", choices=["list", "add"])
@@ -1623,6 +1672,7 @@ def cmd_pr(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa disposition", add_help=True)
     p.add_argument("subcommand", nargs="?", default="list", choices=["list", "add"])
@@ -1668,6 +1718,7 @@ def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_impact(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa impact", add_help=True)
     p.add_argument("--dir", default="")
@@ -1725,6 +1776,7 @@ def cmd_impact(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_metrics(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa metrics", add_help=True)
     p.add_argument("subcommand", nargs="?", default="show", choices=["show", "record"])
@@ -1756,6 +1808,7 @@ def cmd_metrics(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa safety-case", add_help=True)
     p.add_argument("--dir", default="")
@@ -1868,6 +1921,7 @@ cmd_iec62443 = _cmd_gap_report(
 cmd_slsa = _cmd_gap_report("slsa", _slsa_gap.run, _slsa_gap.render_text, "L2", "level")
 
 
+# fusa:req REQ-CLI009
 def cmd_unece(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa unece", add_help=True)
     p.add_argument("--dir", default="")
@@ -1913,6 +1967,7 @@ def cmd_unece(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa sas", add_help=True)
     p.add_argument("--dir", default="")
@@ -1954,6 +2009,7 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     return EXIT_OK
 
 
+# fusa:req REQ-CLI009
 def cmd_sci(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa sci", add_help=True)
     p.add_argument("--dir", default="")
@@ -1999,6 +2055,7 @@ def cmd_sci(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa coverage", add_help=True)
     p.add_argument("--dir", default="")
@@ -2087,6 +2144,7 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_template(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa template", add_help=True)
     p.add_argument(
@@ -2128,6 +2186,7 @@ def cmd_template(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa comp", add_help=True)
     p.add_argument("--dir", default="")
@@ -2169,6 +2228,7 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_misra(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa misra", add_help=True)
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
@@ -2190,6 +2250,7 @@ def cmd_misra(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 
 
+# fusa:req REQ-CLI009
 def cmd_verify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa verify", add_help=True)
     p.add_argument("--dir", default="")
@@ -2397,5 +2458,6 @@ def run(args: list[str] | None = None, stdout=sys.stdout, stderr=sys.stderr) -> 
     return _COMMANDS[cmd](rest, stdout=stdout, stderr=stderr)
 
 
+# fusa:req REQ-CLI001
 def main() -> None:
     sys.exit(run())

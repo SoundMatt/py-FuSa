@@ -3,6 +3,7 @@
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 
@@ -204,6 +205,7 @@ def test_trace_json_schema():
 
 
 # fusa:test REQ-FUSA001
+# fusa:test REQ-CLI007
 def test_release_json_files():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -215,6 +217,7 @@ def test_release_json_files():
 
 
 # fusa:test REQ-FUSA001
+# fusa:test REQ-CLI008
 def test_audit_pack_command():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -241,3 +244,18 @@ def test_check_sarif_output():
         assert doc["version"] == "2.1.0"
         assert "runs" in doc
         assert doc["runs"][0]["tool"]["driver"]["name"] == "py-FuSa"
+
+
+# fusa:test REQ-NF001
+def test_no_external_runtime_dependencies():
+    """pyproject.toml's [project] table declares no external runtime
+    dependencies — py-FuSa is standard-library only (§ conventions)."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(root, "pyproject.toml"), encoding="utf-8") as f:
+        text = f.read()
+    # Extract the [project] table body, up to the next top-level (non
+    # "[project.*]") section header.
+    m = re.search(r"\[project\](.*?)(?=\n\[(?!project\.)|\Z)", text, re.S)
+    assert m is not None, "no [project] table found in pyproject.toml"
+    project_body = m.group(1)
+    assert "dependencies" not in project_body

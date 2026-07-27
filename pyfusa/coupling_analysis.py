@@ -9,6 +9,7 @@ import pyfusa
 from pyfusa.config import Config
 
 
+# fusa:req REQ-COUPLING001
 def run(project_root: str, cfg: Config) -> dict:
     """Run coupling-specific rules and return coupling-report.json payload."""
     from pyfusa.rules.coupling import COUP001, COUP002

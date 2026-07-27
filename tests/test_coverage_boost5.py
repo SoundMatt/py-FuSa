@@ -39,7 +39,7 @@ def _cfg(tmpdir: str = "."):
 
 
 class TestImpact:
-    # fusa:test REQ-PY-IMP001
+    # fusa:test REQ-IMPACT001
 
     def test_run_basic_no_git(self):
         """run() returns a valid impact-report dict even in a non-git directory."""
@@ -162,7 +162,7 @@ class TestImpact:
 
 
 class TestFmea:
-    # fusa:test REQ-PY-FMA001
+    # fusa:test REQ-DFMEA001
 
     def test_parse_syntax_error(self):
         """_parse returns (None, []) for files with syntax errors."""
@@ -258,9 +258,12 @@ class TestFmea:
         """_req_ids_from_comments extracts IDs from #fusa:req comments."""
         import pyfusa.fmea as fmea
 
+        # NOTE: "#" + "fusa:req ..." is split via adjacent-literal concatenation
+        # so this fixture's own source line isn't itself mistaken for a real
+        # (malformed, multi-ID) annotation when tests/ is scanned (§1.4.1).
         lines = [
             "def process(x):",
-            "    x = 1  #fusa:req REQ-001 REQ-002",
+            "    x = 1  #" + "fusa:req REQ-001 REQ-002",
             "    return x",
         ]
         ids = fmea._req_ids_from_comments(lines, 0, 3)
@@ -349,7 +352,8 @@ class TestFmea:
         """scan() extracts req_ids from #fusa:req comment."""
         import pyfusa.fmea as fmea
 
-        code = "def process(x):\n    x = x  #fusa:req REQ-001\n    return x\n"
+        # See NOTE in test_req_ids_from_comments re: adjacent-literal split.
+        code = "def process(x):\n    x = x  #" + "fusa:req REQ-001\n    return x\n"
         with tempfile.TemporaryDirectory() as tmpdir:
             _write(tmpdir, "mod.py", code)
             cfg = default()
@@ -411,7 +415,7 @@ class TestFmea:
 
 
 class TestEngine:
-    # fusa:test REQ-PY-ENG001
+    # fusa:test REQ-ENGINE001
 
     def test_has_warnings_true(self):
         """has_warnings returns True when active (not accepted) warnings exist."""
@@ -589,7 +593,7 @@ class TestEngine:
 
 
 class TestCouplingAnalysis:
-    # fusa:test REQ-PY-COU001
+    # fusa:test REQ-COUPLING001
 
     def test_run_returns_coupling_report(self):
         """run() returns a coupling-report dict for an empty directory."""
@@ -658,7 +662,7 @@ class TestCouplingAnalysis:
 
 
 class TestSci:
-    # fusa:test REQ-PY-SCI001
+    # fusa:test REQ-SCI001
 
     def test_generate_with_existing_artifact(self):
         """generate() marks artifact items present when their files exist."""
@@ -724,7 +728,26 @@ def _cyber_cfg(tmpdir: str):
 
 
 class TestCyberRules:
-    # fusa:test REQ-PY-CYB001
+    # fusa:test REQ-CYBER001
+    # fusa:test REQ-CYBER002
+    # fusa:test REQ-CYBER003
+    # fusa:test REQ-CYBER004
+    # fusa:test REQ-CYBER005
+    # fusa:test REQ-CYBER006
+    # fusa:test REQ-CYBER007
+    # fusa:test REQ-CYBER008
+    # fusa:test REQ-CYBER009
+    # fusa:test REQ-CYBER010
+    # fusa:test REQ-CYBER011
+    # fusa:test REQ-CYBER012
+    # fusa:test REQ-CYBER013
+    # fusa:test REQ-CYBER014
+    # fusa:test REQ-CYBER015
+    # fusa:test REQ-CYBER016
+    # fusa:test REQ-CYBER017
+    # fusa:test REQ-CYBER018
+    # fusa:test REQ-CYBER019
+    # fusa:test REQ-CYBER020
 
     def test_cyber001_md5(self):
         """CYBER001 flags hashlib.md5() usage."""

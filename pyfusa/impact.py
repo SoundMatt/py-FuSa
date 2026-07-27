@@ -91,6 +91,7 @@ def _check_stale(project_root: str, changed_files: List[dict]) -> List[dict]:
     return stale
 
 
+# fusa:req REQ-IMPACT001
 def run(
     project_root: str, cfg: Config, from_ref: str = "HEAD", to_ref: str = ""
 ) -> dict:

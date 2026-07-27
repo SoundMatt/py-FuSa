@@ -73,6 +73,7 @@ def test_hlr_llr_valid_hierarchy_no_violations():
 
 
 # fusa:test REQ-TRACE001
+# fusa:test REQ-TRACE001-LLR1
 def test_hlr_llr_orphan_llr_no_parent():
     """LLR with no parent_id generates an orphan-llr violation."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -90,6 +91,7 @@ def test_hlr_llr_orphan_llr_no_parent():
 
 
 # fusa:test REQ-TRACE001
+# fusa:test REQ-TRACE001-LLR1
 def test_hlr_llr_orphan_llr_unknown_parent():
     """LLR referencing a non-existent HLR generates an orphan-llr violation."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -112,6 +114,7 @@ def test_hlr_llr_orphan_llr_unknown_parent():
 
 
 # fusa:test REQ-TRACE001
+# fusa:test REQ-TRACE001-LLR2
 def test_hlr_llr_empty_hlr_violation():
     """HLR with no LLR children generates an empty-hlr violation."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -139,6 +142,7 @@ def test_hlr_llr_empty_hlr_violation():
 
 
 # fusa:test REQ-TRACE001
+# fusa:test REQ-TRACE001-LLR3
 def test_hlr_llr_findings_are_warnings_without_strict():
     """Without strict level, violations produce WARNING findings."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -156,6 +160,7 @@ def test_hlr_llr_findings_are_warnings_without_strict():
 
 
 # fusa:test REQ-TRACE001
+# fusa:test REQ-TRACE001-LLR3
 def test_hlr_llr_findings_are_errors_with_strict():
     """--strict-hlr-llr forces violations to ERROR severity."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -174,6 +179,7 @@ def test_hlr_llr_findings_are_errors_with_strict():
 
 
 # fusa:test REQ-TRACE001
+# fusa:test REQ-TRACE001-LLR3
 def test_hlr_llr_findings_are_errors_for_asil_d():
     """ASIL-D integrity level forces violations to ERROR severity."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -309,6 +315,7 @@ def test_trace_strict_hlr_llr_clean_exits_0():
 
 
 # fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR1
 def test_qualify_badge_unqualified_by_default():
     """Default qualify run returns unqualified badge."""
     report = qualify.run()
@@ -316,6 +323,7 @@ def test_qualify_badge_unqualified_by_default():
 
 
 # fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR1
 def test_qualify_badge_self_qualified():
     """qualification_method='self' returns self-qualified badge."""
     report = qualify.run(qualification_method="self")
@@ -323,6 +331,7 @@ def test_qualify_badge_self_qualified():
 
 
 # fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR1
 def test_qualify_badge_independently_qualified_by_method():
     """qualification_method='independent' returns independently-qualified badge."""
     report = qualify.run(qualification_method="independent")
@@ -330,6 +339,7 @@ def test_qualify_badge_independently_qualified_by_method():
 
 
 # fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR1
 def test_qualify_badge_independently_qualified_by_identity():
     """qualifier_identity alone is sufficient for independently-qualified badge."""
     report = qualify.run(qualifier_identity="AuditOrg Inc")
@@ -337,6 +347,7 @@ def test_qualify_badge_independently_qualified_by_identity():
 
 
 # fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR2
 def test_qualify_qualification_record_uri_in_report():
     """qualification_record_uri appears in to_dict output."""
     report = qualify.run(
@@ -353,6 +364,7 @@ def test_qualify_qualification_record_uri_in_report():
 
 
 # fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR1
 def test_qualify_badge_in_to_dict():
     """qualificationBadge key is always present in to_dict output."""
     report = qualify.run()
@@ -364,6 +376,7 @@ def test_qualify_badge_in_to_dict():
 
 
 # fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR2
 def test_qualify_cli_qualification_flags_json():
     """CLI --qualification-method and --qualifier flags appear in JSON output."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -403,6 +416,7 @@ def _write_llvm_coverage(path: str, data: dict) -> None:
 
 
 # fusa:test REQ-COV001
+# fusa:test REQ-COV001-LLR1
 def test_mcdc_all_conditions_covered():
     """All conditions covered: mcdc.passed = True."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -445,6 +459,7 @@ def test_mcdc_all_conditions_covered():
 
 
 # fusa:test REQ-COV001
+# fusa:test REQ-COV001-LLR1
 def test_mcdc_uncovered_condition_fails():
     """A condition with covered_false_count=0 marks the function as uncovered."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -482,6 +497,7 @@ def test_mcdc_uncovered_condition_fails():
 
 
 # fusa:test REQ-COV001
+# fusa:test REQ-COV001-LLR1
 def test_mcdc_partial_condition_not_covered():
     """covered_true_count=0 (never evaluated true) marks condition uncovered."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -517,6 +533,7 @@ def test_mcdc_partial_condition_not_covered():
 
 
 # fusa:test REQ-COV001
+# fusa:test REQ-COV001-LLR1
 def test_mcdc_missing_file_returns_error():
     """Missing LLVM coverage file results in an error key in mcdc report."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -529,6 +546,7 @@ def test_mcdc_missing_file_returns_error():
 
 
 # fusa:test REQ-COV001
+# fusa:test REQ-COV001-LLR1
 def test_mcdc_json_output_structure():
     """MC/DC JSON output has expected keys."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -573,6 +591,7 @@ def test_mcdc_json_output_structure():
 
 
 # fusa:test REQ-COV001
+# fusa:test REQ-COV001-LLR2
 def test_mcdc_threshold_applied():
     """--mcdc-threshold controls the pass/fail gate."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -621,6 +640,7 @@ def test_mcdc_threshold_applied():
 
 
 # fusa:test REQ-COV001
+# fusa:test REQ-COV001-LLR2
 def test_mcdc_cli_flag_json_output():
     """--mcdc flag in CLI produces mcdc key in JSON output."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -683,6 +703,7 @@ def test_mcdc_without_flag_no_mcdc_key():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR1
 def test_vv_independence_unknown_when_no_authors():
     """Independence is 'unknown' when no author or reviewer provided."""
     report = qualify.run()
@@ -690,6 +711,7 @@ def test_vv_independence_unknown_when_no_authors():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR1
 def test_vv_independence_same_author():
     """Independence is 'same-author' when reviewer == author."""
     report = qualify.run(
@@ -700,6 +722,7 @@ def test_vv_independence_same_author():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR1
 def test_vv_independence_independent_when_different():
     """Independence is 'independent' when reviewer differs from author."""
     report = qualify.run(
@@ -710,6 +733,7 @@ def test_vv_independence_independent_when_different():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR2
 def test_vv_independence_in_to_dict():
     """V&V independence fields appear in to_dict output."""
     report = qualify.run(
@@ -729,6 +753,7 @@ def test_vv_independence_in_to_dict():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR1
 def test_vv_independence_status_always_in_to_dict():
     """independenceStatus is always present in to_dict output."""
     report = qualify.run()
@@ -739,6 +764,7 @@ def test_vv_independence_status_always_in_to_dict():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR2
 def test_vv_independence_cli_flags_json():
     """CLI --implementation-author and --independent-reviewer appear in JSON."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -771,6 +797,7 @@ def test_vv_independence_cli_flags_json():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR1
 def test_vv_unknown_when_only_reviewer():
     """independence is 'unknown' when only reviewer is provided (no author)."""
     report = qualify.run(independent_reviewer="Bob")
@@ -778,6 +805,7 @@ def test_vv_unknown_when_only_reviewer():
 
 
 # fusa:test REQ-QUAL002
+# fusa:test REQ-QUAL002-LLR2
 def test_vv_optional_fields_absent_when_empty():
     """Optional V&V fields are omitted from to_dict when not provided."""
     report = qualify.run()

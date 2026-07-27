@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import fnmatch
 import json
 import os
@@ -21,6 +22,11 @@ _SEC_TEST_RE = re.compile(r"#\s*fusa:sec-test\s+(\S+)")
 KIND_IMPL = "impl"
 KIND_TEST = "test"
 KIND_SEC_TEST = "sec-test"
+
+# §1.4.1 — directories that MUST always be scanned for annotations regardless
+# of a project's sourceDirs config (a sourceDirs-style allowlist MUST NOT be
+# able to exclude the test tree from the annotation scan).
+_ALWAYS_SCANNED_TEST_DIRS = ("tests", "test")
 
 # Integrity levels that require HLR/LLR error (vs warn)
 _ERROR_LEVELS = {"DAL-A", "ASIL-D"}
@@ -92,6 +98,26 @@ def _is_excluded(rel_path: str, patterns: list[str]) -> bool:
         if fnmatch.fnmatch(os.path.basename(rel_path), pat):
             return True
     return False
+
+
+def _dirs_to_scan(
+    project_root: str, source_dirs: list[str]
+) -> list[str]:  # fusa:req REQ-TRACE001
+    """§1.4.1 scan-path completeness (MUST): the annotation scan MUST cover the
+    entire test source tree even when a project's `sourceDirs` config does not
+    mention it. Returns `source_dirs` plus any always-scanned test directory
+    that is not already covered by one of them."""
+    dirs = list(source_dirs)
+    abs_dirs = [os.path.normpath(os.path.join(project_root, d)) for d in dirs]
+
+    def _already_covered(abs_path: str) -> bool:
+        return any(abs_path == a or abs_path.startswith(a + os.sep) for a in abs_dirs)
+
+    for test_dir in _ALWAYS_SCANNED_TEST_DIRS:
+        abs_test = os.path.normpath(os.path.join(project_root, test_dir))
+        if os.path.isdir(abs_test) and not _already_covered(abs_test):
+            dirs.append(test_dir)
+    return dirs
 
 
 def _scan_annotations(
@@ -224,9 +250,11 @@ def build(
         except (json.JSONDecodeError, OSError):
             pass
 
-    # Scan annotations
+    # Scan annotations — §1.4.1 MUST always include the test tree, regardless
+    # of sourceDirs, so `tested` counts are never silently zero.
+    scan_dirs = _dirs_to_scan(project_root, cfg.source_dirs)
     tags, ann_findings = _scan_annotations(
-        project_root, cfg.source_dirs, cfg.exclude_patterns
+        project_root, scan_dirs, cfg.exclude_patterns
     )
 
     # Compute coverage (§5)
@@ -235,6 +263,29 @@ def build(
     for tag in tags:
         if tag.requirement_id in req_tags:
             req_tags[tag.requirement_id].add(tag.kind)
+
+    # §1.4.1.3 — a fusa:test/sec-test tag referencing a requirement id that
+    # doesn't exist in .fusa-reqs.json is a dangling reference: treat it the
+    # same as a malformed annotation, a WARNING, never silently accepted.
+    dangling_findings: list[pyfusa.Finding] = []
+    for tag in tags:
+        if tag.kind in (KIND_TEST, KIND_SEC_TEST) and tag.requirement_id not in req_ids:
+            dangling_findings.append(
+                pyfusa.Finding(
+                    rule_id="REQ004",
+                    severity=pyfusa.SEVERITY_WARNING,
+                    message=(
+                        f"dangling {tag.kind} tag: requirement "
+                        f"'{tag.requirement_id}' not found in .fusa-reqs.json"
+                    ),
+                    location=pyfusa.Location(file=tag.file, line=tag.line),
+                    category=pyfusa.CATEGORY_REQUIREMENT,
+                    remediation=(
+                        "register the requirement in .fusa-reqs.json, or fix the "
+                        "stale tag to reference a valid requirement id"
+                    ),
+                )
+            )
 
     total = len(requirements)
     traced = sum(1 for kinds in req_tags.values() if kinds)
@@ -298,7 +349,7 @@ def build(
         requirements=requirements,
         tags=tags,
         coverage=cov,
-        findings=ann_findings + hlr_findings,
+        findings=ann_findings + dangling_findings + hlr_findings,
         hlr_violations=violations,
     )
 
@@ -341,6 +392,8 @@ def to_dict(
             {"kind": v.kind, "reqId": v.req_id, "detail": v.detail}
             for v in matrix.hlr_violations
         ]
+    if matrix.findings:
+        doc["findings"] = [f.to_dict() for f in matrix.findings]
     return doc
 
 
@@ -414,4 +467,118 @@ def render_text(
             for v in matrix.hlr_violations:
                 lines.append(f"  [{v.kind}] {v.detail}")
 
+        if matrix.findings:
+            lines.append("")
+            lines.append(f"Findings ({len(matrix.findings)}):")
+            for f in matrix.findings:
+                loc = f.location.file
+                if f.location.line:
+                    loc = f"{loc}:{f.location.line}"
+                lines.append(f"  [{f.severity}] {f.rule_id} {loc}: {f.message}")
+
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# §1.4.1.2 / §5 --func-coverage
+# ---------------------------------------------------------------------------
+
+
+def _is_public(name: str) -> bool:
+    return not name.startswith("_")
+
+
+def _is_dunder(name: str) -> bool:
+    return name.startswith("__") and name.endswith("__")
+
+
+def _tag_directly_above(node: ast.AST, lines: list[str]) -> bool:
+    """§1.4.1.1 — is there a fusa:req annotation comment directly above
+    `node` (skipping blank lines and any decorators)?"""
+    start = getattr(node, "lineno", 1)
+    decorators = getattr(node, "decorator_list", None) or []
+    if decorators:
+        start = min(start, min(d.lineno for d in decorators))
+    idx = start - 2  # 0-indexed line immediately above `start`
+    while idx >= 0:
+        stripped = lines[idx].strip()
+        if stripped.startswith("#"):
+            if _REQ_RE.search(stripped):
+                return True
+            idx -= 1
+            continue
+        if stripped == "":
+            idx -= 1
+            continue
+        break
+    return False
+
+
+def compute_func_coverage(
+    project_root: str, cfg: Config
+) -> tuple[int, int]:  # fusa:req REQ-TRACE001
+    """§1.4.1.2 — count public (non `_`-prefixed) module-level functions and
+    class methods under `cfg.source_dirs` (never the test tree) and how many
+    carry a fusa:req tag on themselves or on their containing class (this
+    project's convention: methods inherit their class's tag).
+
+    Returns `(tagged_count, total_count)`.
+    """
+    total = 0
+    tagged = 0
+    source_dirs = cfg.source_dirs or ["."]
+    for src_dir in source_dirs:
+        abs_src = os.path.normpath(os.path.join(project_root, src_dir))
+        if os.path.basename(abs_src) in ("tests", "test"):
+            continue
+        for dirpath, dirnames, filenames in os.walk(abs_src):
+            dirnames[:] = [
+                d
+                for d in dirnames
+                if not d.startswith(".")
+                and d
+                not in (
+                    "__pycache__",
+                    "build",
+                    "dist",
+                    "tests",
+                    "test",
+                    "venv",
+                    ".venv",
+                )
+            ]
+            for fname in filenames:
+                if not fname.endswith(".py"):
+                    continue
+                path = os.path.join(dirpath, fname)
+                try:
+                    with open(path, encoding="utf-8", errors="replace") as f:
+                        src = f.read()
+                except OSError:
+                    continue
+                try:
+                    tree = ast.parse(src)
+                except SyntaxError:
+                    continue
+                lines = src.splitlines()
+
+                for node in ast.iter_child_nodes(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if not _is_public(node.name):
+                            continue
+                        total += 1
+                        if _tag_directly_above(node, lines):
+                            tagged += 1
+                    elif isinstance(node, ast.ClassDef):
+                        class_tagged = _tag_directly_above(node, lines)
+                        for child in node.body:
+                            if not isinstance(
+                                child, (ast.FunctionDef, ast.AsyncFunctionDef)
+                            ):
+                                continue
+                            if not _is_public(child.name) or _is_dunder(child.name):
+                                continue
+                            total += 1
+                            if class_tagged or _tag_directly_above(child, lines):
+                                tagged += 1
+    return tagged, total

@@ -131,6 +131,7 @@ def _package_name(path: str, root: str) -> str:
     return os.path.dirname(rel).replace(os.sep, ".") or "."
 
 
+# fusa:req REQ-DFMEA001
 def scan(project_root: str, cfg: Config) -> List[dict]:
     entries: List[dict] = []
     for path in _python_files(project_root, cfg):

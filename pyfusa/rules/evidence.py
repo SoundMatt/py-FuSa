@@ -48,6 +48,7 @@ def _presence(
 # ── Release artefacts ─────────────────────────────────────────────────────────
 
 
+# fusa:req REQ-EVIDENCE001
 class RELEASE001(Rule):
     rule_id = "RELEASE001"
     standard = "iso26262"
@@ -69,6 +70,7 @@ class RELEASE001(Rule):
         ]
 
 
+# fusa:req REQ-EVIDENCE002
 class RELEASE002(Rule):
     rule_id = "RELEASE002"
     standard = "iso26262"
@@ -93,6 +95,7 @@ class RELEASE002(Rule):
 # ── Tool qualification ────────────────────────────────────────────────────────
 
 
+# fusa:req REQ-EVIDENCE003
 class QUALIFY001(Rule):
     rule_id = "QUALIFY001"
     standard = "iso26262"
@@ -117,6 +120,7 @@ class QUALIFY001(Rule):
 # ── Safety analysis artefacts ─────────────────────────────────────────────────
 
 
+# fusa:req REQ-EVIDENCE004
 class FMEA001(Rule):
     rule_id = "FMEA001"
     standard = "iso26262"
@@ -138,6 +142,7 @@ class FMEA001(Rule):
         ]
 
 
+# fusa:req REQ-EVIDENCE005
 class TARA001(Rule):
     rule_id = "TARA001"
     standard = "iso21434"
@@ -159,6 +164,7 @@ class TARA001(Rule):
         ]
 
 
+# fusa:req REQ-EVIDENCE006
 class BOUNDARY001(Rule):
     rule_id = "BOUNDARY001"
     standard = "iso26262"
@@ -183,6 +189,7 @@ class BOUNDARY001(Rule):
         ]
 
 
+# fusa:req REQ-EVIDENCE007
 class SAFETYCASE001(Rule):
     rule_id = "SAFETYCASE001"
     standard = "iec61508"
@@ -204,6 +211,7 @@ class SAFETYCASE001(Rule):
         ]
 
 
+# fusa:req REQ-EVIDENCE008
 class AUDITPACK001(Rule):
     rule_id = "AUDITPACK001"
     standard = "iso26262"
@@ -228,6 +236,7 @@ class AUDITPACK001(Rule):
 # ── Test evidence ─────────────────────────────────────────────────────────────
 
 
+# fusa:req REQ-EVIDENCE009
 class VERIFY001(Rule):
     rule_id = "VERIFY001"
     standard = "do178c"
@@ -249,6 +258,7 @@ class VERIFY001(Rule):
         ]
 
 
+# fusa:req REQ-EVIDENCE010
 class VERIFY002(Rule):
     rule_id = "VERIFY002"
     standard = "do178c"
@@ -284,6 +294,7 @@ class VERIFY002(Rule):
 # ── HARA engine rules ─────────────────────────────────────────────────────────
 
 
+# fusa:req REQ-EVIDENCE011
 class HARA001(Rule):
     rule_id = "HARA001"
     standard = "iso26262"
@@ -313,6 +324,7 @@ class HARA001(Rule):
         ]
 
 
+# fusa:req REQ-EVIDENCE012
 class HARA002(Rule):
     standard = "iso26262"
     clause = "7.4"
@@ -347,6 +359,7 @@ class HARA002(Rule):
         return findings
 
 
+# fusa:req REQ-EVIDENCE013
 class HARA003(Rule):
     standard = "iso26262"
     clause = "7.4"
@@ -389,6 +402,7 @@ class HARA003(Rule):
         return findings
 
 
+# fusa:req REQ-EVIDENCE014
 class HARA004(Rule):
     standard = "iso26262"
     clause = "7.4"
@@ -418,6 +432,7 @@ class HARA004(Rule):
         return findings
 
 
+# fusa:req REQ-EVIDENCE015
 class HARA005(Rule):
     standard = "iso26262"
     clause = "7.4"
@@ -455,6 +470,7 @@ class HARA005(Rule):
 # ── Disposition rule ──────────────────────────────────────────────────────────
 
 
+# fusa:req REQ-EVIDENCE016
 class DISP001(Rule):
     standard = "iso26262"
     clause = "4.1"

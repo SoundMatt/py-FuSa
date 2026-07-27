@@ -1,5 +1,63 @@
 # Changelog
 
+## v0.2.4 — 2026-07-27
+
+### Fixed
+
+- **Scan-path completeness (x-FuSa spec §1.4.1, MUST):** `.fusa.json` sets
+  `sourceDirs: ["pyfusa"]`, so `trace`'s annotation scan never looked in
+  `tests/` for `#fusa:test` tags — `pyfusa trace --gaps` reported
+  `testedRequirements: 0` when the true figure was much higher (issue #16).
+  `trace.build()` now always includes `tests/`/`test/` in the scan regardless
+  of `sourceDirs`, via a new `_dirs_to_scan()` helper that adds either
+  directory when it exists on disk and isn't already covered.
+- **Dangling requirement IDs reconciled:** 7 `#fusa:test` tags referenced
+  requirement IDs absent from `.fusa-reqs.json`. `REQ-001` (in
+  `tests/test_trace.py`) was a scanner self-reference artifact — literal
+  annotation-shaped text in a test fixture string was being picked up by the
+  now-broader tests/ scan; the fixtures are rewritten via adjacent string
+  concatenation so they no longer look like real annotations in this file's
+  own source. The other 6 (`REQ-PY-COU001`, `REQ-PY-CYB001`, `REQ-PY-ENG001`,
+  `REQ-PY-FMA001`, `REQ-PY-IMP001`, `REQ-PY-SCI001`) were genuinely missing
+  requirements for `coupling_analysis.py`, `rules/cyber.py`, `engine.py`,
+  `fmea.py`, `impact.py`, and `sci.py` — now registered as `REQ-COUPLING001`,
+  `REQ-CYBER001..020`, `REQ-ENGINE001`, `REQ-DFMEA001`, `REQ-IMPACT001`, and
+  `REQ-SCI001`, with the stale test tags renamed to match and module/class
+  `#fusa:req` impl tags added.
+
+### Added
+
+- **`--func-coverage N` (x-FuSa spec §1.4.1.2 / §5):** new `trace` flag,
+  mirroring `--req-coverage`. Gates on the percentage of public (non-`_`
+  prefixed) functions/methods under `pyfusa/` carrying a `#fusa:req` tag on
+  themselves or their containing class (this project's class-level tagging
+  convention); `N=0` disables. Implemented via
+  `trace.compute_func_coverage()`.
+- **Dangling test-tag detection (REQ004, WARNING, category `requirement`):**
+  `trace.build()` now flags any `#fusa:test`/`#fusa:sec-test` tag whose
+  requirement ID isn't registered in `.fusa-reqs.json`, per spec §1.4.1.3.
+  `trace`'s text/JSON output now also surfaces `matrix.findings` (malformed
+  and dangling annotations) that were previously collected but never shown.
+
+### Requirement annotation retrofit
+
+- `pyfusa/rules/cyber.py` (20 rule classes) and `pyfusa/rules/evidence.py`
+  (16 rule classes) had zero `#fusa:req` tags; each rule class is now tagged
+  and registered (`REQ-CYBER001..020`, `REQ-EVIDENCE001..016`).
+- `pyfusa/cli/main.py` had zero `#fusa:req` tags; `cmd_version`, `cmd_check`,
+  `cmd_trace`, etc. are now tagged against their existing `REQ-CLI002..008`
+  requirements, `main()` against `REQ-CLI001`, and the remaining `cmd_*`
+  handlers against a new `REQ-CLI009` ("additional CLI subcommands").
+
+### Tests
+
+- Added tests for previously-untested requirements `REQ-LINT004`, `REQ-NF001`,
+  and tagged existing passing tests for `REQ-LINT002`, `REQ-LINT003`,
+  `REQ-CLI002..008`, `REQ-TRACE001-LLR1..3`, `REQ-QUAL001-LLR1..2`,
+  `REQ-QUAL002-LLR1..2`, and `REQ-COV001-LLR1..2`.
+- New tests for scan-path completeness, dangling-tag detection, and
+  `--func-coverage` in `tests/test_trace.py`.
+
 ## v0.2.3 — 2026-07-27
 
 ### Fixed
