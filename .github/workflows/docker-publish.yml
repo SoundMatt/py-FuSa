@@ -16,6 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract pyfusa version and spec-version
+        id: pyfusa
+        shell: bash
+        run: |
+          VERSION=$(grep -oE '^VERSION = "[0-9]+\.[0-9]+\.[0-9]+"' pyfusa/__init__.py | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          SPEC_VERSION=$(grep -oE '^SPEC_VERSION = "[0-9]+\.[0-9]+\.[0-9]+"' pyfusa/__init__.py | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "spec_version=$SPEC_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -40,3 +49,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PYFUSA_VERSION=${{ steps.pyfusa.outputs.version }}
+            SPEC_VERSION=${{ steps.pyfusa.outputs.spec_version }}
