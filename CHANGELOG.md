@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.3 — 2026-07-27
+
+### Fixed
+
+- **Doc version check:** `README.md` still referenced `v0.2.1` after the
+  v0.2.2 bump, failing CI's version-consistency gate. `README.md`,
+  `pyproject.toml`, and `pyfusa/__init__.py` now all reference `0.2.3`.
+
 ## v0.2.2 — 2026-07-27
 
 ### Fixed
