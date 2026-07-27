@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.2.7 — 2026-07-27
+
+### Fixed
+
+- Orphan release cleanup (#19): created the missing `v0.2.4` GitHub release
+  (commit `c1a3c78`, reusing the original release body) and removed the
+  stray no-prefix `0.2.4` tag/release that an earlier orchestration bug
+  had created alongside it. Both pointed at the same commit; `v0.2.4` is
+  now the sole release for that commit.
+- Dockerfile no longer hardcodes stale `org.opencontainers.image.version`
+  and `io.x-fusa.spec-version` OCI labels (#19). They are now templated
+  from new `PYFUSA_VERSION` / `SPEC_VERSION` build-args, and
+  `docker-publish.yml` derives both at build time from
+  `pyfusa/__init__.py`'s `VERSION` / `SPEC_VERSION` constants, so the
+  published image's labels can never drift from the package again.
+- README's "x-FuSa spec conformance" section referenced the stale spec
+  version **v1.10.8**; updated to match `pyfusa/__init__.py`'s
+  `SPEC_VERSION` (**1.10.12**) (#19). The CI "Doc version check" job now
+  also greps for `SPEC_VERSION`, not just the package version, so this
+  class of drift fails CI going forward instead of going unnoticed.
+
 ## v0.2.6 — 2026-07-27
 
 ### Tests

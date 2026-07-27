@@ -285,11 +285,17 @@ jobs:
         shell: bash
         run: |
           VER=$(grep '^version' pyproject.toml | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          SPEC_VER=$(grep -oE '^SPEC_VERSION = "[0-9]+\.[0-9]+\.[0-9]+"' pyfusa/__init__.py | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           echo "Checking docs reference version: $VER"
+          echo "Checking docs reference spec-version: $SPEC_VER"
           FAIL=0
           if ! grep -q "$VER" README.md; then
             echo "FAIL: README.md does not reference version $VER"
             FAIL=1
           fi
-          [ $FAIL -eq 0 ] && echo "PASS: all docs reference $VER"
+          if ! grep -q "$SPEC_VER" README.md; then
+            echo "FAIL: README.md does not reference spec-version $SPEC_VER"
+            FAIL=1
+          fi
+          [ $FAIL -eq 0 ] && echo "PASS: all docs reference $VER and spec-version $SPEC_VER"
           exit $FAIL

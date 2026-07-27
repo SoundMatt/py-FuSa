@@ -27,6 +27,11 @@ RUN pip install --no-cache-dir --prefix=/install .
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM python:3.12-alpine
 
+# Injected by CI (docker-publish.yml) from pyfusa/__init__.py's VERSION /
+# SPEC_VERSION — do not hardcode; keep in lock-step with the package source.
+ARG PYFUSA_VERSION=0.0.0
+ARG SPEC_VERSION=0.0.0
+
 # git for provenance VCS info; ca-certificates for TLS (vuln scan OSV API).
 RUN apk add --no-cache git ca-certificates
 
@@ -34,13 +39,13 @@ COPY --from=builder /install /usr/local
 
 LABEL org.opencontainers.image.title="py-FuSa" \
       org.opencontainers.image.description="Functional safety enablement toolkit for Python" \
-      org.opencontainers.image.version="0.1.8" \
+      org.opencontainers.image.version="${PYFUSA_VERSION}" \
       org.opencontainers.image.source="https://github.com/SoundMatt/py-FuSa" \
       org.opencontainers.image.licenses="MPL-2.0" \
       io.x-fusa.tool="py-FuSa" \
       io.x-fusa.language="python" \
       io.x-fusa.binary="pyfusa" \
-      io.x-fusa.spec-version="1.10.8"
+      io.x-fusa.spec-version="${SPEC_VERSION}"
 
 WORKDIR /project
 
