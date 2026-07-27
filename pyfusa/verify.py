@@ -23,7 +23,9 @@ def _run_pytest(project_root: str, timeout: int = 120) -> Optional[dict]:
         result = subprocess.run(
             [sys.executable, "-m", "pytest", "--tb=no", "-q", "--no-header"],
             cwd=project_root,
-            capture_output=True, text=True, timeout=timeout,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         output = result.stdout + result.stderr
         return _parse_pytest_output(output, result.returncode)
@@ -53,7 +55,12 @@ def _parse_pytest_output(output: str, returncode: int) -> dict:
         for line in output.splitlines():
             m = re.match(r"^(tests/\S+)\s+(PASSED|FAILED|ERROR|SKIPPED)", line)
             if m:
-                status_map = {"PASSED": "pass", "FAILED": "fail", "ERROR": "error", "SKIPPED": "skip"}
+                status_map = {
+                    "PASSED": "pass",
+                    "FAILED": "fail",
+                    "ERROR": "error",
+                    "SKIPPED": "skip",
+                }
                 results.append({"name": m.group(1), "status": status_map[m.group(2)]})
 
     passed = sum(1 for r in results if r["status"] == "pass")
@@ -83,7 +90,9 @@ def _parse_pytest_output(output: str, returncode: int) -> dict:
     }
 
 
-def run(project_root: str, cfg: Config, timeout: int = 120) -> dict:  # fusa:req REQ-QUAL002
+def run(
+    project_root: str, cfg: Config, timeout: int = 120
+) -> dict:  # fusa:req REQ-QUAL002
     """Run tests and build the evidence bundle."""
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -136,14 +145,16 @@ def save(doc: dict, project_root: str) -> str:
 def render_text(doc: dict) -> str:
     s = doc.get("summary", {})
     lines = [
-        f"verify  module={doc.get('module','')}  python={doc.get('pythonVersion','')}",
-        f"total={s.get('total',0)}  passed={s.get('passed',0)}  "
-        f"failed={s.get('failed',0)}  skipped={s.get('skipped',0)}  "
-        f"errored={s.get('errored',0)}",
+        f"verify  module={doc.get('module', '')}  python={doc.get('pythonVersion', '')}",
+        f"total={s.get('total', 0)}  passed={s.get('passed', 0)}  "
+        f"failed={s.get('failed', 0)}  skipped={s.get('skipped', 0)}  "
+        f"errored={s.get('errored', 0)}",
     ]
     for r in doc.get("results", [])[:20]:
-        marker = {"pass": "✓", "fail": "✗", "skip": "–", "error": "E"}.get(r["status"], "?")
+        marker = {"pass": "✓", "fail": "✗", "skip": "–", "error": "E"}.get(
+            r["status"], "?"
+        )
         lines.append(f"  {marker} {r['name']}")
     if len(doc.get("results", [])) > 20:
-        lines.append(f"  ... ({len(doc['results'])-20} more)")
+        lines.append(f"  ... ({len(doc['results']) - 20} more)")
     return "\n".join(lines)

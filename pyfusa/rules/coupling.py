@@ -18,7 +18,9 @@ def _python_files(root: str, cfg: Config) -> List[str]:
     for sdir in source_dirs:
         base = os.path.join(root, sdir)
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [d for d in dirnames if d not in skip and not d.startswith(".")]
+            dirnames[:] = [
+                d for d in dirnames if d not in skip and not d.startswith(".")
+            ]
             for fn in filenames:
                 if fn.endswith(".py"):
                     paths.append(os.path.join(dirpath, fn))
@@ -60,7 +62,14 @@ class COUP001(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        MUTABLE_TYPES = (ast.List, ast.Dict, ast.Set, ast.ListComp, ast.DictComp, ast.SetComp)
+        MUTABLE_TYPES = (
+            ast.List,
+            ast.Dict,
+            ast.Set,
+            ast.ListComp,
+            ast.DictComp,
+            ast.SetComp,
+        )
         for path in _python_files(project_root, cfg):
             tree = _parse(path)
             if tree is None:
@@ -71,23 +80,43 @@ class COUP001(Rule):
                     for t in node.targets:
                         if isinstance(t, ast.Name) and not t.id.startswith("_"):
                             if isinstance(node.value, MUTABLE_TYPES):
-                                findings.append(Finding(
+                                findings.append(
+                                    Finding(
+                                        rule_id=self.rule_id,
+                                        severity=SEVERITY_INFO,
+                                        message=f"module-level mutable variable '{t.id}' creates data coupling",
+                                        location=Location(
+                                            file=rel,
+                                            line=getattr(node, "lineno", 0),
+                                            end_line=getattr(node, "end_lineno", 0),
+                                            end_column=getattr(
+                                                node, "end_col_offset", -1
+                                            )
+                                            + 1,
+                                        ),
+                                        remediation="encapsulate mutable state in a class or use module-private names (_name)",
+                                    )
+                                )
+                elif isinstance(node, ast.AnnAssign):
+                    if isinstance(
+                        node.target, ast.Name
+                    ) and not node.target.id.startswith("_"):
+                        if node.value and isinstance(node.value, MUTABLE_TYPES):
+                            findings.append(
+                                Finding(
                                     rule_id=self.rule_id,
                                     severity=SEVERITY_INFO,
-                                    message=f"module-level mutable variable '{t.id}' creates data coupling",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
+                                    message=f"module-level mutable variable '{node.target.id}' creates data coupling",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
                                     remediation="encapsulate mutable state in a class or use module-private names (_name)",
-                                ))
-                elif isinstance(node, ast.AnnAssign):
-                    if isinstance(node.target, ast.Name) and not node.target.id.startswith("_"):
-                        if node.value and isinstance(node.value, MUTABLE_TYPES):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_INFO,
-                                message=f"module-level mutable variable '{node.target.id}' creates data coupling",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                remediation="encapsulate mutable state in a class or use module-private names (_name)",
-                            ))
+                                )
+                            )
         return findings
 
 
@@ -111,16 +140,26 @@ class COUP002(Rule):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     if node.name.startswith("_"):
                         continue
-                    for arg in node.args.args + node.args.posonlyargs + node.args.kwonlyargs:
+                    for arg in (
+                        node.args.args + node.args.posonlyargs + node.args.kwonlyargs
+                    ):
                         ann = arg.annotation
                         if ann and _is_callable_annotation(ann):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_INFO,
-                                message=f"public function '{node.name}' accepts Callable parameter '{arg.arg}' — control coupling",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                remediation="document control coupling; prefer strategy objects or well-defined protocols",
-                            ))
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_INFO,
+                                    message=f"public function '{node.name}' accepts Callable parameter '{arg.arg}' — control coupling",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    remediation="document control coupling; prefer strategy objects or well-defined protocols",
+                                )
+                            )
         return findings
 
 
@@ -136,13 +175,15 @@ class COUP003(Rule):
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         report_path = os.path.join(project_root, "coupling-report.json")
         if not os.path.exists(report_path):
-            return [Finding(
-                rule_id=self.rule_id,
-                severity=SEVERITY_WARNING,
-                message="coupling-report.json not found — run 'pyfusa coupling' to generate",
-                location=Location(file="coupling-report.json"),
-                remediation="run 'pyfusa coupling --dir .' to generate coupling-report.json",
-            )]
+            return [
+                Finding(
+                    rule_id=self.rule_id,
+                    severity=SEVERITY_WARNING,
+                    message="coupling-report.json not found — run 'pyfusa coupling' to generate",
+                    location=Location(file="coupling-report.json"),
+                    remediation="run 'pyfusa coupling --dir .' to generate coupling-report.json",
+                )
+            ]
         return []
 
 

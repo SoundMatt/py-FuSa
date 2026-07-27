@@ -11,11 +11,18 @@ from pyfusa.config import Config
 from pyfusa.rules import Rule
 
 
-def _presence(rule_id: str, filename: str, message: str, remediation: str,
-               severity: str = pyfusa.SEVERITY_INFO) -> type:
+def _presence(
+    rule_id: str,
+    filename: str,
+    message: str,
+    remediation: str,
+    severity: str = pyfusa.SEVERITY_INFO,
+) -> type:
     """Factory that creates a presence-check Rule class."""
+
     class _Rule(Rule):
         pass
+
     _Rule.rule_id = rule_id
     _Rule.__name__ = f"Rule{rule_id}"
 
@@ -23,20 +30,23 @@ def _presence(rule_id: str, filename: str, message: str, remediation: str,
         path = os.path.join(project_root, filename)
         if os.path.exists(path):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id,
-            severity=severity,
-            message=message,
-            location=pyfusa.Location(file=filename),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation=remediation,
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=severity,
+                message=message,
+                location=pyfusa.Location(file=filename),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation=remediation,
+            )
+        ]
 
     _Rule.run = _run
     return _Rule
 
 
 # ── Release artefacts ─────────────────────────────────────────────────────────
+
 
 class RELEASE001(Rule):
     rule_id = "RELEASE001"
@@ -47,13 +57,16 @@ class RELEASE001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, "sbom.json")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-            message="no sbom.json Software Bill of Materials found",
-            location=pyfusa.Location(file="sbom.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa release' to generate the SBOM",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_WARNING,
+                message="no sbom.json Software Bill of Materials found",
+                location=pyfusa.Location(file="sbom.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa release' to generate the SBOM",
+            )
+        ]
 
 
 class RELEASE002(Rule):
@@ -65,16 +78,20 @@ class RELEASE002(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, "provenance.json")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-            message="no provenance.json build provenance record found",
-            location=pyfusa.Location(file="provenance.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa release' to generate the provenance record",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_WARNING,
+                message="no provenance.json build provenance record found",
+                location=pyfusa.Location(file="provenance.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa release' to generate the provenance record",
+            )
+        ]
 
 
 # ── Tool qualification ────────────────────────────────────────────────────────
+
 
 class QUALIFY001(Rule):
     rule_id = "QUALIFY001"
@@ -85,16 +102,20 @@ class QUALIFY001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, "qualify-report.json")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-            message="qualify-report.json not found — tool qualification evidence is absent",
-            location=pyfusa.Location(file="qualify-report.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa qualify' to generate tool qualification evidence",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_INFO,
+                message="qualify-report.json not found — tool qualification evidence is absent",
+                location=pyfusa.Location(file="qualify-report.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa qualify' to generate tool qualification evidence",
+            )
+        ]
 
 
 # ── Safety analysis artefacts ─────────────────────────────────────────────────
+
 
 class FMEA001(Rule):
     rule_id = "FMEA001"
@@ -105,13 +126,16 @@ class FMEA001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, "fmea.json")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-            message="fmea.json not found — run 'pyfusa fmea' to generate the dFMEA table",
-            location=pyfusa.Location(file="fmea.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa fmea'",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_INFO,
+                message="fmea.json not found — run 'pyfusa fmea' to generate the dFMEA table",
+                location=pyfusa.Location(file="fmea.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa fmea'",
+            )
+        ]
 
 
 class TARA001(Rule):
@@ -123,32 +147,40 @@ class TARA001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, "tara.json")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-            message="no tara.json found — run 'pyfusa tara' to generate the TARA",
-            location=pyfusa.Location(file="tara.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa tara' to generate tara.json from CYBER findings",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_INFO,
+                message="no tara.json found — run 'pyfusa tara' to generate the TARA",
+                location=pyfusa.Location(file="tara.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa tara' to generate tara.json from CYBER findings",
+            )
+        ]
 
 
 class BOUNDARY001(Rule):
     rule_id = "BOUNDARY001"
     standard = "iso26262"
     clause = "7.2"
-    description = "System boundary diagram (boundary.json / .mermaid / .dot) should be present."
+    description = (
+        "System boundary diagram (boundary.json / .mermaid / .dot) should be present."
+    )
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         for f in ("boundary.json", "boundary.mermaid", "boundary.dot"):
             if os.path.exists(os.path.join(project_root, f)):
                 return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-            message="boundary diagram not found — run 'pyfusa boundary' to generate one",
-            location=pyfusa.Location(file="boundary.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa boundary'",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_INFO,
+                message="boundary diagram not found — run 'pyfusa boundary' to generate one",
+                location=pyfusa.Location(file="boundary.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa boundary'",
+            )
+        ]
 
 
 class SAFETYCASE001(Rule):
@@ -160,13 +192,16 @@ class SAFETYCASE001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, "safety-case.json")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-            message="no safety-case.json found — safety case not yet assembled",
-            location=pyfusa.Location(file="safety-case.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa safety-case'",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_INFO,
+                message="no safety-case.json found — safety case not yet assembled",
+                location=pyfusa.Location(file="safety-case.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa safety-case'",
+            )
+        ]
 
 
 class AUDITPACK001(Rule):
@@ -178,16 +213,20 @@ class AUDITPACK001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, "audit-pack.zip")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-            message="audit-pack.zip not found — run 'pyfusa audit-pack' to bundle all evidence",
-            location=pyfusa.Location(file="audit-pack.zip"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa audit-pack'",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_INFO,
+                message="audit-pack.zip not found — run 'pyfusa audit-pack' to bundle all evidence",
+                location=pyfusa.Location(file="audit-pack.zip"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa audit-pack'",
+            )
+        ]
 
 
 # ── Test evidence ─────────────────────────────────────────────────────────────
+
 
 class VERIFY001(Rule):
     rule_id = "VERIFY001"
@@ -198,13 +237,16 @@ class VERIFY001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         if os.path.exists(os.path.join(project_root, ".fusa-evidence.json")):
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-            message="no .fusa-evidence.json test evidence bundle found",
-            location=pyfusa.Location(file=".fusa-evidence.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa verify' to generate the test evidence bundle",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_INFO,
+                message="no .fusa-evidence.json test evidence bundle found",
+                location=pyfusa.Location(file=".fusa-evidence.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa verify' to generate the test evidence bundle",
+            )
+        ]
 
 
 class VERIFY002(Rule):
@@ -227,35 +269,48 @@ class VERIFY002(Rule):
         total = s.get("total", 0)
         if failed == 0:
             return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-            message=f"evidence bundle reports {failed} failed test(s) out of {total} total",
-            location=pyfusa.Location(file=".fusa-evidence.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="fix failing tests and regenerate with 'pyfusa verify'",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_WARNING,
+                message=f"evidence bundle reports {failed} failed test(s) out of {total} total",
+                location=pyfusa.Location(file=".fusa-evidence.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="fix failing tests and regenerate with 'pyfusa verify'",
+            )
+        ]
 
 
 # ── HARA engine rules ─────────────────────────────────────────────────────────
+
 
 class HARA001(Rule):
     rule_id = "HARA001"
     standard = "iso26262"
     clause = "7.4"
-    description = "HARA file (.fusa-hara.json) should be present for functional-safety standards."
+    description = (
+        "HARA file (.fusa-hara.json) should be present for functional-safety standards."
+    )
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         path = os.path.join(project_root, ".fusa-hara.json")
         if os.path.exists(path):
             return []
-        sev = pyfusa.SEVERITY_WARNING if cfg.standard in ("iso26262", "iec61508") else pyfusa.SEVERITY_INFO
-        return [pyfusa.Finding(
-            rule_id=self.rule_id, severity=sev,
-            message=".fusa-hara.json not found — hazard analysis evidence is absent",
-            location=pyfusa.Location(file=".fusa-hara.json"),
-            category=pyfusa.CATEGORY_CONFIG,
-            remediation="run 'pyfusa hara init' to create a HARA template",
-        )]
+        sev = (
+            pyfusa.SEVERITY_WARNING
+            if cfg.standard in ("iso26262", "iec61508")
+            else pyfusa.SEVERITY_INFO
+        )
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=sev,
+                message=".fusa-hara.json not found — hazard analysis evidence is absent",
+                location=pyfusa.Location(file=".fusa-hara.json"),
+                category=pyfusa.CATEGORY_CONFIG,
+                remediation="run 'pyfusa hara init' to create a HARA template",
+            )
+        ]
 
 
 class HARA002(Rule):
@@ -274,14 +329,21 @@ class HARA002(Rule):
         findings = []
         for h in doc.get("hazards", []):
             risk = h.get("risk", {})
-            if not (risk.get("severity") and risk.get("exposure") and risk.get("controllability")):
-                findings.append(pyfusa.Finding(
-                    rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-                    message=f"hazard {h.get('id','')} has incomplete risk rating — S, E, and C must all be set",
-                    location=pyfusa.Location(file=".fusa-hara.json"),
-                    category=pyfusa.CATEGORY_CONFIG,
-                    remediation="set severity, exposure, and controllability for every hazard",
-                ))
+            if not (
+                risk.get("severity")
+                and risk.get("exposure")
+                and risk.get("controllability")
+            ):
+                findings.append(
+                    pyfusa.Finding(
+                        rule_id=self.rule_id,
+                        severity=pyfusa.SEVERITY_WARNING,
+                        message=f"hazard {h.get('id', '')} has incomplete risk rating — S, E, and C must all be set",
+                        location=pyfusa.Location(file=".fusa-hara.json"),
+                        category=pyfusa.CATEGORY_CONFIG,
+                        remediation="set severity, exposure, and controllability for every hazard",
+                    )
+                )
         return findings
 
 
@@ -302,22 +364,28 @@ class HARA003(Rule):
         findings = []
         for h in doc.get("hazards", []):
             if not h.get("safetyGoals"):
-                findings.append(pyfusa.Finding(
-                    rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-                    message=f"hazard {h.get('id','')} has no linked safety goal",
-                    location=pyfusa.Location(file=".fusa-hara.json"),
-                    category=pyfusa.CATEGORY_CONFIG,
-                    remediation="link every hazard to at least one safety goal",
-                ))
-            for gid in h.get("safetyGoals", []):
-                if gid not in goal_ids:
-                    findings.append(pyfusa.Finding(
-                        rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-                        message=f"hazard {h.get('id','')} references unknown safety goal {gid}",
+                findings.append(
+                    pyfusa.Finding(
+                        rule_id=self.rule_id,
+                        severity=pyfusa.SEVERITY_WARNING,
+                        message=f"hazard {h.get('id', '')} has no linked safety goal",
                         location=pyfusa.Location(file=".fusa-hara.json"),
                         category=pyfusa.CATEGORY_CONFIG,
-                        remediation=f"add safety goal {gid} to safetyGoals list",
-                    ))
+                        remediation="link every hazard to at least one safety goal",
+                    )
+                )
+            for gid in h.get("safetyGoals", []):
+                if gid not in goal_ids:
+                    findings.append(
+                        pyfusa.Finding(
+                            rule_id=self.rule_id,
+                            severity=pyfusa.SEVERITY_WARNING,
+                            message=f"hazard {h.get('id', '')} references unknown safety goal {gid}",
+                            location=pyfusa.Location(file=".fusa-hara.json"),
+                            category=pyfusa.CATEGORY_CONFIG,
+                            remediation=f"add safety goal {gid} to safetyGoals list",
+                        )
+                    )
         return findings
 
 
@@ -337,13 +405,16 @@ class HARA004(Rule):
         findings = []
         for g in doc.get("safetyGoals", []):
             if not g.get("asil"):
-                findings.append(pyfusa.Finding(
-                    rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-                    message=f"safety goal {g.get('id','')} has no ASIL assigned",
-                    location=pyfusa.Location(file=".fusa-hara.json"),
-                    category=pyfusa.CATEGORY_CONFIG,
-                    remediation="assign an ASIL (QM, ASIL-A … ASIL-D) to every safety goal",
-                ))
+                findings.append(
+                    pyfusa.Finding(
+                        rule_id=self.rule_id,
+                        severity=pyfusa.SEVERITY_WARNING,
+                        message=f"safety goal {g.get('id', '')} has no ASIL assigned",
+                        location=pyfusa.Location(file=".fusa-hara.json"),
+                        category=pyfusa.CATEGORY_CONFIG,
+                        remediation="assign an ASIL (QM, ASIL-A … ASIL-D) to every safety goal",
+                    )
+                )
         return findings
 
 
@@ -368,34 +439,43 @@ class HARA005(Rule):
         for g in doc.get("safetyGoals", []):
             asil = g.get("asil", "")
             if self._RANK.get(asil, 0) > project_rank:
-                findings.append(pyfusa.Finding(
-                    rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-                    message=f"safety goal {g.get('id','')} ASIL {asil} exceeds project ASIL {project_asil}",
-                    location=pyfusa.Location(file=".fusa-hara.json"),
-                    category=pyfusa.CATEGORY_CONFIG,
-                    remediation="increase project ASIL in .fusa.json or lower the safety goal ASIL",
-                ))
+                findings.append(
+                    pyfusa.Finding(
+                        rule_id=self.rule_id,
+                        severity=pyfusa.SEVERITY_WARNING,
+                        message=f"safety goal {g.get('id', '')} ASIL {asil} exceeds project ASIL {project_asil}",
+                        location=pyfusa.Location(file=".fusa-hara.json"),
+                        category=pyfusa.CATEGORY_CONFIG,
+                        remediation="increase project ASIL in .fusa.json or lower the safety goal ASIL",
+                    )
+                )
         return findings
 
 
 # ── Disposition rule ──────────────────────────────────────────────────────────
 
+
 class DISP001(Rule):
     standard = "iso26262"
     clause = "4.1"
     rule_id = "DISP001"
-    description = "Every ERROR finding in check-report.json must have a disposition entry."
+    description = (
+        "Every ERROR finding in check-report.json must have a disposition entry."
+    )
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         check_path = os.path.join(project_root, "check-report.json")
         if not os.path.exists(check_path):
-            return [pyfusa.Finding(
-                rule_id=self.rule_id, severity=pyfusa.SEVERITY_INFO,
-                message="check-report.json not found — run 'pyfusa check' first",
-                location=pyfusa.Location(file="check-report.json"),
-                category=pyfusa.CATEGORY_CONFIG,
-                remediation="run 'pyfusa check --output check-report.json'",
-            )]
+            return [
+                pyfusa.Finding(
+                    rule_id=self.rule_id,
+                    severity=pyfusa.SEVERITY_INFO,
+                    message="check-report.json not found — run 'pyfusa check' first",
+                    location=pyfusa.Location(file="check-report.json"),
+                    category=pyfusa.CATEGORY_CONFIG,
+                    remediation="run 'pyfusa check --output check-report.json'",
+                )
+            ]
         try:
             with open(check_path, encoding="utf-8") as f:
                 doc = json.load(f)
@@ -413,8 +493,14 @@ class DISP001(Rule):
         else:
             dispositions = []
 
-        disposed_fps = {d.get("fingerprint", "") for d in dispositions if d.get("fingerprint")}
-        disposed_rules = {d.get("ruleId", "") for d in dispositions if not d.get("fingerprint") and d.get("ruleId")}
+        disposed_fps = {
+            d.get("fingerprint", "") for d in dispositions if d.get("fingerprint")
+        }
+        disposed_rules = {
+            d.get("ruleId", "")
+            for d in dispositions
+            if not d.get("fingerprint") and d.get("ruleId")
+        }
 
         result = []
         for f in findings_list:
@@ -429,21 +515,36 @@ class DISP001(Rule):
                 continue
             if rule_id and rule_id in disposed_rules:
                 continue
-            result.append(pyfusa.Finding(
-                rule_id=self.rule_id, severity=pyfusa.SEVERITY_WARNING,
-                message=f"ERROR finding {rule_id} has no disposition entry in .fusa-dispositions.json",
-                location=pyfusa.Location(file="check-report.json", line=f.get("location", {}).get("line")),
-                category=pyfusa.CATEGORY_CONFIG,
-                remediation="run 'pyfusa disposition add' to accept or defer this finding",
-            ))
+            result.append(
+                pyfusa.Finding(
+                    rule_id=self.rule_id,
+                    severity=pyfusa.SEVERITY_WARNING,
+                    message=f"ERROR finding {rule_id} has no disposition entry in .fusa-dispositions.json",
+                    location=pyfusa.Location(
+                        file="check-report.json", line=f.get("location", {}).get("line")
+                    ),
+                    category=pyfusa.CATEGORY_CONFIG,
+                    remediation="run 'pyfusa disposition add' to accept or defer this finding",
+                )
+            )
         return result
 
 
 ALL = [
-    RELEASE001(), RELEASE002(),
+    RELEASE001(),
+    RELEASE002(),
     QUALIFY001(),
-    FMEA001(), TARA001(), BOUNDARY001(), SAFETYCASE001(), AUDITPACK001(),
-    VERIFY001(), VERIFY002(),
-    HARA001(), HARA002(), HARA003(), HARA004(), HARA005(),
+    FMEA001(),
+    TARA001(),
+    BOUNDARY001(),
+    SAFETYCASE001(),
+    AUDITPACK001(),
+    VERIFY001(),
+    VERIFY002(),
+    HARA001(),
+    HARA002(),
+    HARA003(),
+    HARA004(),
+    HARA005(),
     DISP001(),
 ]

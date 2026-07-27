@@ -18,6 +18,7 @@ from pyfusa.cli.main import run
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _tmpdir_with_fusa(name: str = "myproj") -> tuple:
     tmpdir = tempfile.mkdtemp()
     cfg = {
@@ -33,7 +34,8 @@ def _tmpdir_with_fusa(name: str = "myproj") -> tuple:
 # lint
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_lint_exits_0_clean():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -41,7 +43,7 @@ def test_lint_exits_0_clean():
         assert code == pyfusa.EXIT_OK
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_lint_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -54,7 +56,8 @@ def test_lint_json_schema():
 # analyze
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_analyze_exits_0_clean():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -66,7 +69,8 @@ def test_analyze_exits_0_clean():
 # cyber
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_cyber_exits_0_clean():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -74,7 +78,7 @@ def test_cyber_exits_0_clean():
         assert code == pyfusa.EXIT_OK
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_cyber_detects_eval():
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "bad.py"), "w") as f:
@@ -86,10 +90,11 @@ def test_cyber_detects_eval():
         assert code in (pyfusa.EXIT_OK, pyfusa.EXIT_GATE_FAIL)
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_cyber001_weak_hash():
     from pyfusa.rules.cyber import CYBER001
     from pyfusa.config import default
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "hash.py"), "w") as f:
             f.write("import hashlib\nh = hashlib.md5(b'data')\n")
@@ -100,10 +105,11 @@ def test_cyber001_weak_hash():
         assert any(f.rule_id == "CYBER001" for f in findings)
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_cyber006_hardcoded_credential():
     from pyfusa.rules.cyber import CYBER006
     from pyfusa.config import default
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "creds.py"), "w") as f:
             f.write('password = "supersecret123"\n')
@@ -114,13 +120,16 @@ def test_cyber006_hardcoded_credential():
         assert any(f.rule_id == "CYBER006" for f in findings)
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_cyber007_tls_verify_false():
     from pyfusa.rules.cyber import CYBER007
     from pyfusa.config import default
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "tls.py"), "w") as f:
-            f.write("import requests\nrequests.get('https://example.com', verify=False)\n")
+            f.write(
+                "import requests\nrequests.get('https://example.com', verify=False)\n"
+            )
         rule = CYBER007()
         cfg = default()
         cfg.source_dirs = ["."]
@@ -132,23 +141,27 @@ def test_cyber007_tls_verify_false():
 # fmea
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_fmea_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "mod.py"), "w") as f:
             f.write("def process(data):\n    return data\n")
         out = io.StringIO()
-        code = run(["fmea", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["fmea", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "fmea"
         assert "entries" in doc
         assert code == pyfusa.EXIT_OK
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_fmea_skips_private():
     from pyfusa.config import default
     import pyfusa.fmea as fmea
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "mod.py"), "w") as f:
             f.write("def public(): pass\ndef _private(): pass\n")
@@ -164,11 +177,15 @@ def test_fmea_skips_private():
 # boundary
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_boundary_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["boundary", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["boundary", "--dir", tmpdir, "--format", "json", "--output", ""],
+            stdout=out,
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "boundary"
         assert "nodes" in doc
@@ -179,11 +196,15 @@ def test_boundary_json_schema():
 # coupling
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_coupling_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["coupling", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["coupling", "--dir", tmpdir, "--format", "json", "--output", ""],
+            stdout=out,
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "coupling-report"
         assert "dataCoupling" in doc
@@ -194,11 +215,14 @@ def test_coupling_json_schema():
 # tara
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_tara_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["tara", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["tara", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "tara"
         assert "entries" in doc
@@ -208,7 +232,8 @@ def test_tara_json_schema():
 # hara
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_hara_init():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -217,7 +242,7 @@ def test_hara_init():
         assert os.path.exists(os.path.join(tmpdir, ".fusa-hara.json"))
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_hara_validate_ok():
     with tempfile.TemporaryDirectory() as tmpdir:
         run(["hara", "init", "--dir", tmpdir], stdout=io.StringIO())
@@ -230,12 +255,19 @@ def test_hara_validate_ok():
 # diff
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_diff_no_changes():
     with tempfile.TemporaryDirectory() as tmpdir:
         report = {
             "kind": "check-report",
-            "findings": [{"ruleId": "LINT001", "location": {"file": "a.py", "line": 5}, "message": "too long"}],
+            "findings": [
+                {
+                    "ruleId": "LINT001",
+                    "location": {"file": "a.py", "line": 5},
+                    "message": "too long",
+                }
+            ],
         }
         p1 = os.path.join(tmpdir, "a.json")
         p2 = os.path.join(tmpdir, "b.json")
@@ -251,17 +283,26 @@ def test_diff_no_changes():
         assert code == pyfusa.EXIT_OK
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_diff_introduced():
     with tempfile.TemporaryDirectory() as tmpdir:
         old_r = {"kind": "check-report", "findings": []}
-        new_r = {"kind": "check-report", "findings": [
-            {"ruleId": "LINT001", "location": {"file": "a.py", "line": 5}, "message": "too long"}
-        ]}
+        new_r = {
+            "kind": "check-report",
+            "findings": [
+                {
+                    "ruleId": "LINT001",
+                    "location": {"file": "a.py", "line": 5},
+                    "message": "too long",
+                }
+            ],
+        }
         p1 = os.path.join(tmpdir, "old.json")
         p2 = os.path.join(tmpdir, "new.json")
-        with open(p1, "w") as f: json.dump(old_r, f)
-        with open(p2, "w") as f: json.dump(new_r, f)
+        with open(p1, "w") as f:
+            json.dump(old_r, f)
+        with open(p2, "w") as f:
+            json.dump(new_r, f)
         out = io.StringIO()
         code = run(["diff", p1, p2], stdout=out)
         assert code == pyfusa.EXIT_GATE_FAIL
@@ -272,12 +313,25 @@ def test_diff_introduced():
 # badge
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_badge_generates_svg():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["badge", "--dir", tmpdir, "--errors", "0", "--warnings", "0",
-                    "--output", "badge.svg"], stdout=out)
+        code = run(
+            [
+                "badge",
+                "--dir",
+                tmpdir,
+                "--errors",
+                "0",
+                "--warnings",
+                "0",
+                "--output",
+                "badge.svg",
+            ],
+            stdout=out,
+        )
         assert code == pyfusa.EXIT_OK
         svg_path = os.path.join(tmpdir, "badge.svg")
         assert os.path.exists(svg_path)
@@ -290,7 +344,8 @@ def test_badge_generates_svg():
 # sign
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_sign_keygen_and_verify():
     with tempfile.TemporaryDirectory() as tmpdir:
         key_path = os.path.join(tmpdir, "sign.key")
@@ -298,14 +353,41 @@ def test_sign_keygen_and_verify():
         with open(target_path, "w") as f:
             f.write("hello world\n")
 
-        code = run(["sign", "keygen", "--dir", tmpdir, "--key", "sign.key"], stdout=io.StringIO())
+        code = run(
+            ["sign", "keygen", "--dir", tmpdir, "--key", "sign.key"],
+            stdout=io.StringIO(),
+        )
         assert code == pyfusa.EXIT_OK
         assert os.path.exists(key_path)
 
-        code = run(["sign", "sign", "--dir", tmpdir, "--key", "sign.key", "--file", "file.txt"], stdout=io.StringIO())
+        code = run(
+            [
+                "sign",
+                "sign",
+                "--dir",
+                tmpdir,
+                "--key",
+                "sign.key",
+                "--file",
+                "file.txt",
+            ],
+            stdout=io.StringIO(),
+        )
         assert code == pyfusa.EXIT_OK
 
-        code = run(["sign", "verify", "--dir", tmpdir, "--key", "sign.key", "--file", "file.txt"], stdout=io.StringIO())
+        code = run(
+            [
+                "sign",
+                "verify",
+                "--dir",
+                tmpdir,
+                "--key",
+                "sign.key",
+                "--file",
+                "file.txt",
+            ],
+            stdout=io.StringIO(),
+        )
         assert code == pyfusa.EXIT_OK
 
 
@@ -313,11 +395,23 @@ def test_sign_keygen_and_verify():
 # pr
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_pr_add_and_list():
     with tempfile.TemporaryDirectory() as tmpdir:
-        code = run(["pr", "add", "--dir", tmpdir, "--title", "Test bug",
-                    "--description", "Something broke"], stdout=io.StringIO())
+        code = run(
+            [
+                "pr",
+                "add",
+                "--dir",
+                tmpdir,
+                "--title",
+                "Test bug",
+                "--description",
+                "Something broke",
+            ],
+            stdout=io.StringIO(),
+        )
         assert code == pyfusa.EXIT_OK
 
         out = io.StringIO()
@@ -330,11 +424,23 @@ def test_pr_add_and_list():
 # disposition
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_disposition_add_and_list():
     with tempfile.TemporaryDirectory() as tmpdir:
-        code = run(["disposition", "add", "--dir", tmpdir, "--rule", "LINT001",
-                    "--rationale", "Accepted for legacy code"], stdout=io.StringIO())
+        code = run(
+            [
+                "disposition",
+                "add",
+                "--dir",
+                tmpdir,
+                "--rule",
+                "LINT001",
+                "--rationale",
+                "Accepted for legacy code",
+            ],
+            stdout=io.StringIO(),
+        )
         assert code == pyfusa.EXIT_OK
 
         out = io.StringIO()
@@ -347,7 +453,8 @@ def test_disposition_add_and_list():
 # metrics
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_metrics_record_and_show():
     with tempfile.TemporaryDirectory() as tmpdir:
         code = run(["metrics", "record", "--dir", tmpdir], stdout=io.StringIO())
@@ -363,11 +470,15 @@ def test_metrics_record_and_show():
 # safety-case
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_safety_case_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["safety-case", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["safety-case", "--dir", tmpdir, "--format", "json", "--output", ""],
+            stdout=out,
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "safety-case"
         assert "evidence" in doc
@@ -378,49 +489,63 @@ def test_safety_case_json_schema():
 # compliance gap reports
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_iso26262_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["iso26262", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["iso26262", "--dir", tmpdir, "--format", "json", "--output", ""],
+            stdout=out,
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "gap-report"
         assert "objectives" in doc
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_iec61508_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["iec61508", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["iec61508", "--dir", tmpdir, "--format", "json", "--output", ""],
+            stdout=out,
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "gap-report"
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_do178_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["do178", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["do178", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "gap-report"
         assert "objectives" in doc
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_iso21434_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["iso21434", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["iso21434", "--dir", tmpdir, "--format", "json", "--output", ""],
+            stdout=out,
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "gap-report"
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_unece_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["unece", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["unece", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "gap-report"
 
@@ -429,21 +554,26 @@ def test_unece_json_schema():
 # sas / sci
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_sas_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["sas", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["sas", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "sas"
         assert "sections" in doc
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_sci_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["sci", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["sci", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "sci"
         assert "items" in doc
@@ -453,7 +583,8 @@ def test_sci_json_schema():
 # coverage
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_coverage_text_output():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -465,7 +596,8 @@ def test_coverage_text_output():
 # template
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_template_list():
     out = io.StringIO()
     code = run(["template", "--list"], stdout=out)
@@ -473,7 +605,7 @@ def test_template_list():
     assert "safety-plan" in out.getvalue()
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_template_generate_safety_plan():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -486,7 +618,8 @@ def test_template_generate_safety_plan():
 # misra
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_misra_text():
     out = io.StringIO()
     code = run(["misra"], stdout=out)
@@ -494,7 +627,7 @@ def test_misra_text():
     assert "MISRA" in out.getvalue()
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_misra_json():
     out = io.StringIO()
     code = run(["misra", "--format", "json"], stdout=out)
@@ -507,22 +640,36 @@ def test_misra_json():
 # req
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_req_add_and_list():
     with tempfile.TemporaryDirectory() as tmpdir:
-        code = run(["req", "add", "--dir", tmpdir, "--id", "REQ-999",
-                    "--title", "Test requirement"], stdout=io.StringIO())
+        code = run(
+            [
+                "req",
+                "add",
+                "--dir",
+                tmpdir,
+                "--id",
+                "REQ-999",
+                "--title",
+                "Test requirement",
+            ],
+            stdout=io.StringIO(),
+        )
         assert code == pyfusa.EXIT_OK
         out = io.StringIO()
         run(["req", "list", "--dir", tmpdir], stdout=out)
         assert "REQ-999" in out.getvalue()
 
 
-#fusa:test REQ-CLI001
+# fusa:test REQ-CLI001
 def test_req_export_csv():
     with tempfile.TemporaryDirectory() as tmpdir:
-        run(["req", "add", "--dir", tmpdir, "--id", "REQ-001",
-             "--title", "First req"], stdout=io.StringIO())
+        run(
+            ["req", "add", "--dir", tmpdir, "--id", "REQ-001", "--title", "First req"],
+            stdout=io.StringIO(),
+        )
         out = io.StringIO()
         code = run(["req", "export", "--dir", tmpdir], stdout=out)
         assert code == pyfusa.EXIT_OK
@@ -533,7 +680,8 @@ def test_req_export_csv():
 # fix
 # ---------------------------------------------------------------------------
 
-#fusa:test REQ-CLI001
+
+# fusa:test REQ-CLI001
 def test_fix_lists_fixable():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()

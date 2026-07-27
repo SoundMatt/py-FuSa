@@ -64,8 +64,9 @@ def very_complex(a, b, c, d, e):
 
 
 def _make_project(tmpdir: str, content: str, filename: str = "mymod.py") -> str:
-    open(os.path.join(tmpdir, ".fusa.json"),
-         "w").write('{"project":{"name":"tp"},"standard":"iso26262","asil":"ASIL-B"}')
+    open(os.path.join(tmpdir, ".fusa.json"), "w").write(
+        '{"project":{"name":"tp"},"standard":"iso26262","asil":"ASIL-B"}'
+    )
     open(os.path.join(tmpdir, filename), "w").write(content)
     return tmpdir
 
@@ -74,8 +75,10 @@ def _make_project(tmpdir: str, content: str, filename: str = "mymod.py") -> str:
 # pyfusa.comp module
 # ---------------------------------------------------------------------------
 
+
 def test_analyze_simple():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="tp")
@@ -87,6 +90,7 @@ def test_analyze_simple():
 
 def test_analyze_skips_test_files():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY, filename="test_something.py")
         cfg = default(project_name="tp")
@@ -96,6 +100,7 @@ def test_analyze_skips_test_files():
 
 def test_analyze_skips_private_functions():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, "def _private(x):\n    return x\n")
         cfg = default(project_name="tp")
@@ -105,9 +110,11 @@ def test_analyze_skips_private_functions():
 
 def test_analyze_threshold_asil_b():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _COMPLEX_PY)
-        cfg = default(project_name="tp"); cfg.asil = "ASIL-B"
+        cfg = default(project_name="tp")
+        cfg.asil = "ASIL-B"
         results, threshold = comp.analyze(tmpdir, cfg)
         assert threshold == 15
         # very_complex has V(G)~12, which is under the ASIL-B threshold of 15
@@ -116,9 +123,11 @@ def test_analyze_threshold_asil_b():
 
 def test_analyze_threshold_asil_d():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _COMPLEX_PY)
-        cfg = default(project_name="tp"); cfg.asil = "ASIL-D"
+        cfg = default(project_name="tp")
+        cfg.asil = "ASIL-D"
         results, threshold = comp.analyze(tmpdir, cfg)
         assert threshold == 4
         fails = [r for r in results if r.status == "FAIL"]
@@ -127,6 +136,7 @@ def test_analyze_threshold_asil_d():
 
 def test_analyze_empty_dir():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="tp")
         results, threshold = comp.analyze(tmpdir, cfg)
@@ -136,6 +146,7 @@ def test_analyze_empty_dir():
 
 def test_analyze_nonexistent_source_dir():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="tp")
         cfg.source_dirs = ["nonexistent"]
@@ -145,6 +156,7 @@ def test_analyze_nonexistent_source_dir():
 
 def test_run_returns_correct_schema():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="tp")
@@ -163,6 +175,7 @@ def test_run_returns_correct_schema():
 
 def test_run_summary_counts():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="tp")
@@ -174,6 +187,7 @@ def test_run_summary_counts():
 
 def test_run_function_fields():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="tp")
@@ -188,9 +202,11 @@ def test_run_function_fields():
 
 def test_run_fail_status_for_complex():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _COMPLEX_PY)
-        cfg = default(project_name="tp"); cfg.asil = "ASIL-D"  # threshold=4
+        cfg = default(project_name="tp")
+        cfg.asil = "ASIL-D"  # threshold=4
         doc = comp.run(tmpdir, cfg)
         fails = [f for f in doc["functions"] if f["status"] == "FAIL"]
         assert len(fails) >= 1
@@ -199,6 +215,7 @@ def test_run_fail_status_for_complex():
 
 def test_render_text_no_fails():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="myproj")
@@ -211,9 +228,11 @@ def test_render_text_no_fails():
 
 def test_render_text_with_fails():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _COMPLEX_PY)
-        cfg = default(project_name="myproj"); cfg.asil = "ASIL-D"
+        cfg = default(project_name="myproj")
+        cfg.asil = "ASIL-D"
         doc = comp.run(tmpdir, cfg)
         text = comp.render_text(doc)
         assert "FAIL" in text
@@ -223,6 +242,7 @@ def test_render_text_with_fails():
 
 def test_render_text_header():
     import pyfusa.comp as comp
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj")
         doc = comp.run(tmpdir, cfg)
@@ -234,6 +254,7 @@ def test_render_text_header():
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def test_comp_cli_writes_file():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -252,7 +273,9 @@ def test_comp_cli_json_format():
         _make_project(tmpdir, _SIMPLE_PY)
         out = io.StringIO()
         err = io.StringIO()
-        code = run(["comp", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err)
+        code = run(
+            ["comp", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err
+        )
         assert code in (0, 1, 3)
         report_path = os.path.join(tmpdir, "comp-report.json")
         with open(report_path) as f:
@@ -266,8 +289,11 @@ def test_comp_cli_custom_output():
         out_path = os.path.join(tmpdir, "custom.json")
         out = io.StringIO()
         err = io.StringIO()
-        code = run(["comp", "--dir", tmpdir, "--format", "json", "--output", out_path],
-                   stdout=out, stderr=err)
+        code = run(
+            ["comp", "--dir", tmpdir, "--format", "json", "--output", out_path],
+            stdout=out,
+            stderr=err,
+        )
         assert code in (0, 1, 3)
         assert os.path.exists(out_path)
         with open(out_path) as f:

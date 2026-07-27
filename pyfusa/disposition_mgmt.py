@@ -31,9 +31,15 @@ def save(project_root: str, data: dict) -> None:
         f.write("\n")
 
 
-def add(project_root: str, rule_id: str, rationale: str,
-        reviewer: str = "", action: str = "accept",
-        reference: str = "", fingerprint: str = "") -> dict:
+def add(
+    project_root: str,
+    rule_id: str,
+    rationale: str,
+    reviewer: str = "",
+    action: str = "accept",
+    reference: str = "",
+    fingerprint: str = "",
+) -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     data = load(project_root)
     entry: dict = {
@@ -65,9 +71,11 @@ def render_text(entries: List[dict]) -> str:
     lines = []
     for e in entries:
         lines.append(
-            f"{e.get('ruleId',''):12s} [{e.get('disposition','').upper()}]  "
-            f"{e.get('rationale','')[:80]}"
+            f"{e.get('ruleId', ''):12s} [{e.get('disposition', '').upper()}]  "
+            f"{e.get('rationale', '')[:80]}"
         )
         if e.get("reviewer"):
-            lines.append(f"              reviewer: {e['reviewer']}  date: {e.get('date','')}")
+            lines.append(
+                f"              reviewer: {e['reviewer']}  date: {e.get('date', '')}"
+            )
     return "\n".join(lines)

@@ -14,15 +14,25 @@ _DAL_THRESHOLD = {"DAL-A": 4, "DAL-B": 10, "DAL-C": 15, "DAL-D": 20}
 _ASIL_THRESHOLD = {"ASIL-D": 4, "ASIL-C": 10, "ASIL-B": 15, "ASIL-A": 20}
 _DEFAULT_THRESHOLD = 10
 
-_SKIP_DIRS = {"__pycache__", ".venv", "venv", ".git", ".tox", "build", "dist", "node_modules"}
+_SKIP_DIRS = {
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".git",
+    ".tox",
+    "build",
+    "dist",
+    "node_modules",
+}
 
 
 def _complexity(tree: ast.FunctionDef) -> int:
     """V(G) = 1 + decision points."""
     count = 1
     for node in ast.walk(tree):
-        if isinstance(node, (ast.If, ast.While, ast.For, ast.ExceptHandler,
-                              ast.With, ast.Assert)):
+        if isinstance(
+            node, (ast.If, ast.While, ast.For, ast.ExceptHandler, ast.With, ast.Assert)
+        ):
             count += 1
         elif isinstance(node, ast.BoolOp):
             count += len(node.values) - 1
@@ -42,7 +52,9 @@ class COMP001(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
         level = cfg.asil or cfg.dal or ""
-        threshold = _ASIL_THRESHOLD.get(level, _DAL_THRESHOLD.get(level, _DEFAULT_THRESHOLD))
+        threshold = _ASIL_THRESHOLD.get(
+            level, _DAL_THRESHOLD.get(level, _DEFAULT_THRESHOLD)
+        )
         source_dirs = cfg.source_dirs or ["."]
 
         findings = []
@@ -51,9 +63,15 @@ class COMP001(Rule):
             if not os.path.isdir(src_path):
                 continue
             for dirpath, dirnames, filenames in os.walk(src_path):
-                dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS and not d.startswith(".")]
+                dirnames[:] = [
+                    d for d in dirnames if d not in _SKIP_DIRS and not d.startswith(".")
+                ]
                 for fname in filenames:
-                    if not fname.endswith(".py") or fname.startswith("test_") or fname.endswith("_test.py"):
+                    if (
+                        not fname.endswith(".py")
+                        or fname.startswith("test_")
+                        or fname.endswith("_test.py")
+                    ):
                         continue
                     fpath = os.path.join(dirpath, fname)
                     try:
@@ -64,24 +82,34 @@ class COMP001(Rule):
                         continue
 
                     for node in ast.walk(tree):
-                        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if not isinstance(
+                            node, (ast.FunctionDef, ast.AsyncFunctionDef)
+                        ):
                             continue
                         if node.name.startswith("_"):
                             continue
                         cc = _complexity(node)
                         if cc > threshold:
                             rel = os.path.relpath(fpath, project_root)
-                            findings.append(pyfusa.Finding(
-                                rule_id=self.rule_id,
-                                severity=pyfusa.SEVERITY_WARNING,
-                                message=(
-                                    f"function {node.name} has cyclomatic complexity {cc} "
-                                    f"(threshold {threshold}) — DO-178C §6.3.4"
-                                ),
-                                location=pyfusa.Location(file=rel, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                category=pyfusa.CATEGORY_LINT,
-                                remediation=f"refactor {node.name} to reduce branching; extract helper functions",
-                            ))
+                            findings.append(
+                                pyfusa.Finding(
+                                    rule_id=self.rule_id,
+                                    severity=pyfusa.SEVERITY_WARNING,
+                                    message=(
+                                        f"function {node.name} has cyclomatic complexity {cc} "
+                                        f"(threshold {threshold}) — DO-178C §6.3.4"
+                                    ),
+                                    location=pyfusa.Location(
+                                        file=rel,
+                                        line=node.lineno,
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    category=pyfusa.CATEGORY_LINT,
+                                    remediation=f"refactor {node.name} to reduce branching; extract helper functions",
+                                )
+                            )
         return findings
 
 

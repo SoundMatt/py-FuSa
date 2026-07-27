@@ -9,7 +9,7 @@ from pyfusa.config import Config
 from pyfusa.rules import Rule
 
 
-#fusa:req REQ-FUSA001
+# fusa:req REQ-FUSA001
 class RuleConfigPresent(Rule):
     rule_id = "FUSA001"
     standard = "iso26262"
@@ -19,17 +19,19 @@ class RuleConfigPresent(Rule):
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         path = os.path.join(project_root, ".fusa.json")
         if not os.path.exists(path):
-            return [pyfusa.Finding(
-                rule_id=self.rule_id,
-                severity=pyfusa.SEVERITY_ERROR,
-                message="no .fusa.json found in project root",
-                location=pyfusa.Location(file=".fusa.json"),
-                remediation="run 'pyfusa init' to create a starter configuration",
-            )]
+            return [
+                pyfusa.Finding(
+                    rule_id=self.rule_id,
+                    severity=pyfusa.SEVERITY_ERROR,
+                    message="no .fusa.json found in project root",
+                    location=pyfusa.Location(file=".fusa.json"),
+                    remediation="run 'pyfusa init' to create a starter configuration",
+                )
+            ]
         return []
 
 
-#fusa:req REQ-FUSA002
+# fusa:req REQ-FUSA002
 class RulePythonProjectPresent(Rule):
     rule_id = "FUSA002"
     standard = "iso26262"
@@ -42,16 +44,18 @@ class RulePythonProjectPresent(Rule):
         for name in self._CANDIDATES:
             if os.path.exists(os.path.join(project_root, name)):
                 return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id,
-            severity=pyfusa.SEVERITY_ERROR,
-            message="no Python packaging file found (pyproject.toml, setup.py, or setup.cfg)",
-            location=pyfusa.Location(file="pyproject.toml"),
-            remediation="add a pyproject.toml to define package metadata and dependencies",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_ERROR,
+                message="no Python packaging file found (pyproject.toml, setup.py, or setup.cfg)",
+                location=pyfusa.Location(file="pyproject.toml"),
+                remediation="add a pyproject.toml to define package metadata and dependencies",
+            )
+        ]
 
 
-#fusa:req REQ-FUSA003
+# fusa:req REQ-FUSA003
 class RuleLicensePresent(Rule):
     rule_id = "FUSA003"
     standard = "iso26262"
@@ -64,16 +68,18 @@ class RuleLicensePresent(Rule):
         for name in self._CANDIDATES:
             if os.path.exists(os.path.join(project_root, name)):
                 return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id,
-            severity=pyfusa.SEVERITY_WARNING,
-            message="no LICENSE file found",
-            location=pyfusa.Location(file="LICENSE"),
-            remediation="add a LICENSE file to clarify IP ownership for assessors",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_WARNING,
+                message="no LICENSE file found",
+                location=pyfusa.Location(file="LICENSE"),
+                remediation="add a LICENSE file to clarify IP ownership for assessors",
+            )
+        ]
 
 
-#fusa:req REQ-FUSA004
+# fusa:req REQ-FUSA004
 class RuleReadmePresent(Rule):
     rule_id = "FUSA004"
     standard = "iso26262"
@@ -86,21 +92,25 @@ class RuleReadmePresent(Rule):
         for name in self._CANDIDATES:
             if os.path.exists(os.path.join(project_root, name)):
                 return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id,
-            severity=pyfusa.SEVERITY_WARNING,
-            message="no README file found",
-            location=pyfusa.Location(file="README.md"),
-            remediation="add a README.md describing the project's safety context",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_WARNING,
+                message="no README file found",
+                location=pyfusa.Location(file="README.md"),
+                remediation="add a README.md describing the project's safety context",
+            )
+        ]
 
 
-#fusa:req REQ-FUSA005
+# fusa:req REQ-FUSA005
 class RuleCIPresent(Rule):
     rule_id = "FUSA005"
     standard = "iso26262"
     clause = "4.6"
-    description = "Project must have CI configuration for automated evidence generation."
+    description = (
+        "Project must have CI configuration for automated evidence generation."
+    )
 
     _CANDIDATES = [
         os.path.join(".github", "workflows"),
@@ -115,16 +125,18 @@ class RuleCIPresent(Rule):
         for rel in self._CANDIDATES:
             if os.path.exists(os.path.join(project_root, rel)):
                 return []
-        return [pyfusa.Finding(
-            rule_id=self.rule_id,
-            severity=pyfusa.SEVERITY_WARNING,
-            message="no CI configuration found",
-            location=pyfusa.Location(file=".github/workflows/"),
-            remediation="add CI configuration to automate safety evidence generation",
-        )]
+        return [
+            pyfusa.Finding(
+                rule_id=self.rule_id,
+                severity=pyfusa.SEVERITY_WARNING,
+                message="no CI configuration found",
+                location=pyfusa.Location(file=".github/workflows/"),
+                remediation="add CI configuration to automate safety evidence generation",
+            )
+        ]
 
 
-#fusa:req REQ-FUSA006
+# fusa:req REQ-FUSA006
 class RuleRequirementsPresent(Rule):
     rule_id = "FUSA006"
     standard = "iso26262"
@@ -134,13 +146,15 @@ class RuleRequirementsPresent(Rule):
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         path = os.path.join(project_root, ".fusa-reqs.json")
         if not os.path.exists(path):
-            return [pyfusa.Finding(
-                rule_id=self.rule_id,
-                severity=pyfusa.SEVERITY_WARNING,
-                message="no .fusa-reqs.json found; requirement traceability is not configured",
-                location=pyfusa.Location(file=".fusa-reqs.json"),
-                remediation="run 'pyfusa init' to create .fusa-reqs.json",
-            )]
+            return [
+                pyfusa.Finding(
+                    rule_id=self.rule_id,
+                    severity=pyfusa.SEVERITY_WARNING,
+                    message="no .fusa-reqs.json found; requirement traceability is not configured",
+                    location=pyfusa.Location(file=".fusa-reqs.json"),
+                    remediation="run 'pyfusa init' to create .fusa-reqs.json",
+                )
+            ]
         return []
 
 

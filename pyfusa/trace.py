@@ -70,7 +70,8 @@ class Coverage:
 @dataclass
 class HLRViolation:
     """An HLR/LLR hierarchy violation."""
-    kind: str   # "orphan-llr" | "empty-hlr"
+
+    kind: str  # "orphan-llr" | "empty-hlr"
     req_id: str
     detail: str
 
@@ -93,20 +94,28 @@ def _is_excluded(rel_path: str, patterns: list[str]) -> bool:
     return False
 
 
-def _scan_annotations(project_root: str, source_dirs: list[str], exclude_patterns: list[str]) -> tuple[list[Tag], list[pyfusa.Finding]]:
+def _scan_annotations(
+    project_root: str, source_dirs: list[str], exclude_patterns: list[str]
+) -> tuple[list[Tag], list[pyfusa.Finding]]:
     tags: list[Tag] = []
     findings: list[pyfusa.Finding] = []
 
     for src_dir in source_dirs:
         abs_src = os.path.normpath(os.path.join(project_root, src_dir))
         for dirpath, dirnames, filenames in os.walk(abs_src):
-            dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in ("__pycache__", "build", "dist")]
+            dirnames[:] = [
+                d
+                for d in dirnames
+                if not d.startswith(".") and d not in ("__pycache__", "build", "dist")
+            ]
             for fname in filenames:
                 if not fname.endswith(".py"):
                     continue
                 abs_path = os.path.join(dirpath, fname)
                 try:
-                    rel_path = os.path.relpath(abs_path, project_root).replace("\\", "/")
+                    rel_path = os.path.relpath(abs_path, project_root).replace(
+                        "\\", "/"
+                    )
                 except ValueError:
                     rel_path = abs_path
                 if _is_excluded(rel_path, exclude_patterns):
@@ -117,21 +126,36 @@ def _scan_annotations(project_root: str, source_dirs: list[str], exclude_pattern
                 except OSError:
                     continue
                 for lineno, line in enumerate(lines, 1):
-                    for pattern, kind in ((_REQ_RE, KIND_IMPL), (_TEST_RE, KIND_TEST), (_SEC_TEST_RE, KIND_SEC_TEST)):
+                    for pattern, kind in (
+                        (_REQ_RE, KIND_IMPL),
+                        (_TEST_RE, KIND_TEST),
+                        (_SEC_TEST_RE, KIND_SEC_TEST),
+                    ):
                         for m in pattern.finditer(line):
                             req_id = m.group(1)
                             # §1.4 — malformed annotation if multiple tokens after tag keyword
-                            rest = line[m.end():].strip()
+                            rest = line[m.end() :].strip()
                             if rest and not rest.startswith("#"):
-                                findings.append(pyfusa.Finding(
-                                    rule_id="REQ002",
-                                    severity=pyfusa.SEVERITY_WARNING,
-                                    message=f"malformed annotation: extra tokens after requirement id '{req_id}'",
-                                    location=pyfusa.Location(file=rel_path, line=lineno),
-                                    category=pyfusa.CATEGORY_REQUIREMENT,
-                                    remediation="put exactly one requirement id per annotation line",
-                                ))
-                            tags.append(Tag(requirement_id=req_id, file=rel_path, line=lineno, kind=kind))
+                                findings.append(
+                                    pyfusa.Finding(
+                                        rule_id="REQ002",
+                                        severity=pyfusa.SEVERITY_WARNING,
+                                        message=f"malformed annotation: extra tokens after requirement id '{req_id}'",
+                                        location=pyfusa.Location(
+                                            file=rel_path, line=lineno
+                                        ),
+                                        category=pyfusa.CATEGORY_REQUIREMENT,
+                                        remediation="put exactly one requirement id per annotation line",
+                                    )
+                                )
+                            tags.append(
+                                Tag(
+                                    requirement_id=req_id,
+                                    file=rel_path,
+                                    line=lineno,
+                                    kind=kind,
+                                )
+                            )
 
     return tags, findings
 
@@ -139,7 +163,9 @@ def _scan_annotations(project_root: str, source_dirs: list[str], exclude_pattern
 def _validate_hlr_llr(requirements: list[dict]) -> list[HLRViolation]:
     """Validate HLR/LLR hierarchy: every LLR needs a valid parent, every HLR needs a child."""
     violations: list[HLRViolation] = []
-    hlr_ids = {r.get("id", "") for r in requirements if r.get("level", "").upper() == "HLR"}
+    hlr_ids = {
+        r.get("id", "") for r in requirements if r.get("level", "").upper() == "HLR"
+    }
     llr_by_parent: dict[str, list[str]] = {hid: [] for hid in hlr_ids}
 
     for req in requirements:
@@ -148,34 +174,43 @@ def _validate_hlr_llr(requirements: list[dict]) -> list[HLRViolation]:
         if level == "LLR":
             parent = req.get("parent_id", "")
             if not parent:
-                violations.append(HLRViolation(
-                    kind="orphan-llr",
-                    req_id=rid,
-                    detail=f"LLR '{rid}' has no parent_id",
-                ))
+                violations.append(
+                    HLRViolation(
+                        kind="orphan-llr",
+                        req_id=rid,
+                        detail=f"LLR '{rid}' has no parent_id",
+                    )
+                )
             elif parent not in hlr_ids:
-                violations.append(HLRViolation(
-                    kind="orphan-llr",
-                    req_id=rid,
-                    detail=f"LLR '{rid}' references unknown HLR '{parent}'",
-                ))
+                violations.append(
+                    HLRViolation(
+                        kind="orphan-llr",
+                        req_id=rid,
+                        detail=f"LLR '{rid}' references unknown HLR '{parent}'",
+                    )
+                )
             else:
                 llr_by_parent[parent].append(rid)
 
     for hlr_id, children in llr_by_parent.items():
         if not children:
-            violations.append(HLRViolation(
-                kind="empty-hlr",
-                req_id=hlr_id,
-                detail=f"HLR '{hlr_id}' has no LLR children",
-            ))
+            violations.append(
+                HLRViolation(
+                    kind="empty-hlr",
+                    req_id=hlr_id,
+                    detail=f"HLR '{hlr_id}' has no LLR children",
+                )
+            )
 
     return violations
 
 
-def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = False) -> Matrix:  # fusa:req REQ-TRACE001
+def build(
+    project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = False
+) -> Matrix:  # fusa:req REQ-TRACE001
     if cfg is None:
         from pyfusa.config import default
+
         cfg = default()
 
     # Load requirements
@@ -190,7 +225,9 @@ def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = F
             pass
 
     # Scan annotations
-    tags, ann_findings = _scan_annotations(project_root, cfg.source_dirs, cfg.exclude_patterns)
+    tags, ann_findings = _scan_annotations(
+        project_root, cfg.source_dirs, cfg.exclude_patterns
+    )
 
     # Compute coverage (§5)
     req_ids = {r.get("id", "") for r in requirements}
@@ -201,15 +238,25 @@ def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = F
 
     total = len(requirements)
     traced = sum(1 for kinds in req_tags.values() if kinds)
-    tested = sum(1 for kinds in req_tags.values() if KIND_TEST in kinds or KIND_SEC_TEST in kinds)
+    tested = sum(
+        1 for kinds in req_tags.values() if KIND_TEST in kinds or KIND_SEC_TEST in kinds
+    )
     sec_tested = sum(1 for kinds in req_tags.values() if KIND_SEC_TEST in kinds)
 
     # HLR/LLR metrics
     hlr_count = sum(1 for r in requirements if r.get("level", "").upper() == "HLR")
     llr_count = sum(1 for r in requirements if r.get("level", "").upper() == "LLR")
     # Count HLRs that have at least one LLR child
-    llr_parents = {r.get("parent_id", "") for r in requirements if r.get("level", "").upper() == "LLR"}
-    hlr_with_llr = sum(1 for r in requirements if r.get("level", "").upper() == "HLR" and r.get("id", "") in llr_parents)
+    llr_parents = {
+        r.get("parent_id", "")
+        for r in requirements
+        if r.get("level", "").upper() == "LLR"
+    }
+    hlr_with_llr = sum(
+        1
+        for r in requirements
+        if r.get("level", "").upper() == "HLR" and r.get("id", "") in llr_parents
+    )
 
     cov = Coverage(
         total_requirements=total,
@@ -230,16 +277,22 @@ def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = F
     integrity_level = cfg.asil or cfg.dal or ""
     hlr_findings: list[pyfusa.Finding] = []
     if violations:
-        sev = pyfusa.SEVERITY_ERROR if (strict_hlr_llr or integrity_level in _ERROR_LEVELS) else pyfusa.SEVERITY_WARNING
+        sev = (
+            pyfusa.SEVERITY_ERROR
+            if (strict_hlr_llr or integrity_level in _ERROR_LEVELS)
+            else pyfusa.SEVERITY_WARNING
+        )
         for v in violations:
-            hlr_findings.append(pyfusa.Finding(
-                rule_id="REQ003",
-                severity=sev,
-                message=v.detail,
-                location=pyfusa.Location(file=".fusa-reqs.json"),
-                category=pyfusa.CATEGORY_REQUIREMENT,
-                remediation="ensure every LLR has a valid parent_id referencing an HLR, and every HLR has at least one LLR child",
-            ))
+            hlr_findings.append(
+                pyfusa.Finding(
+                    rule_id="REQ003",
+                    severity=sev,
+                    message=v.detail,
+                    location=pyfusa.Location(file=".fusa-reqs.json"),
+                    category=pyfusa.CATEGORY_REQUIREMENT,
+                    remediation="ensure every LLR has a valid parent_id referencing an HLR, and every HLR has at least one LLR child",
+                )
+            )
 
     return Matrix(
         requirements=requirements,
@@ -250,8 +303,11 @@ def build(project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = F
     )
 
 
-def to_dict(matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = False) -> dict:  # fusa:req REQ-TRACE001
+def to_dict(
+    matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = False
+) -> dict:  # fusa:req REQ-TRACE001
     from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
+
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     reqs = matrix.requirements
@@ -260,7 +316,9 @@ def to_dict(matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = Fa
 
     if gaps_only:
         # Filter to requirements with no test or sec-test tag
-        tested_ids = {t.requirement_id for t in tags if t.kind in (KIND_TEST, KIND_SEC_TEST)}
+        tested_ids = {
+            t.requirement_id for t in tags if t.kind in (KIND_TEST, KIND_SEC_TEST)
+        }
         reqs = [r for r in reqs if r.get("id", "") not in tested_ids]
         tags = [t for t in tags if t.requirement_id in {r.get("id") for r in reqs}]
 
@@ -286,7 +344,9 @@ def to_dict(matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = Fa
     return doc
 
 
-def render_text(matrix: Matrix, gaps_only: bool = False) -> str:  # fusa:req REQ-TRACE001
+def render_text(
+    matrix: Matrix, gaps_only: bool = False
+) -> str:  # fusa:req REQ-TRACE001
     lines: list[str] = []
     cov = matrix.coverage
 
@@ -295,7 +355,11 @@ def render_text(matrix: Matrix, gaps_only: bool = False) -> str:  # fusa:req REQ
         tags_by_req.setdefault(tag.requirement_id, []).append(tag)
 
     if gaps_only:
-        tested_ids = {t.requirement_id for t in matrix.tags if t.kind in (KIND_TEST, KIND_SEC_TEST)}
+        tested_ids = {
+            t.requirement_id
+            for t in matrix.tags
+            if t.kind in (KIND_TEST, KIND_SEC_TEST)
+        }
         reqs = [r for r in matrix.requirements if r.get("id", "") not in tested_ids]
         lines.append("Requirements with no test coverage (gaps):")
     else:
@@ -335,11 +399,15 @@ def render_text(matrix: Matrix, gaps_only: bool = False) -> str:  # fusa:req REQ
 
     if not gaps_only:
         lines.append("")
-        lines.append(f"Coverage: {cov.traced_requirements}/{cov.total_requirements} traced, "
-                     f"{cov.tested_requirements}/{cov.total_requirements} tested")
+        lines.append(
+            f"Coverage: {cov.traced_requirements}/{cov.total_requirements} traced, "
+            f"{cov.tested_requirements}/{cov.total_requirements} tested"
+        )
         if cov.hlr_count:
-            lines.append(f"Hierarchy: {cov.hlr_count} HLRs, {cov.llr_count} LLRs, "
-                         f"{cov.hlr_with_llr}/{cov.hlr_count} HLRs have LLR children")
+            lines.append(
+                f"Hierarchy: {cov.hlr_count} HLRs, {cov.llr_count} LLRs, "
+                f"{cov.hlr_with_llr}/{cov.hlr_count} HLRs have LLR children"
+            )
         if matrix.hlr_violations:
             lines.append("")
             lines.append(f"HLR/LLR violations ({len(matrix.hlr_violations)}):")

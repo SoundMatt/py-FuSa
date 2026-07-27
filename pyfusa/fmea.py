@@ -20,7 +20,9 @@ def _python_files(root: str, cfg: Config) -> List[str]:
     for sdir in source_dirs:
         base = os.path.join(root, sdir)
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [d for d in dirnames if d not in skip and not d.startswith(".")]
+            dirnames[:] = [
+                d for d in dirnames if d not in skip and not d.startswith(".")
+            ]
             for fn in filenames:
                 if fn.endswith(".py"):
                     paths.append(os.path.join(dirpath, fn))
@@ -48,20 +50,32 @@ def _has_raise(node) -> bool:
 
 
 def _has_thread(node) -> bool:
-    THREAD = {"Thread", "threading.Thread", "asyncio.create_task", "asyncio.ensure_future"}
+    THREAD = {
+        "Thread",
+        "threading.Thread",
+        "asyncio.create_task",
+        "asyncio.ensure_future",
+    }
     for n in ast.walk(node):
         if isinstance(n, ast.Call):
             fn = n.func
             if isinstance(fn, ast.Name) and fn.id in THREAD:
                 return True
-            if isinstance(fn, ast.Attribute) and f"{getattr(fn.value, 'id', '')}.{fn.attr}" in THREAD:
+            if (
+                isinstance(fn, ast.Attribute)
+                and f"{getattr(fn.value, 'id', '')}.{fn.attr}" in THREAD
+            ):
                 return True
     return False
 
 
 def _returns_none(node) -> bool:
     for n in ast.walk(node):
-        if isinstance(n, ast.Return) and (n.value is None or isinstance(n.value, ast.Constant) and n.value.value is None):
+        if isinstance(n, ast.Return) and (
+            n.value is None
+            or isinstance(n.value, ast.Constant)
+            and n.value.value is None
+        ):
             return True
     return False
 
@@ -77,7 +91,9 @@ def _req_ids_from_comments(lines: List[str], start: int, end: int) -> List[str]:
     return ids
 
 
-def _derive_analysis(name: str, returns_none: bool, has_thread: bool, has_raise: bool, req_ids: List[str]):
+def _derive_analysis(
+    name: str, returns_none: bool, has_thread: bool, has_raise: bool, req_ids: List[str]
+):
     failure_modes: List[str] = []
     effects: List[str] = []
     cyber_risks: List[str] = []
@@ -141,18 +157,20 @@ def scan(project_root: str, cfg: Config) -> List[dict]:
                 node.name, returns_none, has_thread, has_raise, req_ids
             )
 
-            entries.append({
-                "component": pkg,
-                "function": node.name,
-                "file": rel,
-                "line": start,
-                "failure_modes": failure_modes,
-                "effects": effects,
-                "severity": severity,
-                "detection_control": detection,
-                "requirement_ids": req_ids,
-                "cyber_risks": cyber_risks,
-            })
+            entries.append(
+                {
+                    "component": pkg,
+                    "function": node.name,
+                    "file": rel,
+                    "line": start,
+                    "failure_modes": failure_modes,
+                    "effects": effects,
+                    "severity": severity,
+                    "detection_control": detection,
+                    "requirement_ids": req_ids,
+                    "cyber_risks": cyber_risks,
+                }
+            )
     return entries
 
 
@@ -175,13 +193,31 @@ def to_dict(entries: List[dict], project_root: str, cfg: Config) -> dict:
 def to_csv(entries: List[dict]) -> str:
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["component", "function", "file", "failure_modes", "effects",
-                "severity", "detection_control", "requirement_ids", "cyber_risks"])
+    w.writerow(
+        [
+            "component",
+            "function",
+            "file",
+            "failure_modes",
+            "effects",
+            "severity",
+            "detection_control",
+            "requirement_ids",
+            "cyber_risks",
+        ]
+    )
     for e in entries:
-        w.writerow([
-            e["component"], e["function"], e["file"],
-            "; ".join(e["failure_modes"]), "; ".join(e["effects"]),
-            e["severity"], e["detection_control"],
-            "; ".join(e["requirement_ids"]), "; ".join(e["cyber_risks"]),
-        ])
+        w.writerow(
+            [
+                e["component"],
+                e["function"],
+                e["file"],
+                "; ".join(e["failure_modes"]),
+                "; ".join(e["effects"]),
+                e["severity"],
+                e["detection_control"],
+                "; ".join(e["requirement_ids"]),
+                "; ".join(e["cyber_risks"]),
+            ]
+        )
     return buf.getvalue()

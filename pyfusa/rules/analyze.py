@@ -14,11 +14,22 @@ from pyfusa.rules import Rule
 def _python_files(root: str, cfg: Config) -> List[str]:
     source_dirs = cfg.source_dirs or ["."]
     paths: List[str] = []
-    skip = {"__pycache__", ".git", ".tox", "venv", ".venv", "node_modules", "dist", "build"}
+    skip = {
+        "__pycache__",
+        ".git",
+        ".tox",
+        "venv",
+        ".venv",
+        "node_modules",
+        "dist",
+        "build",
+    }
     for sdir in source_dirs:
         base = os.path.join(root, sdir)
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [d for d in dirnames if d not in skip and not d.startswith(".")]
+            dirnames[:] = [
+                d for d in dirnames if d not in skip and not d.startswith(".")
+            ]
             for fn in filenames:
                 if fn.endswith(".py"):
                     paths.append(os.path.join(dirpath, fn))
@@ -43,6 +54,7 @@ def _parse(path: str):
 
 class _ThreadVisitor(ast.NodeVisitor):
     """Walk looking for threading.Thread / asyncio.create_task usages."""
+
     def __init__(self):
         self.threads: List[ast.Call] = []
         self.thread_in_loop: List[ast.Call] = []
@@ -66,8 +78,13 @@ class _ThreadVisitor(ast.NodeVisitor):
         for child in ast.walk(node):
             if isinstance(child, ast.Call):
                 name = _call_name(child)
-                if name in ("threading.Thread", "Thread", "asyncio.create_task",
-                            "asyncio.ensure_future", "loop.create_task"):
+                if name in (
+                    "threading.Thread",
+                    "Thread",
+                    "asyncio.create_task",
+                    "asyncio.ensure_future",
+                    "loop.create_task",
+                ):
                     self.thread_in_loop.append(child)
 
 
@@ -82,12 +99,15 @@ def _call_name(node: ast.Call) -> str:
 
 class _AsyncEmptyVisitor(ast.NodeVisitor):
     """Find async defs with no await."""
+
     def __init__(self):
         self.empties: List[ast.AsyncFunctionDef] = []
 
     def visit_AsyncFunctionDef(self, node):
-        has_await = any(isinstance(n, (ast.Await, ast.AsyncFor, ast.AsyncWith))
-                        for n in ast.walk(node))
+        has_await = any(
+            isinstance(n, (ast.Await, ast.AsyncFor, ast.AsyncWith))
+            for n in ast.walk(node)
+        )
         if not has_await:
             self.empties.append(node)
         self.generic_visit(node)
@@ -95,6 +115,7 @@ class _AsyncEmptyVisitor(ast.NodeVisitor):
 
 class _DeadCodeVisitor(ast.NodeVisitor):
     """Find unreachable statements after return/raise/break/continue."""
+
     def __init__(self):
         self.dead: List[ast.stmt] = []
 
@@ -103,8 +124,9 @@ class _DeadCodeVisitor(ast.NodeVisitor):
             if isinstance(stmt, (ast.Return, ast.Raise, ast.Break, ast.Continue)):
                 if i + 1 < len(stmts):
                     next_stmt = stmts[i + 1]
-                    if not isinstance(next_stmt, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                                   ast.ClassDef)):
+                    if not isinstance(
+                        next_stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+                    ):
                         self.dead.append(next_stmt)
                 break
 
@@ -133,6 +155,7 @@ class _DeadCodeVisitor(ast.NodeVisitor):
 
 class _SleepInThreadVisitor(ast.NodeVisitor):
     """Find time.sleep() calls inside thread worker functions (target=...)."""
+
     def __init__(self):
         self.hits: List[ast.Call] = []
         self._in_thread_target = False
@@ -144,13 +167,17 @@ class _SleepInThreadVisitor(ast.NodeVisitor):
                 if kw.arg == "target" and isinstance(kw.value, ast.Lambda):
                     # lambda body
                     for n in ast.walk(kw.value.body):
-                        if isinstance(n, ast.Call) and _call_name(n) in ("time.sleep", "sleep"):
+                        if isinstance(n, ast.Call) and _call_name(n) in (
+                            "time.sleep",
+                            "sleep",
+                        ):
                             self.hits.append(n)
         self.generic_visit(node)
 
 
 class _GlobalMutationVisitor(ast.NodeVisitor):
     """Find global variable mutations inside functions (ANA008)."""
+
     def __init__(self):
         self.globals_mutated: List[ast.Global] = []
 
@@ -171,6 +198,7 @@ class _GlobalMutationVisitor(ast.NodeVisitor):
 
 class _NoneDerefVisitor(ast.NodeVisitor):
     """Find potential None dereferences: var = x.get(...) followed by var.attr (ANA007)."""
+
     def __init__(self):
         self.hits: List[ast.Attribute] = []
         self._none_sources: set = set()
@@ -203,10 +231,23 @@ class ANA001(Rule):
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
         THREAD_CALLS = {"threading.Thread", "Thread"}
-        TASK_CALLS = {"asyncio.create_task", "asyncio.ensure_future", "loop.create_task"}
+        TASK_CALLS = {
+            "asyncio.create_task",
+            "asyncio.ensure_future",
+            "loop.create_task",
+        }
         ALL = THREAD_CALLS | TASK_CALLS
-        SIGNALS = {"Event", "threading.Event", "Condition", "BoundedSemaphore",
-                   "stop", "done", "quit", "shutdown", "cancel"}
+        SIGNALS = {
+            "Event",
+            "threading.Event",
+            "Condition",
+            "BoundedSemaphore",
+            "stop",
+            "done",
+            "quit",
+            "shutdown",
+            "cancel",
+        }
 
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
@@ -232,13 +273,20 @@ class ANA001(Rule):
                     # Check if any sibling/ancestor scope has a signal var
                     has_signal = bool(signal_names)
                     if not has_signal:
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_WARNING,
-                            message="thread/task created without apparent stop-event signal",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            remediation="create a threading.Event() and pass it to the worker; check it in the loop",
-                        ))
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_WARNING,
+                                message="thread/task created without apparent stop-event signal",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                remediation="create a threading.Event() and pass it to the worker; check it in the loop",
+                            )
+                        )
         return findings
 
 
@@ -253,8 +301,14 @@ class ANA002(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        THREAD_CALLS = {"threading.Thread", "Thread", "asyncio.create_task",
-                        "asyncio.ensure_future", "concurrent.futures.submit", "executor.submit"}
+        THREAD_CALLS = {
+            "threading.Thread",
+            "Thread",
+            "asyncio.create_task",
+            "asyncio.ensure_future",
+            "concurrent.futures.submit",
+            "executor.submit",
+        }
 
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
@@ -267,14 +321,25 @@ class ANA002(Rule):
                     for child in ast.walk(node):
                         if child is node:
                             continue
-                        if isinstance(child, ast.Call) and _call_name(child) in THREAD_CALLS:
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_WARNING,
-                                message="thread/task created inside loop — may cause unbounded concurrency",
-                                location=Location(file=rel, line=getattr(child, "lineno", 0), end_line=getattr(child, "end_lineno", 0), end_column=getattr(child, 'end_col_offset', -1) + 1),
-                                remediation="use a thread pool (ThreadPoolExecutor) with a max_workers bound",
-                            ))
+                        if (
+                            isinstance(child, ast.Call)
+                            and _call_name(child) in THREAD_CALLS
+                        ):
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_WARNING,
+                                    message="thread/task created inside loop — may cause unbounded concurrency",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(child, "lineno", 0),
+                                        end_line=getattr(child, "end_lineno", 0),
+                                        end_column=getattr(child, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    remediation="use a thread pool (ThreadPoolExecutor) with a max_workers bound",
+                                )
+                            )
         return findings
 
 
@@ -297,13 +362,20 @@ class ANA003(Rule):
             v = _SleepInThreadVisitor()
             v.visit(tree)
             for node in v.hits:
-                findings.append(Finding(
-                    rule_id=self.rule_id,
-                    severity=SEVERITY_WARNING,
-                    message="time.sleep() inside thread target cannot be interrupted; use Event.wait(timeout)",
-                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                    remediation="replace time.sleep(t) with stop_event.wait(timeout=t)",
-                ))
+                findings.append(
+                    Finding(
+                        rule_id=self.rule_id,
+                        severity=SEVERITY_WARNING,
+                        message="time.sleep() inside thread target cannot be interrupted; use Event.wait(timeout)",
+                        location=Location(
+                            file=rel,
+                            line=getattr(node, "lineno", 0),
+                            end_line=getattr(node, "end_lineno", 0),
+                            end_column=getattr(node, "end_col_offset", -1) + 1,
+                        ),
+                        remediation="replace time.sleep(t) with stop_event.wait(timeout=t)",
+                    )
+                )
         return findings
 
 
@@ -325,15 +397,23 @@ class ANA004(Rule):
             rel = _rel(path, project_root)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Try):
-                    for stmt in (node.finalbody if hasattr(node, "finalbody") else []):
+                    for stmt in node.finalbody if hasattr(node, "finalbody") else []:
                         if isinstance(stmt, ast.Raise):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_WARNING,
-                                message="raise inside finally block will swallow original exception",
-                                location=Location(file=rel, line=getattr(stmt, "lineno", 0), end_line=getattr(stmt, "end_lineno", 0), end_column=getattr(stmt, 'end_col_offset', -1) + 1),
-                                remediation="avoid raising in finally; use contextlib.suppress or re-raise explicitly",
-                            ))
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_WARNING,
+                                    message="raise inside finally block will swallow original exception",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(stmt, "lineno", 0),
+                                        end_line=getattr(stmt, "end_lineno", 0),
+                                        end_column=getattr(stmt, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    remediation="avoid raising in finally; use contextlib.suppress or re-raise explicitly",
+                                )
+                            )
         return findings
 
 
@@ -348,8 +428,14 @@ class ANA005(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        GLOBAL_FETCHERS = {"os.environ.get", "os.getenv", "config.get", "settings.get",
-                           "getattr", "os.environ"}
+        GLOBAL_FETCHERS = {
+            "os.environ.get",
+            "os.getenv",
+            "config.get",
+            "settings.get",
+            "getattr",
+            "os.environ",
+        }
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
             if tree is None:
@@ -358,7 +444,12 @@ class ANA005(Rule):
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
-                param_names = {a.arg for a in node.args.args + node.args.posonlyargs + node.args.kwonlyargs}
+                param_names = {
+                    a.arg
+                    for a in node.args.args
+                    + node.args.posonlyargs
+                    + node.args.kwonlyargs
+                }
                 for child in ast.walk(node):
                     if isinstance(child, ast.Call):
                         name = _call_name(child)
@@ -367,16 +458,32 @@ class ANA005(Rule):
                             if child.args:
                                 key = ""
                                 if isinstance(child.args[0], ast.Constant):
-                                    key = str(child.args[0].value).lower().replace("-", "_")
+                                    key = (
+                                        str(child.args[0].value)
+                                        .lower()
+                                        .replace("-", "_")
+                                    )
                                 for p in param_names:
                                     if p.lower() == key or key.endswith(p.lower()):
-                                        findings.append(Finding(
-                                            rule_id=self.rule_id,
-                                            severity=SEVERITY_WARNING,
-                                            message=f"'{name}' call may duplicate parameter '{p}' — prefer passing values explicitly",
-                                            location=Location(file=rel, line=getattr(child, "lineno", 0), end_line=getattr(child, "end_lineno", 0), end_column=getattr(child, 'end_col_offset', -1) + 1),
-                                            remediation="pass the value as a parameter rather than fetching from global state",
-                                        ))
+                                        findings.append(
+                                            Finding(
+                                                rule_id=self.rule_id,
+                                                severity=SEVERITY_WARNING,
+                                                message=f"'{name}' call may duplicate parameter '{p}' — prefer passing values explicitly",
+                                                location=Location(
+                                                    file=rel,
+                                                    line=getattr(child, "lineno", 0),
+                                                    end_line=getattr(
+                                                        child, "end_lineno", 0
+                                                    ),
+                                                    end_column=getattr(
+                                                        child, "end_col_offset", -1
+                                                    )
+                                                    + 1,
+                                                ),
+                                                remediation="pass the value as a parameter rather than fetching from global state",
+                                            )
+                                        )
                                         break
         return findings
 
@@ -394,9 +501,16 @@ class ANA006(Rule):
         # Focus on common patterns where discarding is unsafe
         findings: List[Finding] = []
         MUST_CHECK = {
-            "subprocess.run", "subprocess.call", "subprocess.check_call",
-            "subprocess.check_output", "os.rename", "os.remove", "os.unlink",
-            "shutil.copy", "shutil.move", "shutil.rmtree",
+            "subprocess.run",
+            "subprocess.call",
+            "subprocess.check_call",
+            "subprocess.check_output",
+            "os.rename",
+            "os.remove",
+            "os.unlink",
+            "shutil.copy",
+            "shutil.move",
+            "shutil.rmtree",
         }
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
@@ -407,13 +521,20 @@ class ANA006(Rule):
                 if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
                     name = _call_name(node.value)
                     if name in MUST_CHECK:
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_WARNING,
-                            message=f"return value of '{name}' discarded — check for errors",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            remediation=f"assign result = {name}(...) and inspect return code or exceptions",
-                        ))
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_WARNING,
+                                message=f"return value of '{name}' discarded — check for errors",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                remediation=f"assign result = {name}(...) and inspect return code or exceptions",
+                            )
+                        )
         return findings
 
 
@@ -424,7 +545,9 @@ class ANA007(Rule):
     standard = "iso26262"
     clause = "6.4.3"
     rule_id = "ANA007"
-    description = "Potential None dereference: attribute access on value that may be None"
+    description = (
+        "Potential None dereference: attribute access on value that may be None"
+    )
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
@@ -437,20 +560,30 @@ class ANA007(Rule):
             for node in ast.walk(tree):
                 if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
                     name = _call_name(node.value)
-                    if any(name.endswith(s) for s in (".get", ".find", ".search", ".match", ".pop")):
+                    if any(
+                        name.endswith(s)
+                        for s in (".get", ".find", ".search", ".match", ".pop")
+                    ):
                         for t in node.targets:
                             if isinstance(t, ast.Name):
                                 nullable_vars.add(t.id)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
                     if node.value.id in nullable_vars:
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_WARNING,
-                            message=f"'{node.value.id}' may be None; attribute access '.{node.attr}' is unsafe",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            remediation=f"guard with 'if {node.value.id} is not None:' before accessing attributes",
-                        ))
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_WARNING,
+                                message=f"'{node.value.id}' may be None; attribute access '.{node.attr}' is unsafe",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                remediation=f"guard with 'if {node.value.id} is not None:' before accessing attributes",
+                            )
+                        )
         return findings
 
 
@@ -474,18 +607,32 @@ class ANA008(Rule):
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and _call_name(node) in THREAD_CALLS:
                     for kw in node.keywords:
-                        if kw.arg == "target" and isinstance(kw.value, (ast.Name, ast.Lambda)):
+                        if kw.arg == "target" and isinstance(
+                            kw.value, (ast.Name, ast.Lambda)
+                        ):
                             # If target is a lambda that assigns to outer vars, flag it
                             if isinstance(kw.value, ast.Lambda):
                                 for child in ast.walk(kw.value):
                                     if isinstance(child, ast.Global):
-                                        findings.append(Finding(
-                                            rule_id=self.rule_id,
-                                            severity=SEVERITY_WARNING,
-                                            message="thread target modifies shared mutable state via 'global' — use a Lock",
-                                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                            remediation="protect shared mutable state with threading.Lock()",
-                                        ))
+                                        findings.append(
+                                            Finding(
+                                                rule_id=self.rule_id,
+                                                severity=SEVERITY_WARNING,
+                                                message="thread target modifies shared mutable state via 'global' — use a Lock",
+                                                location=Location(
+                                                    file=rel,
+                                                    line=getattr(node, "lineno", 0),
+                                                    end_line=getattr(
+                                                        node, "end_lineno", 0
+                                                    ),
+                                                    end_column=getattr(
+                                                        node, "end_col_offset", -1
+                                                    )
+                                                    + 1,
+                                                ),
+                                                remediation="protect shared mutable state with threading.Lock()",
+                                            )
+                                        )
         return findings
 
 
@@ -508,17 +655,31 @@ class ANA009(Rule):
             v = _DeadCodeVisitor()
             v.visit(tree)
             for node in v.dead:
-                findings.append(Finding(
-                    rule_id=self.rule_id,
-                    severity=SEVERITY_WARNING,
-                    message="unreachable code after return/raise/break/continue",
-                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                    remediation="remove dead code or restructure control flow",
-                ))
+                findings.append(
+                    Finding(
+                        rule_id=self.rule_id,
+                        severity=SEVERITY_WARNING,
+                        message="unreachable code after return/raise/break/continue",
+                        location=Location(
+                            file=rel,
+                            line=getattr(node, "lineno", 0),
+                            end_line=getattr(node, "end_lineno", 0),
+                            end_column=getattr(node, "end_col_offset", -1) + 1,
+                        ),
+                        remediation="remove dead code or restructure control flow",
+                    )
+                )
         return findings
 
 
 ALL: List[Rule] = [
-    ANA001(), ANA002(), ANA003(), ANA004(), ANA005(),
-    ANA006(), ANA007(), ANA008(), ANA009(),
+    ANA001(),
+    ANA002(),
+    ANA003(),
+    ANA004(),
+    ANA005(),
+    ANA006(),
+    ANA007(),
+    ANA008(),
+    ANA009(),
 ]

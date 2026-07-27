@@ -9,7 +9,7 @@ import pyfusa.release as release
 from pyfusa.config import default
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_release_writes_sbom():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj")
@@ -18,7 +18,7 @@ def test_release_writes_sbom():
         assert os.path.exists(sbom_path)
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_sbom_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj")
@@ -32,7 +32,7 @@ def test_sbom_json_schema():
         assert "components" in doc
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_provenance_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj")
@@ -44,7 +44,7 @@ def test_provenance_json_schema():
         assert "vcsModified" in doc
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_artifact_manifest_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj")
@@ -58,7 +58,7 @@ def test_artifact_manifest_schema():
             assert "sha256" in a
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_release_creates_output_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj")

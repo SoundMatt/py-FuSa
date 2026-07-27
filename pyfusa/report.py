@@ -19,8 +19,11 @@ def _now_iso() -> str:
     return datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _check_envelope(project_root: str, cfg: Config, result: RunResult, error: dict | None = None) -> dict:
+def _check_envelope(
+    project_root: str, cfg: Config, result: RunResult, error: dict | None = None
+) -> dict:
     from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
+
     d: dict = {
         "schemaVersion": SPEC_VERSION,
         "kind": "check-report",
@@ -93,12 +96,12 @@ def render_html(result: RunResult, project_root: str) -> str:
             loc += f":{f.location.line}"
         rows.append(
             f'<tr class="{sev_class}">'
-            f'<td>{html.escape(f.severity)}</td>'
-            f'<td>{html.escape(f.rule_id)}</td>'
-            f'<td>{loc}</td>'
-            f'<td>{html.escape(f.message)}</td>'
-            f'<td>{html.escape(f.remediation)}</td>'
-            f'</tr>'
+            f"<td>{html.escape(f.severity)}</td>"
+            f"<td>{html.escape(f.rule_id)}</td>"
+            f"<td>{loc}</td>"
+            f"<td>{html.escape(f.message)}</td>"
+            f"<td>{html.escape(f.remediation)}</td>"
+            f"</tr>"
         )
     summary = result.summary()
     return f"""<!DOCTYPE html>
@@ -113,7 +116,7 @@ tr.warning td:first-child {{color:#c80;font-weight:bold;}}
 </style></head>
 <body>
 <h1>py-FuSa Check Report</h1>
-<p>Errors: {summary['errors']} &nbsp; Warnings: {summary['warnings']} &nbsp; Infos: {summary['infos']}</p>
+<p>Errors: {summary["errors"]} &nbsp; Warnings: {summary["warnings"]} &nbsp; Infos: {summary["infos"]}</p>
 <table>
 <thead><tr><th>Severity</th><th>Rule</th><th>Location</th><th>Message</th><th>Remediation</th></tr></thead>
 <tbody>{"".join(rows)}</tbody>
@@ -148,17 +151,24 @@ def render_sarif(result: RunResult, project_root: str, cfg: Config) -> dict:
 
     sarif_results = []
     for f in result.findings:
-        level = {"ERROR": "error", "WARNING": "warning", "INFO": "note"}.get(f.severity, "note")
+        level = {"ERROR": "error", "WARNING": "warning", "INFO": "note"}.get(
+            f.severity, "note"
+        )
         sarif_result: dict = {
             "ruleId": f.rule_id,
             "level": level,
             "message": {"text": f.message},
-            "locations": [{
-                "physicalLocation": {
-                    "artifactLocation": {"uri": f.location.file, "uriBaseId": "%SRCROOT%"},
-                    "region": {"startLine": f.location.line or 1},
-                },
-            }],
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {
+                            "uri": f.location.file,
+                            "uriBaseId": "%SRCROOT%",
+                        },
+                        "region": {"startLine": f.location.line or 1},
+                    },
+                }
+            ],
             "fingerprints": {"sha256/v1": f.fingerprint},
         }
         props: dict = {"category": f.category, "remediation": f.remediation}
@@ -174,20 +184,24 @@ def render_sarif(result: RunResult, project_root: str, cfg: Config) -> dict:
     return {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{
-            "tool": {
-                "driver": {
-                    "name": TOOL,
-                    "version": VERSION,
-                    "rules": sarif_rules,
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": TOOL,
+                        "version": VERSION,
+                        "rules": sarif_rules,
+                    },
                 },
-            },
-            "results": sarif_results,
-        }],
+                "results": sarif_results,
+            }
+        ],
     }
 
 
-def render(w: TextIO, result: RunResult, fmt: str, project_root: str, cfg: Config) -> None:
+def render(
+    w: TextIO, result: RunResult, fmt: str, project_root: str, cfg: Config
+) -> None:
     """Write formatted report to w."""
     fmt = (fmt or "text").lower()
     if fmt not in _VALID_FORMATS:

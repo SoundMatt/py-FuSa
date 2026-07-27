@@ -108,6 +108,7 @@ def _load_config(project_root: str) -> _config.Config:
 # version
 # ---------------------------------------------------------------------------
 
+
 def cmd_version(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa version", add_help=True)
     p.add_argument("--format", choices=["text", "json"], default="text")
@@ -128,6 +129,7 @@ def cmd_version(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # capabilities
 # ---------------------------------------------------------------------------
 
+
 def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa capabilities", add_help=True)
     p.add_argument("--format", choices=["text", "json"], default="json")
@@ -137,6 +139,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
         return EXIT_USAGE
 
     from datetime import datetime, timezone
+
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     doc = {
@@ -148,29 +151,73 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
         "generatedAt": now,
         "specVersion": SPEC_VERSION,
         "commands": [
-            "version", "capabilities", "init", "check", "lint", "analyze", "cyber",
-            "report", "trace", "verify", "qualify", "release", "audit-pack", "coverage",
-            "fmea", "boundary", "coupling", "tara", "hara", "safety-case", "sas", "sci",
-            "iso26262", "iec61508", "do178", "iso21434", "unece", "iec62443", "slsa", "misra",
+            "version",
+            "capabilities",
+            "init",
+            "check",
+            "lint",
+            "analyze",
+            "cyber",
+            "report",
+            "trace",
+            "verify",
+            "qualify",
+            "release",
+            "audit-pack",
+            "coverage",
+            "fmea",
+            "boundary",
+            "coupling",
+            "tara",
+            "hara",
+            "safety-case",
+            "sas",
+            "sci",
+            "iso26262",
+            "iec61508",
+            "do178",
+            "iso21434",
+            "unece",
+            "iec62443",
+            "slsa",
+            "misra",
             "comp",
-            "req", "diff", "badge", "fix", "hooks", "sign", "vuln",
-            "disposition", "pr", "impact", "metrics", "template",
+            "req",
+            "diff",
+            "badge",
+            "fix",
+            "hooks",
+            "sign",
+            "vuln",
+            "disposition",
+            "pr",
+            "impact",
+            "metrics",
+            "template",
         ],
         "formats": {
-            "check":    ["text", "json", "html", "sarif", "md"],
-            "lint":     ["text", "json", "html", "sarif", "md"],
-            "analyze":  ["text", "json", "html", "sarif", "md"],
-            "cyber":    ["text", "json", "html", "sarif", "md"],
-            "report":   ["text", "json", "html", "sarif", "md"],
-            "trace":    ["text", "json"],
-            "qualify":  ["text", "json"],
-            "fmea":     ["json", "csv"],
+            "check": ["text", "json", "html", "sarif", "md"],
+            "lint": ["text", "json", "html", "sarif", "md"],
+            "analyze": ["text", "json", "html", "sarif", "md"],
+            "cyber": ["text", "json", "html", "sarif", "md"],
+            "report": ["text", "json", "html", "sarif", "md"],
+            "trace": ["text", "json"],
+            "qualify": ["text", "json"],
+            "fmea": ["json", "csv"],
             "boundary": ["json", "mermaid", "dot"],
-            "tara":     ["json", "md"],
-            "misra":    ["text", "json"],
+            "tara": ["json", "md"],
+            "misra": ["text", "json"],
             "safety-case": ["json", "md", "mermaid"],
         },
-        "standards": ["iso26262", "iec61508", "iso21434", "do178c", "unece-r155", "iec62443", "slsa"],
+        "standards": [
+            "iso26262",
+            "iec61508",
+            "iso21434",
+            "do178c",
+            "unece-r155",
+            "iec62443",
+            "slsa",
+        ],
         "ruleCount": 47,
     }
 
@@ -187,11 +234,16 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
 # init
 # ---------------------------------------------------------------------------
 
+
 def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa init", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
     p.add_argument("--name", default="", help="project name")
-    p.add_argument("--standard", default="", help="safety standard (iso26262, iec61508, do178c, iso21434)")
+    p.add_argument(
+        "--standard",
+        default="",
+        help="safety standard (iso26262, iec61508, do178c, iso21434)",
+    )
     p.add_argument("--asil", default="", help="ASIL level (iso26262)")
     p.add_argument("--sil", default="", help="SIL level (iec61508)")
     p.add_argument("--dal", default="", help="DAL level (do178c)")
@@ -212,7 +264,9 @@ def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         print("pyfusa init: --name is required in non-interactive mode", file=stderr)
         return EXIT_USAGE
     if not standard and not _is_tty():
-        print("pyfusa init: --standard is required in non-interactive mode", file=stderr)
+        print(
+            "pyfusa init: --standard is required in non-interactive mode", file=stderr
+        )
         return EXIT_USAGE
 
     if not name:
@@ -232,7 +286,9 @@ def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     sil = ns.sil
     dal = ns.dal
     if not (asil or sil or dal) and _is_tty():
-        integrity_key = {"iso26262": "asil", "iec61508": "sil", "do178c": "dal"}.get(standard, "asil")
+        integrity_key = {"iso26262": "asil", "iec61508": "sil", "do178c": "dal"}.get(
+            standard, "asil"
+        )
         val = input(f"{integrity_key.upper()} level (optional, e.g. ASIL-B): ").strip()
         if val:
             if integrity_key == "asil":
@@ -245,7 +301,10 @@ def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     # Write .fusa.json
     cfg_path = os.path.join(project_root, _config.CONFIG_FILE)
     if os.path.exists(cfg_path) and not ns.force:
-        print(f"pyfusa init: {_config.CONFIG_FILE} already exists; use --force to overwrite", file=stderr)
+        print(
+            f"pyfusa init: {_config.CONFIG_FILE} already exists; use --force to overwrite",
+            file=stderr,
+        )
     else:
         cfg_doc: dict = {
             "configVersion": "1.0",
@@ -266,7 +325,10 @@ def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     # Write .fusa-reqs.json
     reqs_path = os.path.join(project_root, _config.REQS_FILE)
     if os.path.exists(reqs_path) and not ns.force:
-        print(f"pyfusa init: {_config.REQS_FILE} already exists; use --force to overwrite", file=stderr)
+        print(
+            f"pyfusa init: {_config.REQS_FILE} already exists; use --force to overwrite",
+            file=stderr,
+        )
     else:
         reqs_doc = {"requirements": []}
         with open(reqs_path, "w", encoding="utf-8") as f:
@@ -281,12 +343,20 @@ def cmd_init(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # check
 # ---------------------------------------------------------------------------
 
+
 def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa check", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
-    p.add_argument("--format", default="", dest="fmt", help="output format: text, json, html, sarif, md")
+    p.add_argument(
+        "--format",
+        default="",
+        dest="fmt",
+        help="output format: text, json, html, sarif, md",
+    )
     p.add_argument("--output", default="", help="write report to file")
-    p.add_argument("--strict", action="store_true", help="exit 1 on WARNING findings too")
+    p.add_argument(
+        "--strict", action="store_true", help="exit 1 on WARNING findings too"
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -308,11 +378,16 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if fmt == "json":
             from datetime import datetime
             from datetime import timezone as _tz
+
             now = datetime.now(tz=_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             err_doc = {
-                "schemaVersion": SPEC_VERSION, "kind": "check-report",
-                "tool": TOOL, "toolVersion": VERSION, "language": LANGUAGE,
-                "generatedAt": now, "projectRoot": project_root,
+                "schemaVersion": SPEC_VERSION,
+                "kind": "check-report",
+                "tool": TOOL,
+                "toolVersion": VERSION,
+                "language": LANGUAGE,
+                "generatedAt": now,
+                "projectRoot": project_root,
                 "error": {"code": "internal", "message": str(e)},
             }
             w = stdout
@@ -361,13 +436,21 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # report
 # ---------------------------------------------------------------------------
 
+
 def cmd_report(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     # Same as check but always exits 0 (§9.1)
     p = argparse.ArgumentParser(prog="pyfusa report", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
-    p.add_argument("--format", default="", dest="fmt", help="output format: text, json, html, sarif, md")
+    p.add_argument(
+        "--format",
+        default="",
+        dest="fmt",
+        help="output format: text, json, html, sarif, md",
+    )
     p.add_argument("--output", default="", help="write report to file")
-    p.add_argument("--strict", action="store_true", help="(not valid for report; usage error)")
+    p.add_argument(
+        "--strict", action="store_true", help="(not valid for report; usage error)"
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -414,17 +497,40 @@ def cmd_report(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # trace
 # ---------------------------------------------------------------------------
 
+
 def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa trace", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
     p.add_argument("--output", default="", help="write output to file")
-    p.add_argument("--gaps", action="store_true", help="show only requirements with no test tag")
-    p.add_argument("--req-coverage", type=int, default=0, metavar="N", help="exit 1 if req coverage < N%%")
-    p.add_argument("--sec-tested", type=int, default=0, metavar="N", help="exit 1 if sec-test coverage < N%%")
-    p.add_argument("--strict", action="store_true", help="equivalent to --req-coverage 100 --sec-tested 100")
-    p.add_argument("--strict-hlr-llr", action="store_true", dest="strict_hlr_llr",
-                   help="treat HLR/LLR hierarchy violations as errors regardless of integrity level")
+    p.add_argument(
+        "--gaps", action="store_true", help="show only requirements with no test tag"
+    )
+    p.add_argument(
+        "--req-coverage",
+        type=int,
+        default=0,
+        metavar="N",
+        help="exit 1 if req coverage < N%%",
+    )
+    p.add_argument(
+        "--sec-tested",
+        type=int,
+        default=0,
+        metavar="N",
+        help="exit 1 if sec-test coverage < N%%",
+    )
+    p.add_argument(
+        "--strict",
+        action="store_true",
+        help="equivalent to --req-coverage 100 --sec-tested 100",
+    )
+    p.add_argument(
+        "--strict-hlr-llr",
+        action="store_true",
+        dest="strict_hlr_llr",
+        help="treat HLR/LLR hierarchy violations as errors regardless of integrity level",
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -485,7 +591,10 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     if sec_threshold > 0:
         pct = int(cov.sec_tested_requirements * 100 // total)
         if pct < sec_threshold:
-            print(f"pyfusa trace: sec-test coverage {pct}% < {sec_threshold}%", file=stderr)
+            print(
+                f"pyfusa trace: sec-test coverage {pct}% < {sec_threshold}%",
+                file=stderr,
+            )
             return EXIT_GATE_FAIL
 
     # HLR/LLR gate (errors already emitted above for --strict-hlr-llr)
@@ -499,25 +608,59 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # qualify
 # ---------------------------------------------------------------------------
 
+
 def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa qualify", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
-    p.add_argument("--output", default="", help="write output to file (default: qualify-report.json for json)")
-    p.add_argument("--qualification-method", default="", dest="qualification_method",
-                   choices=["", "self", "independent"], help="qualification method: self or independent")
-    p.add_argument("--qualifier", default="", dest="qualifier_identity",
-                   help="name/org of the qualifying entity")
-    p.add_argument("--record-uri", default="", dest="qualification_record_uri",
-                   help="URI to the qualification dossier")
-    p.add_argument("--implementation-author", default="", dest="implementation_author",
-                   help="name of the implementation author (V&V independence)")
-    p.add_argument("--independent-reviewer", default="", dest="independent_reviewer",
-                   help="name of the independent reviewer (V&V independence)")
-    p.add_argument("--independent-test-executor", default="", dest="independent_test_executor",
-                   help="name of the independent test executor (V&V independence)")
-    p.add_argument("--achievable-asil", default="", dest="achievable_asil",
-                   help="achievable ASIL when independence requirements are met")
+    p.add_argument(
+        "--output",
+        default="",
+        help="write output to file (default: qualify-report.json for json)",
+    )
+    p.add_argument(
+        "--qualification-method",
+        default="",
+        dest="qualification_method",
+        choices=["", "self", "independent"],
+        help="qualification method: self or independent",
+    )
+    p.add_argument(
+        "--qualifier",
+        default="",
+        dest="qualifier_identity",
+        help="name/org of the qualifying entity",
+    )
+    p.add_argument(
+        "--record-uri",
+        default="",
+        dest="qualification_record_uri",
+        help="URI to the qualification dossier",
+    )
+    p.add_argument(
+        "--implementation-author",
+        default="",
+        dest="implementation_author",
+        help="name of the implementation author (V&V independence)",
+    )
+    p.add_argument(
+        "--independent-reviewer",
+        default="",
+        dest="independent_reviewer",
+        help="name of the independent reviewer (V&V independence)",
+    )
+    p.add_argument(
+        "--independent-test-executor",
+        default="",
+        dest="independent_test_executor",
+        help="name of the independent test executor (V&V independence)",
+    )
+    p.add_argument(
+        "--achievable-asil",
+        default="",
+        dest="achievable_asil",
+        help="achievable ASIL when independence requirements are met",
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -559,7 +702,10 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             print(file=w)
             badge = _qualify._qualification_badge(report)
             independence = _qualify._independence_status(report)
-            print(f"Total: {report.total}  Passed: {report.passed}  Failed: {report.failed}", file=w)
+            print(
+                f"Total: {report.total}  Passed: {report.passed}  Failed: {report.failed}",
+                file=w,
+            )
             print(f"Badge: {badge}  Independence: {independence}", file=w)
     finally:
         if f_out:
@@ -575,10 +721,15 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # release
 # ---------------------------------------------------------------------------
 
+
 def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa release", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
-    p.add_argument("--output-dir", default="", help="directory for generated artifacts (default: project root)")
+    p.add_argument(
+        "--output-dir",
+        default="",
+        help="directory for generated artifacts (default: project root)",
+    )
     p.add_argument("--full", action="store_true", help="also generate audit-pack.zip")
     try:
         ns = p.parse_args(args)
@@ -599,7 +750,9 @@ def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if ns.full:
         try:
-            pack_path = _auditpack.create(project_root, os.path.join(project_root, "audit-pack.zip"))
+            pack_path = _auditpack.create(
+                project_root, os.path.join(project_root, "audit-pack.zip")
+            )
             print(f"wrote {os.path.relpath(pack_path, project_root)}", file=stdout)
         except Exception as e:
             print(f"pyfusa release: audit-pack: {e}", file=stderr)
@@ -611,10 +764,13 @@ def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # audit-pack
 # ---------------------------------------------------------------------------
 
+
 def cmd_audit_pack(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa audit-pack", add_help=True)
     p.add_argument("--dir", default="", help="project root directory")
-    p.add_argument("--output", default="", help="output ZIP path (default: <dir>/audit-pack.zip)")
+    p.add_argument(
+        "--output", default="", help="output ZIP path (default: <dir>/audit-pack.zip)"
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -637,10 +793,16 @@ def cmd_audit_pack(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int
 # lint — run only LINT rules
 # ---------------------------------------------------------------------------
 
+
 def cmd_lint(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa lint", add_help=True)
     p.add_argument("--dir", default="")
-    p.add_argument("--format", default="text", dest="fmt", choices=["text", "json", "sarif", "md", "html"])
+    p.add_argument(
+        "--format",
+        default="text",
+        dest="fmt",
+        choices=["text", "json", "sarif", "md", "html"],
+    )
     p.add_argument("--output", default="")
     p.add_argument("--strict", action="store_true")
     try:
@@ -649,6 +811,7 @@ def cmd_lint(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_USAGE
 
     from pyfusa.rules import lint as _lint_rules
+
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     eng = _engine.Engine()
@@ -682,10 +845,16 @@ def cmd_lint(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # analyze — run ANA rules
 # ---------------------------------------------------------------------------
 
+
 def cmd_analyze(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa analyze", add_help=True)
     p.add_argument("--dir", default="")
-    p.add_argument("--format", default="text", dest="fmt", choices=["text", "json", "sarif", "md", "html"])
+    p.add_argument(
+        "--format",
+        default="text",
+        dest="fmt",
+        choices=["text", "json", "sarif", "md", "html"],
+    )
     p.add_argument("--output", default="")
     p.add_argument("--strict", action="store_true")
     try:
@@ -694,6 +863,7 @@ def cmd_analyze(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_USAGE
 
     from pyfusa.rules import analyze as _ana_rules
+
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     eng = _engine.Engine()
@@ -727,10 +897,16 @@ def cmd_analyze(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # cyber — run CYBER rules
 # ---------------------------------------------------------------------------
 
+
 def cmd_cyber(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa cyber", add_help=True)
     p.add_argument("--dir", default="")
-    p.add_argument("--format", default="text", dest="fmt", choices=["text", "json", "sarif", "md", "html"])
+    p.add_argument(
+        "--format",
+        default="text",
+        dest="fmt",
+        choices=["text", "json", "sarif", "md", "html"],
+    )
     p.add_argument("--output", default="")
     p.add_argument("--strict", action="store_true")
     try:
@@ -739,6 +915,7 @@ def cmd_cyber(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_USAGE
 
     from pyfusa.rules import cyber as _cyber_rules
+
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     eng = _engine.Engine()
@@ -772,10 +949,13 @@ def cmd_cyber(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # fmea
 # ---------------------------------------------------------------------------
 
+
 def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa fmea", add_help=True)
     p.add_argument("--dir", default="")
-    p.add_argument("--format", default="json", dest="fmt", choices=["json", "csv", "text"])
+    p.add_argument(
+        "--format", default="json", dest="fmt", choices=["json", "csv", "text"]
+    )
     p.add_argument("--output", default="")
     try:
         ns = p.parse_args(args)
@@ -805,13 +985,19 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             w.write(_fmea.to_csv(entries))
         else:
             for e in entries:
-                print(f"{e['component']}.{e['function']}  [{e['severity']}]  {', '.join(e['failure_modes'])}", file=w)
+                print(
+                    f"{e['component']}.{e['function']}  [{e['severity']}]  {', '.join(e['failure_modes'])}",
+                    file=w,
+                )
     finally:
         if f_out:
             f_out.close()
 
     if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root) if not ns.output else out_path}", file=stdout)
+        print(
+            f"wrote {os.path.relpath(out_path, project_root) if not ns.output else out_path}",
+            file=stdout,
+        )
     return EXIT_OK
 
 
@@ -819,10 +1005,13 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # boundary
 # ---------------------------------------------------------------------------
 
+
 def cmd_boundary(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa boundary", add_help=True)
     p.add_argument("--dir", default="")
-    p.add_argument("--format", default="json", dest="fmt", choices=["json", "mermaid", "dot"])
+    p.add_argument(
+        "--format", default="json", dest="fmt", choices=["json", "mermaid", "dot"]
+    )
     p.add_argument("--output", default="")
     try:
         ns = p.parse_args(args)
@@ -867,6 +1056,7 @@ def cmd_boundary(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # coupling
 # ---------------------------------------------------------------------------
+
 
 def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa coupling", add_help=True)
@@ -913,12 +1103,19 @@ def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # tara
 # ---------------------------------------------------------------------------
 
+
 def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa tara", add_help=True)
     p.add_argument("--dir", default="")
-    p.add_argument("--format", default="json", dest="fmt", choices=["json", "md", "text"])
+    p.add_argument(
+        "--format", default="json", dest="fmt", choices=["json", "md", "text"]
+    )
     p.add_argument("--output", default="")
-    p.add_argument("--from-report", default="", help="path to cyber/check-report.json to derive threats from")
+    p.add_argument(
+        "--from-report",
+        default="",
+        help="path to cyber/check-report.json to derive threats from",
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -942,6 +1139,7 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         # Run cyber rules inline
         from pyfusa.rules import cyber as _cyber_rules
         from pyfusa.rules import security as _sec_rules
+
         eng = _engine.Engine()
         for r in _cyber_rules.ALL + _sec_rules.ALL:
             eng.register(r)
@@ -982,9 +1180,12 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # hara
 # ---------------------------------------------------------------------------
 
+
 def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa hara", add_help=True)
-    p.add_argument("subcommand", nargs="?", default="show", choices=["show", "init", "validate"])
+    p.add_argument(
+        "subcommand", nargs="?", default="show", choices=["show", "init", "validate"]
+    )
     p.add_argument("--dir", default="")
     p.add_argument("--asil", default="")
     try:
@@ -998,6 +1199,7 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if ns.subcommand == "init":
         import os as _os
+
         hara_path = _os.path.join(project_root, _hara.HARA_FILE)
         if _os.path.exists(hara_path):
             print(f"pyfusa hara: {_hara.HARA_FILE} already exists", file=stderr)
@@ -1009,7 +1211,10 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     data = _hara.load(project_root)
     if data is None:
-        print(f"pyfusa hara: {_hara.HARA_FILE} not found — run 'pyfusa hara init'", file=stderr)
+        print(
+            f"pyfusa hara: {_hara.HARA_FILE} not found — run 'pyfusa hara init'",
+            file=stderr,
+        )
         return EXIT_RUNTIME
 
     if ns.subcommand == "validate":
@@ -1019,7 +1224,10 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             for e in errors:
                 print(e, file=stdout)
             return EXIT_GATE_FAIL
-        print(f"HARA valid — {len(data.get('hazards',[]))} hazards, {len(data.get('safetyGoals',[]))} safety goals", file=stdout)
+        print(
+            f"HARA valid — {len(data.get('hazards', []))} hazards, {len(data.get('safetyGoals', []))} safety goals",
+            file=stdout,
+        )
         return EXIT_OK
 
     # show
@@ -1030,6 +1238,7 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # diff
 # ---------------------------------------------------------------------------
+
 
 def cmd_diff(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa diff", add_help=True)
@@ -1060,6 +1269,7 @@ def cmd_diff(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # badge
 # ---------------------------------------------------------------------------
 
+
 def cmd_badge(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa badge", add_help=True)
     p.add_argument("--dir", default="")
@@ -1083,7 +1293,9 @@ def cmd_badge(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             return EXIT_RUNTIME
         svg = _badge.from_report(report_path)
 
-    out_path = ns.output if os.path.isabs(ns.output) else os.path.join(project_root, ns.output)
+    out_path = (
+        ns.output if os.path.isabs(ns.output) else os.path.join(project_root, ns.output)
+    )
     try:
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(svg)
@@ -1098,9 +1310,15 @@ def cmd_badge(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # req
 # ---------------------------------------------------------------------------
 
+
 def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa req", add_help=True)
-    p.add_argument("subcommand", nargs="?", default="list", choices=["list", "add", "export", "import"])
+    p.add_argument(
+        "subcommand",
+        nargs="?",
+        default="list",
+        choices=["list", "add", "export", "import"],
+    )
     p.add_argument("--dir", default="")
     p.add_argument("--id", default="")
     p.add_argument("--title", default="")
@@ -1119,14 +1337,19 @@ def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if ns.subcommand == "list":
         data = _req_mgmt.load(project_root)
-        print(_req_mgmt.render_text(data.get("requirements", []), verbose=ns.verbose), file=stdout)
+        print(
+            _req_mgmt.render_text(data.get("requirements", []), verbose=ns.verbose),
+            file=stdout,
+        )
 
     elif ns.subcommand == "add":
         if not ns.id or not ns.title:
             print("pyfusa req add: --id and --title are required", file=stderr)
             return EXIT_USAGE
         try:
-            entry = _req_mgmt.add(project_root, ns.id, ns.title, ns.text, ns.standard, ns.level, ns.asil)
+            entry = _req_mgmt.add(
+                project_root, ns.id, ns.title, ns.text, ns.standard, ns.level, ns.asil
+            )
             print(f"added {entry['id']}", file=stdout)
         except ValueError as e:
             print(f"pyfusa req: {e}", file=stderr)
@@ -1166,6 +1389,7 @@ def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # fix
 # ---------------------------------------------------------------------------
 
+
 def cmd_fix(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa fix", add_help=True)
     p.add_argument("--dir", default="")
@@ -1198,9 +1422,12 @@ def cmd_fix(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # hooks
 # ---------------------------------------------------------------------------
 
+
 def cmd_hooks(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa hooks", add_help=True)
-    p.add_argument("subcommand", nargs="?", default="install", choices=["install", "remove"])
+    p.add_argument(
+        "subcommand", nargs="?", default="install", choices=["install", "remove"]
+    )
     p.add_argument("--dir", default="")
     try:
         ns = p.parse_args(args)
@@ -1242,6 +1469,7 @@ fi
 # sign
 # ---------------------------------------------------------------------------
 
+
 def cmd_sign(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa sign", add_help=True)
     p.add_argument("subcommand", choices=["keygen", "sign", "verify"])
@@ -1270,7 +1498,9 @@ def cmd_sign(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         print("pyfusa sign: --file required", file=stderr)
         return EXIT_USAGE
 
-    file_path = ns.file if os.path.isabs(ns.file) else os.path.join(project_root, ns.file)
+    file_path = (
+        ns.file if os.path.isabs(ns.file) else os.path.join(project_root, ns.file)
+    )
 
     if ns.subcommand == "sign":
         try:
@@ -1298,6 +1528,7 @@ def cmd_sign(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # vuln
 # ---------------------------------------------------------------------------
+
 
 def cmd_vuln(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa vuln", add_help=True)
@@ -1332,9 +1563,15 @@ def cmd_vuln(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             w.write("\n")
         else:
             findings = report.get("findings", [])
-            print(f"scanned {report.get('scanned',0)} packages  vulnerabilities: {len(findings)}", file=w)
+            print(
+                f"scanned {report.get('scanned', 0)} packages  vulnerabilities: {len(findings)}",
+                file=w,
+            )
             for f in findings:
-                print(f"  {f['module']}@{f['version']}  {f['id']}  {f.get('summary','')[:80]}", file=w)
+                print(
+                    f"  {f['module']}@{f['version']}  {f['id']}  {f.get('summary', '')[:80]}",
+                    file=w,
+                )
     finally:
         if f_out:
             f_out.close()
@@ -1348,6 +1585,7 @@ def cmd_vuln(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # pr (problem reports)
 # ---------------------------------------------------------------------------
+
 
 def cmd_pr(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa pr", add_help=True)
@@ -1369,7 +1607,9 @@ def cmd_pr(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if not ns.title:
             print("pyfusa pr add: --title required", file=stderr)
             return EXIT_USAGE
-        entry = _pr.add(project_root, ns.title, ns.description, ns.phase, ns.severity, ns.status)
+        entry = _pr.add(
+            project_root, ns.title, ns.description, ns.phase, ns.severity, ns.status
+        )
         print(f"added {entry['id']}", file=stdout)
     else:
         reports = _pr.list_all(project_root)
@@ -1381,6 +1621,7 @@ def cmd_pr(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # disposition
 # ---------------------------------------------------------------------------
+
 
 def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa disposition", add_help=True)
@@ -1401,9 +1642,19 @@ def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 
     if ns.subcommand == "add":
         if not ns.rule or not ns.rationale:
-            print("pyfusa disposition add: --rule and --rationale required", file=stderr)
+            print(
+                "pyfusa disposition add: --rule and --rationale required", file=stderr
+            )
             return EXIT_USAGE
-        entry = _disp_mgmt.add(project_root, ns.rule, ns.rationale, ns.reviewer, ns.action, ns.reference, ns.fingerprint)
+        entry = _disp_mgmt.add(
+            project_root,
+            ns.rule,
+            ns.rationale,
+            ns.reviewer,
+            ns.action,
+            ns.reference,
+            ns.fingerprint,
+        )
         print(f"added disposition for {entry['ruleId']}", file=stdout)
     else:
         entries = _disp_mgmt.list_all(project_root)
@@ -1415,6 +1666,7 @@ def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 # ---------------------------------------------------------------------------
 # impact
 # ---------------------------------------------------------------------------
+
 
 def cmd_impact(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa impact", add_help=True)
@@ -1450,9 +1702,15 @@ def cmd_impact(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             changed = report.get("changedFiles", [])
             impacted = report.get("impactedReqs", [])
             stale = report.get("staleArtifacts", [])
-            print(f"changed files: {len(changed)}  impacted reqs: {len(impacted)}  stale artifacts: {len(stale)}", file=w)
+            print(
+                f"changed files: {len(changed)}  impacted reqs: {len(impacted)}  stale artifacts: {len(stale)}",
+                file=w,
+            )
             for r in impacted:
-                print(f"  {r['requirementID']}  affected: {', '.join(r['affectedFiles'])}", file=w)
+                print(
+                    f"  {r['requirementID']}  affected: {', '.join(r['affectedFiles'])}",
+                    file=w,
+                )
             for a in stale:
                 print(f"  stale: {a['file']}  ({a['reason']})", file=w)
     finally:
@@ -1465,6 +1723,7 @@ def cmd_impact(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # metrics
 # ---------------------------------------------------------------------------
+
 
 def cmd_metrics(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa metrics", add_help=True)
@@ -1481,7 +1740,10 @@ def cmd_metrics(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if ns.subcommand == "record":
         snapshot = _metrics.record(project_root, cfg, ns.version)
-        print(f"recorded snapshot  errors={snapshot['errorCount']}  warnings={snapshot['warningCount']}", file=stdout)
+        print(
+            f"recorded snapshot  errors={snapshot['errorCount']}  warnings={snapshot['warningCount']}",
+            file=stdout,
+        )
     else:
         data = _metrics.load(project_root)
         print(_metrics.render_text(data), file=stdout)
@@ -1493,10 +1755,13 @@ def cmd_metrics(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # safety-case
 # ---------------------------------------------------------------------------
 
+
 def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa safety-case", add_help=True)
     p.add_argument("--dir", default="")
-    p.add_argument("--format", default="json", dest="fmt", choices=["json", "md", "mermaid"])
+    p.add_argument(
+        "--format", default="json", dest="fmt", choices=["json", "md", "mermaid"]
+    )
     p.add_argument("--output", default="")
     try:
         ns = p.parse_args(args)
@@ -1540,6 +1805,7 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 # do178 / iso26262 / iec61508 / iso21434 / unece / iec62443 / slsa
 # ---------------------------------------------------------------------------
 
+
 def _cmd_gap_report(name: str, runner, render_fn, default_level: str, level_arg: str):
     def cmd(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         p = argparse.ArgumentParser(prog=f"pyfusa {name}", add_help=True)
@@ -1582,14 +1848,23 @@ def _cmd_gap_report(name: str, runner, render_fn, default_level: str, level_arg:
             print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
 
         return EXIT_GATE_FAIL if doc.get("summary", {}).get("gaps", 0) > 0 else EXIT_OK
+
     return cmd
 
 
 cmd_do178 = _cmd_gap_report("do178", _do178.run, _do178.render_text, "DAL-B", "dal")
-cmd_iso26262 = _cmd_gap_report("iso26262", _iso26262.run, _iso26262.render_text, "ASIL-B", "asil")
-cmd_iec61508 = _cmd_gap_report("iec61508", _iec61508.run, _iec61508.render_text, "SIL-2", "sil")
-cmd_iso21434 = _cmd_gap_report("iso21434", _iso21434.run, _iso21434.render_text, "CAL-2", "cal")
-cmd_iec62443 = _cmd_gap_report("iec62443", _iec62443_gap.run, _iec62443_gap.render_text, "SL-2", "sl")
+cmd_iso26262 = _cmd_gap_report(
+    "iso26262", _iso26262.run, _iso26262.render_text, "ASIL-B", "asil"
+)
+cmd_iec61508 = _cmd_gap_report(
+    "iec61508", _iec61508.run, _iec61508.render_text, "SIL-2", "sil"
+)
+cmd_iso21434 = _cmd_gap_report(
+    "iso21434", _iso21434.run, _iso21434.render_text, "CAL-2", "cal"
+)
+cmd_iec62443 = _cmd_gap_report(
+    "iec62443", _iec62443_gap.run, _iec62443_gap.render_text, "SL-2", "sl"
+)
 cmd_slsa = _cmd_gap_report("slsa", _slsa_gap.run, _slsa_gap.render_text, "L2", "level")
 
 
@@ -1636,6 +1911,7 @@ def cmd_unece(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # sas / sci
 # ---------------------------------------------------------------------------
+
 
 def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa sas", add_help=True)
@@ -1722,6 +1998,7 @@ def cmd_sci(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # coverage
 # ---------------------------------------------------------------------------
 
+
 def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa coverage", add_help=True)
     p.add_argument("--dir", default="")
@@ -1729,12 +2006,24 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--asil", default="")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
     p.add_argument("--output", default="")
-    p.add_argument("--mcdc", action="store_true",
-                   help="analyse MC/DC coverage from LLVM JSON export")
-    p.add_argument("--mcdc-file", default="", dest="mcdc_file",
-                   help="path to LLVM coverage JSON file (default: <dir>/coverage.json)")
-    p.add_argument("--mcdc-threshold", type=float, default=100.0, dest="mcdc_threshold",
-                   help="MC/DC coverage threshold percentage (default: 100)")
+    p.add_argument(
+        "--mcdc",
+        action="store_true",
+        help="analyse MC/DC coverage from LLVM JSON export",
+    )
+    p.add_argument(
+        "--mcdc-file",
+        default="",
+        dest="mcdc_file",
+        help="path to LLVM coverage JSON file (default: <dir>/coverage.json)",
+    )
+    p.add_argument(
+        "--mcdc-threshold",
+        type=float,
+        default=100.0,
+        dest="mcdc_threshold",
+        help="MC/DC coverage threshold percentage (default: 100)",
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1743,7 +2032,10 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     doc = _coverage.run(
-        project_root, cfg, ns.dal, ns.asil,
+        project_root,
+        cfg,
+        ns.dal,
+        ns.asil,
         mcdc=ns.mcdc,
         mcdc_file=ns.mcdc_file,
         mcdc_threshold=ns.mcdc_threshold,
@@ -1765,13 +2057,22 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             w.write("\n")
         else:
             status = "PASS" if doc["passed"] else "FAIL"
-            print(f"coverage: {doc['coveragePct']}%  type: {doc['coverageType']}  threshold: {doc['threshold']}%  [{status}]", file=w)
+            print(
+                f"coverage: {doc['coveragePct']}%  type: {doc['coverageType']}  threshold: {doc['threshold']}%  [{status}]",
+                file=w,
+            )
             if ns.mcdc and "mcdc" in doc:
                 mc = doc["mcdc"]
                 mcdc_status = "PASS" if mc["passed"] else "FAIL"
-                print(f"MC/DC:    {mc['coveragePct']}%  conditions: {mc['coveredConditions']}/{mc['totalConditions']}  [{mcdc_status}]", file=w)
+                print(
+                    f"MC/DC:    {mc['coveragePct']}%  conditions: {mc['coveredConditions']}/{mc['totalConditions']}  [{mcdc_status}]",
+                    file=w,
+                )
                 if mc.get("uncoveredFunctions"):
-                    print(f"  uncovered functions: {', '.join(mc['uncoveredFunctions'])}", file=w)
+                    print(
+                        f"  uncovered functions: {', '.join(mc['uncoveredFunctions'])}",
+                        file=w,
+                    )
     finally:
         if f_out:
             f_out.close()
@@ -1785,9 +2086,15 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # template
 # ---------------------------------------------------------------------------
 
+
 def cmd_template(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa template", add_help=True)
-    p.add_argument("name", nargs="?", default="", help=f"template name: {', '.join(_template.list_templates())}")
+    p.add_argument(
+        "name",
+        nargs="?",
+        default="",
+        help=f"template name: {', '.join(_template.list_templates())}",
+    )
     p.add_argument("--dir", default="")
     p.add_argument("--force", action="store_true")
     p.add_argument("--list", action="store_true")
@@ -1819,6 +2126,7 @@ def cmd_template(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # comp
 # ---------------------------------------------------------------------------
+
 
 def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa comp", add_help=True)
@@ -1860,6 +2168,7 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # misra
 # ---------------------------------------------------------------------------
 
+
 def cmd_misra(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa misra", add_help=True)
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
@@ -1879,6 +2188,7 @@ def cmd_misra(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 # ---------------------------------------------------------------------------
 # verify
 # ---------------------------------------------------------------------------
+
 
 def cmd_verify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa verify", add_help=True)
@@ -2000,7 +2310,9 @@ def _usage(w=sys.stdout) -> None:
     print("  lint          Run coding-standard checks only (LINT rules)", file=w)
     print("  analyze       Run static analysis checks only (ANA rules)", file=w)
     print("  cyber         Run cybersecurity analysis (CYBER001-020)", file=w)
-    print("  report        Generate a safety compliance report (always exits 0)", file=w)
+    print(
+        "  report        Generate a safety compliance report (always exits 0)", file=w
+    )
     print("  trace         Show requirements traceability matrix", file=w)
     print("  qualify       Run the tool qualification suite", file=w)
     print("  release       Generate SBOM, provenance, and artifact manifest", file=w)
@@ -2010,12 +2322,23 @@ def _usage(w=sys.stdout) -> None:
     print("  fmea          Generate dFMEA table from public functions", file=w)
     print("  boundary      Generate component boundary diagram", file=w)
     print("  coupling      Analyse data/control coupling", file=w)
-    print("  tara          Generate Threat Analysis and Risk Assessment (ISO 21434)", file=w)
+    print(
+        "  tara          Generate Threat Analysis and Risk Assessment (ISO 21434)",
+        file=w,
+    )
     print("  hara          Manage Hazard Analysis and Risk Assessment", file=w)
     print("  safety-case   Assemble structured safety case from evidence", file=w)
-    print("  sas           Generate Software Accomplishment Summary (DO-178C §11.20)", file=w)
-    print("  sci           Generate Software Configuration Index (DO-178C §11.16)", file=w)
-    print("  comp          Cyclomatic complexity report → comp-report.json (DO-178C §6.3.4)", file=w)
+    print(
+        "  sas           Generate Software Accomplishment Summary (DO-178C §11.20)",
+        file=w,
+    )
+    print(
+        "  sci           Generate Software Configuration Index (DO-178C §11.16)", file=w
+    )
+    print(
+        "  comp          Cyclomatic complexity report → comp-report.json (DO-178C §6.3.4)",
+        file=w,
+    )
     print("\nCompliance gap reports:", file=w)
     print("  iso26262      ISO 26262 Part 6 compliance gap report", file=w)
     print("  iec61508      IEC 61508 Parts 1-3 compliance gap report", file=w)
@@ -2029,10 +2352,15 @@ def _usage(w=sys.stdout) -> None:
     print("  req           Show/import/export requirements (CSV)", file=w)
     print("  diff          Compare two check-report JSON files", file=w)
     print("  badge         Generate SVG status badge from a check report", file=w)
-    print("  fix           Show auto-fixable findings with remediation guidance", file=w)
+    print(
+        "  fix           Show auto-fixable findings with remediation guidance", file=w
+    )
     print("  hooks         Install/remove git pre-commit hook", file=w)
     print("  sign          Sign or verify a file with HMAC-SHA256", file=w)
-    print("  vuln          Scan installed packages for known vulnerabilities (OSV)", file=w)
+    print(
+        "  vuln          Scan installed packages for known vulnerabilities (OSV)",
+        file=w,
+    )
     print("  disposition   Manage finding disposition entries", file=w)
     print("  pr            Manage software problem reports (DO-178C §11.17)", file=w)
     print("  impact        Analyse change impact on requirements", file=w)

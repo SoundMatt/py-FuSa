@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.2 — 2026-07-27
+
+### Fixed
+
+- **SPEC_VERSION:** Updated `SPEC_VERSION` constant in `pyfusa/__init__.py` from
+  `"1.10.4"` to `"1.10.12"` to match the current x-FuSa specification.
+
+- **Formatting:** Applied `ruff format` to all 64 source and test files that had
+  formatting issues, restoring consistency with the project's style rules.
+
+### Tests
+
+- **Coverage expansion:** Added 78 targeted tests in `tests/test_coverage_boost5.py`
+  covering `impact.py` (71% → 89%), `fmea.py` (75% → 98%), `engine.py` (76% → 100%),
+  `coupling_analysis.py` (76% → 96%), `sci.py` (79% → 100%), and `rules/cyber.py`
+  (78% → 93%). Overall project coverage improved from 83.72% to 86.40%.
+
 ## v0.2.1 — 2026-07-26
 
 ### Fixed

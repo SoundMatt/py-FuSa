@@ -16,15 +16,15 @@ _DAL_THRESHOLDS = {
     "DAL-A": 100.0,  # MC/DC — approximated by 100% branch+statement
     "DAL-B": 100.0,  # branch/decision
     "DAL-C": 100.0,  # statement
-    "DAL-D": 0.0,    # no structural coverage required
+    "DAL-D": 0.0,  # no structural coverage required
 }
 
 _ASIL_THRESHOLDS = {
     "ASIL-D": 100.0,  # MC/DC
     "ASIL-C": 100.0,  # branch
     "ASIL-B": 100.0,  # branch
-    "ASIL-A": 80.0,   # statement
-    "QM":     0.0,
+    "ASIL-A": 80.0,  # statement
+    "QM": 0.0,
 }
 
 
@@ -32,9 +32,18 @@ def _run_pytest_cov(project_root: str, source: str) -> Optional[float]:
     """Run pytest --cov and extract coverage percentage."""
     try:
         result = subprocess.run(
-            ["python3", "-m", "pytest", "--cov=" + source, "--cov-report=term-missing", "-q"],
+            [
+                "python3",
+                "-m",
+                "pytest",
+                "--cov=" + source,
+                "--cov-report=term-missing",
+                "-q",
+            ],
             cwd=project_root,
-            capture_output=True, text=True, timeout=120,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
         output = result.stdout + result.stderr
         # Look for: TOTAL   ... 87%
@@ -81,8 +90,13 @@ def _parse_llvm_mcdc(path: str) -> dict:  # fusa:req REQ-COV001
         with open(path, encoding="utf-8") as f:
             raw = json.load(f)
     except (OSError, json.JSONDecodeError) as e:
-        return {"error": str(e), "total_conditions": 0, "covered_conditions": 0,
-                "functions": [], "uncovered_functions": []}
+        return {
+            "error": str(e),
+            "total_conditions": 0,
+            "covered_conditions": 0,
+            "functions": [],
+            "uncovered_functions": [],
+        }
 
     total_cond = 0
     covered_cond = 0
@@ -97,7 +111,10 @@ def _parse_llvm_mcdc(path: str) -> dict:  # fusa:req REQ-COV001
             for rec in fn.get("mcdc_records", []):
                 for cond in rec.get("conditions", []):
                     fn_total += 1
-                    if cond.get("covered_true_count", 0) > 0 and cond.get("covered_false_count", 0) > 0:
+                    if (
+                        cond.get("covered_true_count", 0) > 0
+                        and cond.get("covered_false_count", 0) > 0
+                    ):
                         fn_covered += 1
             total_cond += fn_total
             covered_cond += fn_covered
@@ -120,8 +137,15 @@ def _parse_llvm_mcdc(path: str) -> dict:  # fusa:req REQ-COV001
     }
 
 
-def run(project_root: str, cfg: Config, dal: str = "", asil: str = "",  # fusa:req REQ-COV001
-        mcdc: bool = False, mcdc_file: str = "", mcdc_threshold: float = 100.0) -> dict:
+def run(
+    project_root: str,
+    cfg: Config,
+    dal: str = "",
+    asil: str = "",  # fusa:req REQ-COV001
+    mcdc: bool = False,
+    mcdc_file: str = "",
+    mcdc_threshold: float = 100.0,
+) -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
     source = (cfg.source_dirs or ["pyfusa"])[0]
@@ -149,9 +173,12 @@ def run(project_root: str, cfg: Config, dal: str = "", asil: str = "",  # fusa:r
     doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "coverage-report",
-        "tool": pyfusa.TOOL, "toolVersion": pyfusa.VERSION,
-        "language": pyfusa.LANGUAGE, "generatedAt": now,
-        "module": module, "level": level or "unspecified",
+        "tool": pyfusa.TOOL,
+        "toolVersion": pyfusa.VERSION,
+        "language": pyfusa.LANGUAGE,
+        "generatedAt": now,
+        "module": module,
+        "level": level or "unspecified",
         "coverageType": cov_type,
         "coveragePct": round(cov_pct, 1),
         "threshold": threshold,

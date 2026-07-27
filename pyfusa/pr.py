@@ -29,11 +29,15 @@ def save(project_root: str, data: dict) -> None:
         f.write("\n")
 
 
-def add(project_root: str, title: str, description: str,
-        phase_found: str = "development",
-        severity: str = "minor",
-        status: str = "open",
-        resolution: str = "") -> dict:
+def add(
+    project_root: str,
+    title: str,
+    description: str,
+    phase_found: str = "development",
+    severity: str = "minor",
+    status: str = "open",
+    resolution: str = "",
+) -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     data = load(project_root)
     reports = data.get("reports", [])
@@ -69,7 +73,9 @@ def render_text(reports: List[dict]) -> str:
         return "no problem reports"
     lines = []
     for r in reports:
-        lines.append(f"{r['id']}  [{r['status'].upper()}]  {r['severity']}  {r['title']}")
+        lines.append(
+            f"{r['id']}  [{r['status'].upper()}]  {r['severity']}  {r['title']}"
+        )
         if r.get("description"):
             lines.append(f"    {r['description'][:120]}")
     return "\n".join(lines)

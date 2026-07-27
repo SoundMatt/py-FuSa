@@ -31,7 +31,9 @@ class FunctionComplexity(NamedTuple):
 def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], int]:
     """Return (results, threshold) for all non-private, non-test functions."""
     level = cfg.asil or cfg.dal or ""
-    threshold = _ASIL_THRESHOLD.get(level, _DAL_THRESHOLD.get(level, _DEFAULT_THRESHOLD))
+    threshold = _ASIL_THRESHOLD.get(
+        level, _DAL_THRESHOLD.get(level, _DEFAULT_THRESHOLD)
+    )
     source_dirs = cfg.source_dirs or ["."]
 
     results: list[FunctionComplexity] = []
@@ -40,7 +42,9 @@ def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], i
         if not os.path.isdir(src_path):
             continue
         for dirpath, dirnames, filenames in os.walk(src_path):
-            dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS and not d.startswith(".")]
+            dirnames[:] = [
+                d for d in dirnames if d not in _SKIP_DIRS and not d.startswith(".")
+            ]
             for fname in filenames:
                 if not fname.endswith(".py"):
                     continue
@@ -60,13 +64,15 @@ def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], i
                     if node.name.startswith("_"):
                         continue
                     cc = _complexity(node)
-                    results.append(FunctionComplexity(
-                        file=rel,
-                        function=node.name,
-                        complexity=cc,
-                        line=node.lineno,
-                        status="FAIL" if cc > threshold else "PASS",
-                    ))
+                    results.append(
+                        FunctionComplexity(
+                            file=rel,
+                            function=node.name,
+                            complexity=cc,
+                            line=node.lineno,
+                            status="FAIL" if cc > threshold else "PASS",
+                        )
+                    )
     return results, threshold
 
 
@@ -109,13 +115,16 @@ def render_text(doc: dict) -> str:
     s = doc["summary"]
     lines = [
         f"Cyclomatic complexity report  project={doc['project']}  threshold={doc['threshold']}",
-        f"total={s['total']}  pass={s['pass']}  fail={s['fail']}", "",
+        f"total={s['total']}  pass={s['pass']}  fail={s['fail']}",
+        "",
     ]
     fails = [f for f in doc["functions"] if f["status"] == "FAIL"]
     if fails:
         lines.append("FAIL (over threshold):")
         for f in sorted(fails, key=lambda x: -x["complexity"]):
-            lines.append(f"  ✗ V(G)={f['complexity']:3d}  {f['file']}:{f['line']}  {f['function']}")
+            lines.append(
+                f"  ✗ V(G)={f['complexity']:3d}  {f['file']}:{f['line']}  {f['function']}"
+            )
     else:
         lines.append("All functions within threshold.")
     return "\n".join(lines)

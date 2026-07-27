@@ -7,7 +7,7 @@ import json
 
 def _key(finding: dict) -> str:
     loc = finding.get("location", {})
-    return f"{finding.get('ruleId','')}:{loc.get('file','')}:{loc.get('line',0)}"
+    return f"{finding.get('ruleId', '')}:{loc.get('file', '')}:{loc.get('line', 0)}"
 
 
 def compare(baseline_path: str, current_path: str) -> dict:
@@ -35,12 +35,18 @@ def compare(baseline_path: str, current_path: str) -> dict:
 
 def render_text(diff: dict) -> str:
     lines = []
-    lines.append(f"introduced: {len(diff['introduced'])}  resolved: {len(diff['resolved'])}  unchanged: {len(diff['unchanged'])}")
+    lines.append(
+        f"introduced: {len(diff['introduced'])}  resolved: {len(diff['resolved'])}  unchanged: {len(diff['unchanged'])}"
+    )
     lines.append("")
     for f in diff["introduced"]:
         loc = f.get("location", {})
-        lines.append(f"[+] {f.get('ruleId','')}  {loc.get('file','')}:{loc.get('line',0)}  {f.get('message','')}")
+        lines.append(
+            f"[+] {f.get('ruleId', '')}  {loc.get('file', '')}:{loc.get('line', 0)}  {f.get('message', '')}"
+        )
     for f in diff["resolved"]:
         loc = f.get("location", {})
-        lines.append(f"[-] {f.get('ruleId','')}  {loc.get('file','')}:{loc.get('line',0)}  {f.get('message','')}")
+        lines.append(
+            f"[-] {f.get('ruleId', '')}  {loc.get('file', '')}:{loc.get('line', 0)}  {f.get('message', '')}"
+        )
     return "\n".join(lines)

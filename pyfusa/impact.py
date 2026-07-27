@@ -12,13 +12,17 @@ import pyfusa
 from pyfusa.config import REQS_FILE, Config
 
 
-def _git_changed_files(project_root: str, from_ref: str = "HEAD", to_ref: str = "") -> List[dict]:
+def _git_changed_files(
+    project_root: str, from_ref: str = "HEAD", to_ref: str = ""
+) -> List[dict]:
     try:
         if to_ref:
             cmd = ["git", "diff", "--name-status", from_ref, to_ref]
         else:
             cmd = ["git", "diff", "--name-status", from_ref]
-        out = subprocess.check_output(cmd, cwd=project_root, stderr=subprocess.DEVNULL, text=True)
+        out = subprocess.check_output(
+            cmd, cwd=project_root, stderr=subprocess.DEVNULL, text=True
+        )
         files = []
         for line in out.strip().splitlines():
             if not line:
@@ -58,9 +62,14 @@ def _load_trace_matrix(project_root: str) -> dict:
 def _check_stale(project_root: str, changed_files: List[dict]) -> List[dict]:
     stale: List[dict] = []
     ARTIFACTS = [
-        "check-report.json", "qualify-report.json", "sbom.json",
-        "provenance.json", "coupling-report.json", "fmea.json",
-        "tara.json", "coverage-report.json",
+        "check-report.json",
+        "qualify-report.json",
+        "sbom.json",
+        "provenance.json",
+        "coupling-report.json",
+        "fmea.json",
+        "tara.json",
+        "coverage-report.json",
     ]
     for artifact in ARTIFACTS:
         art_path = os.path.join(project_root, artifact)
@@ -71,16 +80,20 @@ def _check_stale(project_root: str, changed_files: List[dict]) -> List[dict]:
             src_path = os.path.join(project_root, cf["path"])
             if os.path.exists(src_path):
                 if os.path.getmtime(src_path) > art_mtime:
-                    stale.append({
-                        "file": artifact,
-                        "stale": True,
-                        "reason": f"older than modified source {cf['path']}",
-                    })
+                    stale.append(
+                        {
+                            "file": artifact,
+                            "stale": True,
+                            "reason": f"older than modified source {cf['path']}",
+                        }
+                    )
                     break
     return stale
 
 
-def run(project_root: str, cfg: Config, from_ref: str = "HEAD", to_ref: str = "") -> dict:
+def run(
+    project_root: str, cfg: Config, from_ref: str = "HEAD", to_ref: str = ""
+) -> dict:
     changed = _git_changed_files(project_root, from_ref, to_ref)
     changed_paths = {f["path"] for f in changed}
     trace = _load_trace_matrix(project_root)
@@ -91,12 +104,14 @@ def run(project_root: str, cfg: Config, from_ref: str = "HEAD", to_ref: str = ""
         affected = [f for f in impl_files if f in changed_paths]
         if affected:
             tests = [f for f in impl_files if "test" in f.lower()]
-            impacted_reqs.append({
-                "requirementID": req_id,
-                "affectedFiles": affected,
-                "testsNeeded": tests,
-                "stale": bool(tests),
-            })
+            impacted_reqs.append(
+                {
+                    "requirementID": req_id,
+                    "affectedFiles": affected,
+                    "testsNeeded": tests,
+                    "stale": bool(tests),
+                }
+            )
             rerun_tests.extend(tests)
 
     stale = _check_stale(project_root, changed)

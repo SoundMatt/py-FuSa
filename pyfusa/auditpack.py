@@ -107,7 +107,9 @@ def create(project_root: str, output_path: Optional[str] = None) -> str:
         "generatedAt": now,
         "files": sorted(manifest_files, key=lambda x: x["path"]),
     }
-    manifest_bytes = (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    manifest_bytes = (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode(
+        "utf-8"
+    )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 

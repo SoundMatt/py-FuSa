@@ -206,18 +206,18 @@ pyfusa slsa --level L3 --format json --output slsa-gap.json
 Mark requirements and tests in your Python source with `#fusa:` comments:
 
 ```python
-#fusa:req REQ-001
+# fusa:req REQ-001
 def safety_function():
     """This function implements REQ-001."""
     ...
 
-#fusa:test REQ-001
-def test_safety_function():
-    ...
 
-#fusa:sec-test REQ-SEC001
-def test_injection_prevention():
-    ...
+# fusa:test REQ-001
+def test_safety_function(): ...
+
+
+# fusa:sec-test REQ-SEC001
+def test_injection_prevention(): ...
 ```
 
 ## Findings output

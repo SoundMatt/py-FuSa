@@ -15,11 +15,22 @@ from pyfusa.rules import Rule
 def _python_files(root: str, cfg: Config) -> List[str]:
     source_dirs = cfg.source_dirs or ["."]
     paths: List[str] = []
-    skip = {"__pycache__", ".git", ".tox", "venv", ".venv", "node_modules", "dist", "build"}
+    skip = {
+        "__pycache__",
+        ".git",
+        ".tox",
+        "venv",
+        ".venv",
+        "node_modules",
+        "dist",
+        "build",
+    }
     for sdir in source_dirs:
         base = os.path.join(root, sdir)
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [d for d in dirnames if d not in skip and not d.startswith(".")]
+            dirnames[:] = [
+                d for d in dirnames if d not in skip and not d.startswith(".")
+            ]
             for fn in filenames:
                 if fn.endswith(".py"):
                     paths.append(os.path.join(dirpath, fn))
@@ -92,14 +103,22 @@ class CYBER001(Rule):
                                 alg = str(node.args[0].value).lower()
                                 if alg not in ("md5", "sha1"):
                                     continue
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_ERROR,
-                            message=f"weak hash algorithm '{name}' is cryptographically broken",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            standard="iso26262", clause="CWE-327",
-                            remediation="use hashlib.sha256() or hashlib.sha3_256() instead",
-                        ))
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_ERROR,
+                                message=f"weak hash algorithm '{name}' is cryptographically broken",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                standard="iso26262",
+                                clause="CWE-327",
+                                remediation="use hashlib.sha256() or hashlib.sha3_256() instead",
+                            )
+                        )
         return findings
 
 
@@ -112,9 +131,12 @@ class CYBER002(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        WEAK = {"Crypto.Cipher.DES", "Crypto.Cipher.ARC4",
-                "cryptography.hazmat.primitives.ciphers.algorithms.TripleDES",
-                "cryptography.hazmat.primitives.ciphers.algorithms.Blowfish"}
+        WEAK = {
+            "Crypto.Cipher.DES",
+            "Crypto.Cipher.ARC4",
+            "cryptography.hazmat.primitives.ciphers.algorithms.TripleDES",
+            "cryptography.hazmat.primitives.ciphers.algorithms.Blowfish",
+        }
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
             if tree is None:
@@ -123,14 +145,17 @@ class CYBER002(Rule):
             imports = _import_names(tree)
             for weak in WEAK:
                 if any(weak in imp or imp in weak for imp in imports):
-                    findings.append(Finding(
-                        rule_id=self.rule_id,
-                        severity=SEVERITY_ERROR,
-                        message=f"weak cipher imported: {weak}",
-                        location=Location(file=rel, line=1),
-                        standard="iso26262", clause="CWE-327",
-                        remediation="use AES-256-GCM (cryptography.hazmat.primitives.ciphers.algorithms.AES)",
-                    ))
+                    findings.append(
+                        Finding(
+                            rule_id=self.rule_id,
+                            severity=SEVERITY_ERROR,
+                            message=f"weak cipher imported: {weak}",
+                            location=Location(file=rel, line=1),
+                            standard="iso26262",
+                            clause="CWE-327",
+                            remediation="use AES-256-GCM (cryptography.hazmat.primitives.ciphers.algorithms.AES)",
+                        )
+                    )
         return findings
 
 
@@ -148,9 +173,16 @@ class CYBER003(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        RANDOM_CALLS = {"random.random", "random.randint", "random.choice",
-                        "random.choices", "random.shuffle", "random.sample",
-                        "random.uniform", "random.getrandbits"}
+        RANDOM_CALLS = {
+            "random.random",
+            "random.randint",
+            "random.choice",
+            "random.choices",
+            "random.shuffle",
+            "random.sample",
+            "random.uniform",
+            "random.getrandbits",
+        }
         for path in _python_files(project_root, cfg):
             tree, lines = _parse(path)
             if tree is None:
@@ -163,14 +195,17 @@ class CYBER003(Rule):
                         lineno = getattr(node, "lineno", 1)
                         context_line = lines[lineno - 1] if lineno <= len(lines) else ""
                         if self._SECURITY_CONTEXTS.search(context_line):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_ERROR,
-                                message=f"'{name}' in security context — not cryptographically secure",
-                                location=Location(file=rel, line=lineno),
-                                standard="iso26262", clause="CWE-330",
-                                remediation="use secrets.token_bytes() or secrets.token_hex() for security-sensitive randomness",
-                            ))
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_ERROR,
+                                    message=f"'{name}' in security context — not cryptographically secure",
+                                    location=Location(file=rel, line=lineno),
+                                    standard="iso26262",
+                                    clause="CWE-330",
+                                    remediation="use secrets.token_bytes() or secrets.token_hex() for security-sensitive randomness",
+                                )
+                            )
         return findings
 
 
@@ -192,14 +227,17 @@ class CYBER004(Rule):
             imports = _import_names(tree)
             for imp in imports:
                 if any(u in imp for u in UNSAFE):
-                    findings.append(Finding(
-                        rule_id=self.rule_id,
-                        severity=SEVERITY_WARNING,
-                        message=f"unsafe memory access via '{imp}' — must be reviewed and justified",
-                        location=Location(file=rel, line=1),
-                        standard="iso26262", clause="CWE-242",
-                        remediation="document rationale; add #fusa:accept with reviewer and justification",
-                    ))
+                    findings.append(
+                        Finding(
+                            rule_id=self.rule_id,
+                            severity=SEVERITY_WARNING,
+                            message=f"unsafe memory access via '{imp}' — must be reviewed and justified",
+                            location=Location(file=rel, line=1),
+                            standard="iso26262",
+                            clause="CWE-242",
+                            remediation="document rationale; add #fusa:accept with reviewer and justification",
+                        )
+                    )
         return findings
 
 
@@ -212,8 +250,13 @@ class CYBER005(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        CALLS = {"subprocess.run", "subprocess.Popen", "subprocess.call",
-                 "subprocess.check_call", "subprocess.check_output"}
+        CALLS = {
+            "subprocess.run",
+            "subprocess.Popen",
+            "subprocess.call",
+            "subprocess.check_call",
+            "subprocess.check_output",
+        }
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
             if tree is None:
@@ -228,18 +271,33 @@ class CYBER005(Rule):
                         if not isinstance(first, (ast.Constant, ast.List)):
                             # check for shell=True too (more dangerous)
                             has_shell = any(
-                                kw.arg == "shell" and isinstance(kw.value, ast.Constant) and kw.value.value
+                                kw.arg == "shell"
+                                and isinstance(kw.value, ast.Constant)
+                                and kw.value.value
                                 for kw in node.keywords
                             )
-                            if has_shell or isinstance(first, (ast.Name, ast.JoinedStr, ast.BinOp)):
-                                findings.append(Finding(
-                                    rule_id=self.rule_id,
-                                    severity=SEVERITY_ERROR,
-                                    message=f"'{name}' with dynamic command — command injection risk",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                    standard="iso26262", clause="CWE-78",
-                                    remediation="use a literal list of arguments; never pass shell=True with user-controlled input",
-                                ))
+                            if has_shell or isinstance(
+                                first, (ast.Name, ast.JoinedStr, ast.BinOp)
+                            ):
+                                findings.append(
+                                    Finding(
+                                        rule_id=self.rule_id,
+                                        severity=SEVERITY_ERROR,
+                                        message=f"'{name}' with dynamic command — command injection risk",
+                                        location=Location(
+                                            file=rel,
+                                            line=getattr(node, "lineno", 0),
+                                            end_line=getattr(node, "end_lineno", 0),
+                                            end_column=getattr(
+                                                node, "end_col_offset", -1
+                                            )
+                                            + 1,
+                                        ),
+                                        standard="iso26262",
+                                        clause="CWE-78",
+                                        remediation="use a literal list of arguments; never pass shell=True with user-controlled input",
+                                    )
+                                )
         return findings
 
 
@@ -251,6 +309,7 @@ _CRED_RE = re.compile(
     r"auth[_-]?token|client[_-]?secret)",
     re.IGNORECASE,
 )
+
 
 class CYBER006(Rule):
     rule_id = "CYBER006"
@@ -282,14 +341,23 @@ class CYBER006(Rule):
                 if target_name and value and _CRED_RE.search(target_name):
                     if isinstance(value, ast.Constant) and isinstance(value.value, str):
                         if len(value.value) >= 4 and not value.value.startswith("$"):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_ERROR,
-                                message=f"hardcoded credential in '{target_name}'",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                standard="iso26262", clause="CWE-798",
-                                remediation="load from environment variable or secret manager; never hardcode credentials",
-                            ))
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_ERROR,
+                                    message=f"hardcoded credential in '{target_name}'",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    standard="iso26262",
+                                    clause="CWE-798",
+                                    remediation="load from environment variable or secret manager; never hardcode credentials",
+                                )
+                            )
         return findings
 
 
@@ -313,25 +381,44 @@ class CYBER007(Rule):
                     for kw in node.keywords:
                         if kw.arg == "verify" and isinstance(kw.value, ast.Constant):
                             if kw.value.value is False:
-                                findings.append(Finding(
-                                    rule_id=self.rule_id,
-                                    severity=SEVERITY_ERROR,
-                                    message="TLS certificate verification disabled (verify=False)",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                    standard="iso26262", clause="CWE-295",
-                                    remediation="remove verify=False; use a proper CA bundle or client certificate",
-                                ))
+                                findings.append(
+                                    Finding(
+                                        rule_id=self.rule_id,
+                                        severity=SEVERITY_ERROR,
+                                        message="TLS certificate verification disabled (verify=False)",
+                                        location=Location(
+                                            file=rel,
+                                            line=getattr(node, "lineno", 0),
+                                            end_line=getattr(node, "end_lineno", 0),
+                                            end_column=getattr(
+                                                node, "end_col_offset", -1
+                                            )
+                                            + 1,
+                                        ),
+                                        standard="iso26262",
+                                        clause="CWE-295",
+                                        remediation="remove verify=False; use a proper CA bundle or client certificate",
+                                    )
+                                )
                 # ssl.CERT_NONE
                 if isinstance(node, ast.Attribute) and node.attr == "CERT_NONE":
                     if isinstance(node.value, ast.Name) and node.value.id == "ssl":
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_ERROR,
-                            message="ssl.CERT_NONE disables TLS certificate verification",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            standard="iso26262", clause="CWE-295",
-                            remediation="use ssl.CERT_REQUIRED and provide a trusted CA bundle",
-                        ))
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_ERROR,
+                                message="ssl.CERT_NONE disables TLS certificate verification",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                standard="iso26262",
+                                clause="CWE-295",
+                                remediation="use ssl.CERT_REQUIRED and provide a trusted CA bundle",
+                            )
+                        )
         return findings
 
 
@@ -344,8 +431,12 @@ class CYBER008(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        NO_TIMEOUT = {"HTTPServer", "BaseHTTPServer", "http.server.HTTPServer",
-                      "socketserver.TCPServer"}
+        NO_TIMEOUT = {
+            "HTTPServer",
+            "BaseHTTPServer",
+            "http.server.HTTPServer",
+            "socketserver.TCPServer",
+        }
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
             if tree is None:
@@ -358,14 +449,23 @@ class CYBER008(Rule):
                         # Check no timeout set nearby (heuristic: no timeout kwarg)
                         has_timeout = any(kw.arg == "timeout" for kw in node.keywords)
                         if not has_timeout:
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_WARNING,
-                                message=f"'{name}' created without request timeout — vulnerable to slowloris",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                standard="iso26262", clause="CWE-400",
-                                remediation="set socket.settimeout() or use a WSGI server with configurable timeouts",
-                            ))
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_WARNING,
+                                    message=f"'{name}' created without request timeout — vulnerable to slowloris",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    standard="iso26262",
+                                    clause="CWE-400",
+                                    remediation="set socket.settimeout() or use a WSGI server with configurable timeouts",
+                                )
+                            )
         return findings
 
 
@@ -376,8 +476,14 @@ class CYBER009(Rule):
     rule_id = "CYBER009"
     description = "Explicit integer narrowing conversion — CWE-190"
 
-    _NARROW = {"ctypes.c_int8", "ctypes.c_int16", "ctypes.c_uint8", "ctypes.c_uint16",
-               "ctypes.c_uint32", "ctypes.c_int32"}
+    _NARROW = {
+        "ctypes.c_int8",
+        "ctypes.c_int16",
+        "ctypes.c_uint8",
+        "ctypes.c_uint16",
+        "ctypes.c_uint32",
+        "ctypes.c_int32",
+    }
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
@@ -391,14 +497,23 @@ class CYBER009(Rule):
                     name = _call_name(node)
                     if name in self._NARROW and node.args:
                         if not isinstance(node.args[0], ast.Constant):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_WARNING,
-                                message=f"integer narrowing via '{name}' may truncate value",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                standard="iso26262", clause="CWE-190",
-                                remediation="validate value range before narrowing; add assertion on bounds",
-                            ))
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_WARNING,
+                                    message=f"integer narrowing via '{name}' may truncate value",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    standard="iso26262",
+                                    clause="CWE-190",
+                                    remediation="validate value range before narrowing; add assertion on bounds",
+                                )
+                            )
         return findings
 
 
@@ -409,8 +524,14 @@ class CYBER010(Rule):
     rule_id = "CYBER010"
     description = "String concatenation in SQL or path API call — CWE-89/CWE-22"
 
-    _SQL_CALLS = {"execute", "executemany", "cursor.execute", "db.execute",
-                  "connection.execute", "session.execute"}
+    _SQL_CALLS = {
+        "execute",
+        "executemany",
+        "cursor.execute",
+        "db.execute",
+        "connection.execute",
+        "session.execute",
+    }
     _PATH_CALLS = {"os.open", "os.stat", "open", "pathlib.Path"}
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
@@ -426,15 +547,26 @@ class CYBER010(Rule):
                     name = _call_name(node)
                     if any(name.endswith(s) for s in ALL):
                         first = node.args[0]
-                        if isinstance(first, ast.BinOp) and isinstance(first.op, ast.Add):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_ERROR,
-                                message=f"string concatenation in '{name}' — SQL injection or path traversal risk",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                standard="iso26262", clause="CWE-89",
-                                remediation="use parameterised queries or pathlib.Path() with validated components",
-                            ))
+                        if isinstance(first, ast.BinOp) and isinstance(
+                            first.op, ast.Add
+                        ):
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_ERROR,
+                                    message=f"string concatenation in '{name}' — SQL injection or path traversal risk",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    standard="iso26262",
+                                    clause="CWE-89",
+                                    remediation="use parameterised queries or pathlib.Path() with validated components",
+                                )
+                            )
         return findings
 
 
@@ -443,11 +575,23 @@ class CYBER010(Rule):
 # ---------------------------------------------------------------------------
 class CYBER011(Rule):
     rule_id = "CYBER011"
-    description = "Server-Side Request Forgery: URL from variable in HTTP client — CWE-918"
+    description = (
+        "Server-Side Request Forgery: URL from variable in HTTP client — CWE-918"
+    )
 
-    _HTTP_CALLS = {"requests.get", "requests.post", "requests.put", "requests.delete",
-                   "requests.patch", "requests.request", "urllib.request.urlopen",
-                   "urllib.request.urlretrieve", "httpx.get", "httpx.post", "aiohttp.get"}
+    _HTTP_CALLS = {
+        "requests.get",
+        "requests.post",
+        "requests.put",
+        "requests.delete",
+        "requests.patch",
+        "requests.request",
+        "urllib.request.urlopen",
+        "urllib.request.urlretrieve",
+        "httpx.get",
+        "httpx.post",
+        "aiohttp.get",
+    }
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
@@ -462,14 +606,23 @@ class CYBER011(Rule):
                     if name in self._HTTP_CALLS:
                         url_arg = node.args[0]
                         if not isinstance(url_arg, ast.Constant):
-                            findings.append(Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_WARNING,
-                                message=f"'{name}' called with non-literal URL — SSRF risk if URL is user-controlled",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                standard="iso26262", clause="CWE-918",
-                                remediation="validate and whitelist URLs before making outbound requests",
-                            ))
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_WARNING,
+                                    message=f"'{name}' called with non-literal URL — SSRF risk if URL is user-controlled",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    standard="iso26262",
+                                    clause="CWE-918",
+                                    remediation="validate and whitelist URLs before making outbound requests",
+                                )
+                            )
         return findings
 
 
@@ -495,14 +648,25 @@ class CYBER012(Rule):
                         for kw in node.keywords:
                             if kw.arg == "debug" and isinstance(kw.value, ast.Constant):
                                 if kw.value.value is True:
-                                    findings.append(Finding(
-                                        rule_id=self.rule_id,
-                                        severity=SEVERITY_ERROR,
-                                        message="debug=True in app.run() — exposes interactive debugger",
-                                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                        standard="iso26262", clause="CWE-215",
-                                        remediation="set debug=False; use environment variable DEBUG=0 in production",
-                                    ))
+                                    findings.append(
+                                        Finding(
+                                            rule_id=self.rule_id,
+                                            severity=SEVERITY_ERROR,
+                                            message="debug=True in app.run() — exposes interactive debugger",
+                                            location=Location(
+                                                file=rel,
+                                                line=getattr(node, "lineno", 0),
+                                                end_line=getattr(node, "end_lineno", 0),
+                                                end_column=getattr(
+                                                    node, "end_col_offset", -1
+                                                )
+                                                + 1,
+                                            ),
+                                            standard="iso26262",
+                                            clause="CWE-215",
+                                            remediation="set debug=False; use environment variable DEBUG=0 in production",
+                                        )
+                                    )
         return findings
 
 
@@ -524,14 +688,22 @@ class CYBER013(Rule):
                 if isinstance(node, ast.Call):
                     name = _call_name(node)
                     if name.endswith("extractall"):
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_ERROR,
-                            message="extractall() without member validation — zip slip path traversal risk",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            standard="iso26262", clause="CWE-23",
-                            remediation="validate each member path: reject entries with '..' or absolute paths",
-                        ))
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_ERROR,
+                                message="extractall() without member validation — zip slip path traversal risk",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                standard="iso26262",
+                                clause="CWE-23",
+                                remediation="validate each member path: reject entries with '..' or absolute paths",
+                            )
+                        )
         return findings
 
 
@@ -542,8 +714,14 @@ class CYBER014(Rule):
     rule_id = "CYBER014"
     description = "TLS minimum version too low (SSLv2/SSLv3/TLSv1.0/TLSv1.1) — CWE-326"
 
-    _WEAK_VERSIONS = {"PROTOCOL_SSLv2", "PROTOCOL_SSLv3", "PROTOCOL_TLSv1",
-                      "PROTOCOL_TLSv1_1", "TLSVersion.TLSv1", "TLSVersion.TLSv1_1"}
+    _WEAK_VERSIONS = {
+        "PROTOCOL_SSLv2",
+        "PROTOCOL_SSLv3",
+        "PROTOCOL_TLSv1",
+        "PROTOCOL_TLSv1_1",
+        "TLSVersion.TLSv1",
+        "TLSVersion.TLSv1_1",
+    }
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
@@ -554,14 +732,22 @@ class CYBER014(Rule):
             rel = _rel(path, project_root)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Attribute) and node.attr in self._WEAK_VERSIONS:
-                    findings.append(Finding(
-                        rule_id=self.rule_id,
-                        severity=SEVERITY_ERROR,
-                        message=f"weak TLS version '{node.attr}' — deprecated and vulnerable",
-                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                        standard="iso26262", clause="CWE-326",
-                        remediation="use ssl.TLSVersion.TLSv1_2 or TLSv1_3 as minimum_version",
-                    ))
+                    findings.append(
+                        Finding(
+                            rule_id=self.rule_id,
+                            severity=SEVERITY_ERROR,
+                            message=f"weak TLS version '{node.attr}' — deprecated and vulnerable",
+                            location=Location(
+                                file=rel,
+                                line=getattr(node, "lineno", 0),
+                                end_line=getattr(node, "end_lineno", 0),
+                                end_column=getattr(node, "end_col_offset", -1) + 1,
+                            ),
+                            standard="iso26262",
+                            clause="CWE-326",
+                            remediation="use ssl.TLSVersion.TLSv1_2 or TLSv1_3 as minimum_version",
+                        )
+                    )
         return findings
 
 
@@ -574,7 +760,9 @@ class CYBER015(Rule):
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        SQL_KW = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b", re.IGNORECASE)
+        SQL_KW = re.compile(
+            r"\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b", re.IGNORECASE
+        )
         for path in _python_files(project_root, cfg):
             tree, lines = _parse(path)
             if tree is None:
@@ -586,26 +774,40 @@ class CYBER015(Rule):
                     lineno = getattr(node, "lineno", 1)
                     line = lines[lineno - 1] if lineno <= len(lines) else ""
                     if SQL_KW.search(line):
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_ERROR,
-                            message="SQL query constructed with f-string — SQL injection risk",
-                            location=Location(file=rel, line=lineno),
-                            standard="iso26262", clause="CWE-89",
-                            remediation="use parameterised queries: cursor.execute(sql, params)",
-                        ))
-                # %-format or .format() with SQL
-                if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod):
-                    if isinstance(node.left, ast.Constant) and isinstance(node.left.value, str):
-                        if SQL_KW.search(node.left.value):
-                            findings.append(Finding(
+                        findings.append(
+                            Finding(
                                 rule_id=self.rule_id,
                                 severity=SEVERITY_ERROR,
-                                message="SQL query built with '%' string format — SQL injection risk",
-                                location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                standard="iso26262", clause="CWE-89",
+                                message="SQL query constructed with f-string — SQL injection risk",
+                                location=Location(file=rel, line=lineno),
+                                standard="iso26262",
+                                clause="CWE-89",
                                 remediation="use parameterised queries: cursor.execute(sql, params)",
-                            ))
+                            )
+                        )
+                # %-format or .format() with SQL
+                if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod):
+                    if isinstance(node.left, ast.Constant) and isinstance(
+                        node.left.value, str
+                    ):
+                        if SQL_KW.search(node.left.value):
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_ERROR,
+                                    message="SQL query built with '%' string format — SQL injection risk",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(node, "end_col_offset", -1)
+                                        + 1,
+                                    ),
+                                    standard="iso26262",
+                                    clause="CWE-89",
+                                    remediation="use parameterised queries: cursor.execute(sql, params)",
+                                )
+                            )
         return findings
 
 
@@ -631,14 +833,25 @@ class CYBER016(Rule):
                         for kw in node.keywords:
                             if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
                                 if kw.value.value == 0o777:
-                                    findings.append(Finding(
-                                        rule_id=self.rule_id,
-                                        severity=SEVERITY_WARNING,
-                                        message=f"'{name}' with mode=0o777 — world-writable directory",
-                                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                        standard="iso26262", clause="CWE-732",
-                                        remediation="use mode=0o755 or 0o700 and set umask appropriately",
-                                    ))
+                                    findings.append(
+                                        Finding(
+                                            rule_id=self.rule_id,
+                                            severity=SEVERITY_WARNING,
+                                            message=f"'{name}' with mode=0o777 — world-writable directory",
+                                            location=Location(
+                                                file=rel,
+                                                line=getattr(node, "lineno", 0),
+                                                end_line=getattr(node, "end_lineno", 0),
+                                                end_column=getattr(
+                                                    node, "end_col_offset", -1
+                                                )
+                                                + 1,
+                                            ),
+                                            standard="iso26262",
+                                            clause="CWE-732",
+                                            remediation="use mode=0o755 or 0o700 and set umask appropriately",
+                                        )
+                                    )
         return findings
 
 
@@ -661,16 +874,31 @@ class CYBER017(Rule):
                     name = _call_name(node)
                     if name in ("open", "os.open", "io.open"):
                         for kw in node.keywords:
-                            if kw.arg in ("mode", "opener") and isinstance(kw.value, ast.Constant):
-                                if isinstance(kw.value.value, int) and kw.value.value in (0o666, 0o777):
-                                    findings.append(Finding(
-                                        rule_id=self.rule_id,
-                                        severity=SEVERITY_WARNING,
-                                        message=f"'{name}' with permissive mode 0o{kw.value.value:o} — world-readable/writable",
-                                        location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                        standard="iso26262", clause="CWE-732",
-                                        remediation="use mode=0o600 for sensitive files; apply principle of least privilege",
-                                    ))
+                            if kw.arg in ("mode", "opener") and isinstance(
+                                kw.value, ast.Constant
+                            ):
+                                if isinstance(
+                                    kw.value.value, int
+                                ) and kw.value.value in (0o666, 0o777):
+                                    findings.append(
+                                        Finding(
+                                            rule_id=self.rule_id,
+                                            severity=SEVERITY_WARNING,
+                                            message=f"'{name}' with permissive mode 0o{kw.value.value:o} — world-readable/writable",
+                                            location=Location(
+                                                file=rel,
+                                                line=getattr(node, "lineno", 0),
+                                                end_line=getattr(node, "end_lineno", 0),
+                                                end_column=getattr(
+                                                    node, "end_col_offset", -1
+                                                )
+                                                + 1,
+                                            ),
+                                            standard="iso26262",
+                                            clause="CWE-732",
+                                            remediation="use mode=0o600 for sensitive files; apply principle of least privilege",
+                                        )
+                                    )
         return findings
 
 
@@ -681,9 +909,16 @@ class CYBER018(Rule):
     rule_id = "CYBER018"
     description = "File path derived from user-controlled input — path traversal CWE-22"
 
-    _USER_SOURCES = {"request.args", "request.form", "request.json",
-                     "request.get_json", "request.values", "flask.request",
-                     "input", "sys.argv"}
+    _USER_SOURCES = {
+        "request.args",
+        "request.form",
+        "request.json",
+        "request.get_json",
+        "request.values",
+        "flask.request",
+        "input",
+        "sys.argv",
+    }
 
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
@@ -712,14 +947,25 @@ class CYBER018(Rule):
                     if name in ("open", "os.open", "os.path.join", "pathlib.Path"):
                         for arg in node.args:
                             if isinstance(arg, ast.Name) and arg.id in user_vars:
-                                findings.append(Finding(
-                                    rule_id=self.rule_id,
-                                    severity=SEVERITY_ERROR,
-                                    message=f"user-controlled variable '{arg.id}' used in file path '{name}'",
-                                    location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                                    standard="iso26262", clause="CWE-22",
-                                    remediation="use pathlib.Path(base / name).resolve() and verify it is inside the allowed directory",
-                                ))
+                                findings.append(
+                                    Finding(
+                                        rule_id=self.rule_id,
+                                        severity=SEVERITY_ERROR,
+                                        message=f"user-controlled variable '{arg.id}' used in file path '{name}'",
+                                        location=Location(
+                                            file=rel,
+                                            line=getattr(node, "lineno", 0),
+                                            end_line=getattr(node, "end_lineno", 0),
+                                            end_column=getattr(
+                                                node, "end_col_offset", -1
+                                            )
+                                            + 1,
+                                        ),
+                                        standard="iso26262",
+                                        clause="CWE-22",
+                                        remediation="use pathlib.Path(base / name).resolve() and verify it is inside the allowed directory",
+                                    )
+                                )
         return findings
 
 
@@ -758,15 +1004,21 @@ class CYBER019(Rule):
                         arg = node.args[0]
                         if isinstance(arg, ast.Name):
                             for check_line, check_var in checks:
-                                if arg.id == check_var and 0 < lineno - check_line <= 10:
-                                    findings.append(Finding(
-                                        rule_id=self.rule_id,
-                                        severity=SEVERITY_WARNING,
-                                        message=f"TOCTOU: '{arg.id}' checked then opened — file may change between check and use",
-                                        location=Location(file=rel, line=lineno),
-                                        standard="iso26262", clause="CWE-362",
-                                        remediation="use try/except on open() instead of pre-checking existence",
-                                    ))
+                                if (
+                                    arg.id == check_var
+                                    and 0 < lineno - check_line <= 10
+                                ):
+                                    findings.append(
+                                        Finding(
+                                            rule_id=self.rule_id,
+                                            severity=SEVERITY_WARNING,
+                                            message=f"TOCTOU: '{arg.id}' checked then opened — file may change between check and use",
+                                            location=Location(file=rel, line=lineno),
+                                            standard="iso26262",
+                                            clause="CWE-362",
+                                            remediation="use try/except on open() instead of pre-checking existence",
+                                        )
+                                    )
         return findings
 
 
@@ -788,20 +1040,44 @@ class CYBER020(Rule):
                 if isinstance(node, ast.Call):
                     name = _call_name(node)
                     if name in ("tempfile.mktemp", "mktemp"):
-                        findings.append(Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_ERROR,
-                            message="tempfile.mktemp() is insecure — file may be created by attacker between check and use",
-                            location=Location(file=rel, line=getattr(node, "lineno", 0), end_line=getattr(node, "end_lineno", 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            standard="iso26262", clause="CWE-377",
-                            remediation="use tempfile.NamedTemporaryFile() or tempfile.mkstemp() instead",
-                        ))
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_ERROR,
+                                message="tempfile.mktemp() is insecure — file may be created by attacker between check and use",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                standard="iso26262",
+                                clause="CWE-377",
+                                remediation="use tempfile.NamedTemporaryFile() or tempfile.mkstemp() instead",
+                            )
+                        )
         return findings
 
 
 ALL: List[Rule] = [
-    CYBER001(), CYBER002(), CYBER003(), CYBER004(), CYBER005(),
-    CYBER006(), CYBER007(), CYBER008(), CYBER009(), CYBER010(),
-    CYBER011(), CYBER012(), CYBER013(), CYBER014(), CYBER015(),
-    CYBER016(), CYBER017(), CYBER018(), CYBER019(), CYBER020(),
+    CYBER001(),
+    CYBER002(),
+    CYBER003(),
+    CYBER004(),
+    CYBER005(),
+    CYBER006(),
+    CYBER007(),
+    CYBER008(),
+    CYBER009(),
+    CYBER010(),
+    CYBER011(),
+    CYBER012(),
+    CYBER013(),
+    CYBER014(),
+    CYBER015(),
+    CYBER016(),
+    CYBER017(),
+    CYBER018(),
+    CYBER019(),
+    CYBER020(),
 ]

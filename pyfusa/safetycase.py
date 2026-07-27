@@ -24,13 +24,48 @@ _EVIDENCE_ITEMS = [
 ]
 
 _CLAUSES = [
-    {"standard": "ISO 26262", "clause": "6.4.3", "title": "Software architectural design", "evidenceIds": ["boundary", "coupling"]},
-    {"standard": "ISO 26262", "clause": "6.4.4", "title": "Software unit design and implementation", "evidenceIds": ["check", "fmea"]},
-    {"standard": "ISO 26262", "clause": "6.4.5", "title": "Software integration", "evidenceIds": ["check", "coupling"]},
-    {"standard": "ISO 26262", "clause": "6.4.9", "title": "Requirements-based testing", "evidenceIds": ["reqs", "qualify"]},
-    {"standard": "ISO 21434", "clause": "8.3", "title": "TARA", "evidenceIds": ["tara", "hara"]},
-    {"standard": "DO-178C", "clause": "§11.1", "title": "Software accomplishment summary", "evidenceIds": ["qualify", "check"]},
-    {"standard": "IEC 61508", "clause": "7.4", "title": "Software architecture", "evidenceIds": ["boundary", "coupling", "fmea"]},
+    {
+        "standard": "ISO 26262",
+        "clause": "6.4.3",
+        "title": "Software architectural design",
+        "evidenceIds": ["boundary", "coupling"],
+    },
+    {
+        "standard": "ISO 26262",
+        "clause": "6.4.4",
+        "title": "Software unit design and implementation",
+        "evidenceIds": ["check", "fmea"],
+    },
+    {
+        "standard": "ISO 26262",
+        "clause": "6.4.5",
+        "title": "Software integration",
+        "evidenceIds": ["check", "coupling"],
+    },
+    {
+        "standard": "ISO 26262",
+        "clause": "6.4.9",
+        "title": "Requirements-based testing",
+        "evidenceIds": ["reqs", "qualify"],
+    },
+    {
+        "standard": "ISO 21434",
+        "clause": "8.3",
+        "title": "TARA",
+        "evidenceIds": ["tara", "hara"],
+    },
+    {
+        "standard": "DO-178C",
+        "clause": "§11.1",
+        "title": "Software accomplishment summary",
+        "evidenceIds": ["qualify", "check"],
+    },
+    {
+        "standard": "IEC 61508",
+        "clause": "7.4",
+        "title": "Software architecture",
+        "evidenceIds": ["boundary", "coupling", "fmea"],
+    },
 ]
 
 
@@ -52,24 +87,26 @@ def assemble(project_root: str, cfg: Config) -> dict:
                         doc = json.load(f)
                     if "summary" in doc:
                         s = doc["summary"]
-                        detail = f"{s.get('errors',0)} errors, {s.get('warnings',0)} warnings"
+                        detail = f"{s.get('errors', 0)} errors, {s.get('warnings', 0)} warnings"
                     elif "total" in doc and "passed" in doc:
-                        detail = f"{doc.get('passed',0)}/{doc.get('total',0)} passed"
+                        detail = f"{doc.get('passed', 0)}/{doc.get('total', 0)} passed"
                     elif "findings" in doc:
-                        detail = f"{len(doc.get('findings',[]))} findings"
+                        detail = f"{len(doc.get('findings', []))} findings"
                     elif "requirements" in doc:
-                        detail = f"{len(doc.get('requirements',[]))} requirements"
+                        detail = f"{len(doc.get('requirements', []))} requirements"
             except Exception:
                 pass
             present_ids.add(ev_id)
 
-        evidence.append({
-            "id": ev_id,
-            "description": description,
-            "file": filename,
-            "status": "present" if present else "absent",
-            "detail": detail,
-        })
+        evidence.append(
+            {
+                "id": ev_id,
+                "description": description,
+                "file": filename,
+                "status": "present" if present else "absent",
+                "detail": detail,
+            }
+        )
 
     gaps = [ev_id for ev_id, _, _ in _EVIDENCE_ITEMS if ev_id not in present_ids]
 
@@ -90,7 +127,12 @@ def assemble(project_root: str, cfg: Config) -> dict:
 
 
 def to_markdown(doc: dict) -> str:
-    lines = [f"# Safety Case — {doc['module']}", "", f"**Standard:** {doc['standard']}  **Generated:** {doc['generatedAt']}", ""]
+    lines = [
+        f"# Safety Case — {doc['module']}",
+        "",
+        f"**Standard:** {doc['standard']}  **Generated:** {doc['generatedAt']}",
+        "",
+    ]
     lines.append("## Evidence")
     lines.append("")
     lines.append("| ID | Description | File | Status |")
@@ -98,7 +140,9 @@ def to_markdown(doc: dict) -> str:
     for ev in doc["evidence"]:
         status = "✓" if ev["status"] == "present" else "✗"
         detail = f" ({ev['detail']})" if ev.get("detail") else ""
-        lines.append(f"| {ev['id']} | {ev['description']} | `{ev['file']}` | {status}{detail} |")
+        lines.append(
+            f"| {ev['id']} | {ev['description']} | `{ev['file']}` | {status}{detail} |"
+        )
     lines.append("")
     if doc.get("gaps"):
         lines.append(f"## Gaps ({len(doc['gaps'])})")
@@ -110,16 +154,18 @@ def to_markdown(doc: dict) -> str:
     lines.append("| Standard | Clause | Title | Evidence |")
     lines.append("|---|---|---|---|")
     for c in doc.get("clauses", []):
-        lines.append(f"| {c['standard']} | {c['clause']} | {c['title']} | {', '.join(c['evidenceIds'])} |")
+        lines.append(
+            f"| {c['standard']} | {c['clause']} | {c['title']} | {', '.join(c['evidenceIds'])} |"
+        )
     return "\n".join(lines)
 
 
 def to_mermaid(doc: dict) -> str:
-    lines = ["graph LR", f"    safety_case[\"{doc['module']} Safety Case\"]"]
+    lines = ["graph LR", f'    safety_case["{doc["module"]} Safety Case"]']
     for ev in doc["evidence"]:
         style = ":::ok" if ev["status"] == "present" else ":::gap"
         lines.append(f'    {ev["id"]}["{ev["file"]}"{style}]')
-        lines.append(f'    safety_case --> {ev["id"]}')
+        lines.append(f"    safety_case --> {ev['id']}")
     lines.append("    classDef ok fill:#4c1,color:#fff")
     lines.append("    classDef gap fill:#e05d44,color:#fff")
     return "\n".join(lines)

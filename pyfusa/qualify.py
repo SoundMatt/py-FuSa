@@ -45,9 +45,9 @@ class QualifyReport:
     results: list[TestCase] = field(default_factory=list)
     hash: str = ""
     # Feature 2: Tool Qualification Display
-    qualification_method: str = ""        # "self" | "independent"
-    qualification_record_uri: str = ""    # URI to dossier
-    qualifier_identity: str = ""          # name/org
+    qualification_method: str = ""  # "self" | "independent"
+    qualification_record_uri: str = ""  # URI to dossier
+    qualifier_identity: str = ""  # name/org
     # Feature 4: V&V Independence
     implementation_author: str = ""
     independent_reviewer: str = ""
@@ -65,7 +65,9 @@ def _run_test(name: str, fn: Callable[[], bool]) -> TestCase:
 
 def _test_fingerprint_known_answer() -> bool:
     """§4.2 known-answer test: deterministic fingerprint."""
-    fp = pyfusa.compute_fingerprint("LINT001", "src/foo.py", "function exceeds 60 lines")
+    fp = pyfusa.compute_fingerprint(
+        "LINT001", "src/foo.py", "function exceeds 60 lines"
+    )
     return fp.startswith("sha256:") and len(fp) == 71
 
 
@@ -120,22 +122,27 @@ def _test_normalize_message_whitespace() -> bool:
 
 def _test_severity_enum() -> bool:
     """§2.4 severity values are uppercase strings."""
-    return (pyfusa.SEVERITY_ERROR == "ERROR"
-            and pyfusa.SEVERITY_WARNING == "WARNING"
-            and pyfusa.SEVERITY_INFO == "INFO")
+    return (
+        pyfusa.SEVERITY_ERROR == "ERROR"
+        and pyfusa.SEVERITY_WARNING == "WARNING"
+        and pyfusa.SEVERITY_INFO == "INFO"
+    )
 
 
 def _test_exit_codes() -> bool:
     """§2.3 exit codes."""
-    return (pyfusa.EXIT_OK == 0
-            and pyfusa.EXIT_GATE_FAIL == 1
-            and pyfusa.EXIT_USAGE == 2
-            and pyfusa.EXIT_RUNTIME == 3)
+    return (
+        pyfusa.EXIT_OK == 0
+        and pyfusa.EXIT_GATE_FAIL == 1
+        and pyfusa.EXIT_USAGE == 2
+        and pyfusa.EXIT_RUNTIME == 3
+    )
 
 
 def _test_config_load_default() -> bool:
     """Config.default returns a valid config."""
     from pyfusa.config import default
+
     cfg = default(project_name="test", standard="iso26262")
     return cfg.project.name == "test" and cfg.standard == "iso26262"
 
@@ -197,11 +204,15 @@ def compute_hash(report: QualifyReport) -> str:
         "total": report.total,
         "passed": report.passed,
         "failed": report.failed,
-        "results": sorted([r.to_dict() for r in report.results], key=lambda x: x["name"]),
+        "results": sorted(
+            [r.to_dict() for r in report.results], key=lambda x: x["name"]
+        ),
         "generatedAt": "",
     }
     # RFC 8785 (JCS): sorted keys, no insignificant whitespace
-    canonical = json.dumps(doc, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    canonical = json.dumps(
+        doc, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    )
     digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return "sha256:" + digest
 
@@ -245,7 +256,10 @@ def run(
     failed = sum(1 for r in results if r.result == RESULT_FAIL)
 
     report = QualifyReport(
-        total=total, passed=passed, failed=failed, results=results,
+        total=total,
+        passed=passed,
+        failed=failed,
+        results=results,
         qualification_method=qualification_method,
         qualification_record_uri=qualification_record_uri,
         qualifier_identity=qualifier_identity,
@@ -258,8 +272,11 @@ def run(
     return report
 
 
-def to_dict(report: QualifyReport, project_root: str, cfg: Config) -> dict:  # fusa:req REQ-QUAL001
+def to_dict(
+    report: QualifyReport, project_root: str, cfg: Config
+) -> dict:  # fusa:req REQ-QUAL001
     from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
+
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     doc = {
         "schemaVersion": SPEC_VERSION,

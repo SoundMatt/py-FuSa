@@ -19,7 +19,9 @@ def _python_files(root: str, cfg: Config) -> List[str]:
     for sdir in source_dirs:
         base = os.path.join(root, sdir)
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [d for d in dirnames if d not in skip and not d.startswith(".")]
+            dirnames[:] = [
+                d for d in dirnames if d not in skip and not d.startswith(".")
+            ]
             for fn in filenames:
                 if fn.endswith(".py"):
                     paths.append(os.path.join(dirpath, fn))
@@ -102,7 +104,9 @@ def scan(project_root: str, cfg: Config) -> dict:
                     nodes[target_id] = {
                         "id": target_id,
                         "package": node.module,
-                        "trust_level": "external" if target_id not in known_internal else "internal",
+                        "trust_level": "external"
+                        if target_id not in known_internal
+                        else "internal",
                         "exports": [],
                     }
                 if target_id != pkg_id:
@@ -138,17 +142,17 @@ def to_mermaid(graph: dict, module: str) -> str:
         style = ":::external" if node["trust_level"] == "external" else ""
         lines.append(f'    {node["id"]}["{label}"]{style}')
     for edge in graph["edges"]:
-        lines.append(f'    {edge["from"]} --> {edge["to"]}')
+        lines.append(f"    {edge['from']} --> {edge['to']}")
     lines.append("    classDef external fill:#f9f,stroke:#333,stroke-dasharray: 5 5")
     return "\n".join(lines)
 
 
 def to_dot(graph: dict, module: str) -> str:
-    lines = ['digraph boundary {', f'  label="{module}";', '  rankdir=LR;']
+    lines = ["digraph boundary {", f'  label="{module}";', "  rankdir=LR;"]
     for node in graph["nodes"]:
         shape = "box" if node["trust_level"] == "internal" else "ellipse"
         lines.append(f'  {node["id"]} [label="{node["package"]}" shape={shape}];')
     for edge in graph["edges"]:
-        lines.append(f'  {edge["from"]} -> {edge["to"]};')
+        lines.append(f"  {edge['from']} -> {edge['to']};")
     lines.append("}")
     return "\n".join(lines)

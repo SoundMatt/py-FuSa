@@ -10,7 +10,7 @@ import pyfusa
 from pyfusa.cli.main import run
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_version_text():
     out = io.StringIO()
     code = run(["version"], stdout=out)
@@ -20,7 +20,7 @@ def test_version_text():
     assert pyfusa.VERSION in line
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_version_json():
     out = io.StringIO()
     code = run(["version", "--format", "json"], stdout=out)
@@ -31,7 +31,7 @@ def test_version_json():
     assert doc["specVersion"] == pyfusa.SPEC_VERSION
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_capabilities_json():
     out = io.StringIO()
     code = run(["capabilities", "--format", "json"], stdout=out)
@@ -43,27 +43,29 @@ def test_capabilities_json():
     assert "check" in doc["commands"]
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_unknown_command():
     err = io.StringIO()
     code = run(["notacommand"], stderr=err)
     assert code == pyfusa.EXIT_USAGE
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_no_args():
     out = io.StringIO()
     code = run([], stdout=out)
     assert code == pyfusa.EXIT_USAGE
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_check_exit_1_on_errors():
     with tempfile.TemporaryDirectory() as tmpdir:
         # No .fusa.json → FUSA001 ERROR
         out = io.StringIO()
         err = io.StringIO()
-        code = run(["check", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err)
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err
+        )
         assert code == pyfusa.EXIT_GATE_FAIL
         doc = json.loads(out.getvalue())
         assert doc["schemaVersion"] == pyfusa.SPEC_VERSION
@@ -71,7 +73,7 @@ def test_check_exit_1_on_errors():
         assert any(f["ruleId"] == "FUSA001" for f in doc["findings"])
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_check_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -87,7 +89,7 @@ def test_check_json_schema():
         assert "summary" in doc
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_report_always_exits_0():
     with tempfile.TemporaryDirectory() as tmpdir:
         # Even with errors, report exits 0
@@ -96,7 +98,7 @@ def test_report_always_exits_0():
         assert code == pyfusa.EXIT_OK
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_report_strict_is_usage_error():
     with tempfile.TemporaryDirectory() as tmpdir:
         err = io.StringIO()
@@ -104,12 +106,15 @@ def test_report_strict_is_usage_error():
         assert code == pyfusa.EXIT_USAGE
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_check_output_to_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         out_file = os.path.join(tmpdir, "out.json")
         out = io.StringIO()
-        run(["check", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["check", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         # stdout should be empty when --output is set
         assert out.getvalue() == ""
         assert os.path.exists(out_file)
@@ -118,7 +123,7 @@ def test_check_output_to_file():
         assert "findings" in doc
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_init_creates_files():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -131,10 +136,22 @@ def test_init_creates_files():
         assert os.path.exists(os.path.join(tmpdir, ".fusa-reqs.json"))
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_init_fusa_json_content():
     with tempfile.TemporaryDirectory() as tmpdir:
-        run(["init", "--dir", tmpdir, "--name", "myproj", "--standard", "iec61508", "--sil", "SIL-2"])
+        run(
+            [
+                "init",
+                "--dir",
+                tmpdir,
+                "--name",
+                "myproj",
+                "--standard",
+                "iec61508",
+                "--sil",
+                "SIL-2",
+            ]
+        )
         with open(os.path.join(tmpdir, ".fusa.json")) as f:
             doc = json.load(f)
         assert doc["project"]["name"] == "myproj"
@@ -142,7 +159,7 @@ def test_init_fusa_json_content():
         assert doc["sil"] == "SIL-2"
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_init_no_name_in_ci_fails():
     with tempfile.TemporaryDirectory() as tmpdir:
         err = io.StringIO()
@@ -151,7 +168,7 @@ def test_init_no_name_in_ci_fails():
         assert code == pyfusa.EXIT_USAGE
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_qualify_exits_0_all_pass():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -159,7 +176,7 @@ def test_qualify_exits_0_all_pass():
         assert code == pyfusa.EXIT_OK
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_qualify_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -173,7 +190,7 @@ def test_qualify_json_schema():
         assert "hash" in doc
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_trace_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -186,7 +203,7 @@ def test_trace_json_schema():
         assert "coverage" in doc
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_release_json_files():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -197,7 +214,7 @@ def test_release_json_files():
         assert os.path.exists(os.path.join(tmpdir, "artifact-manifest.json"))
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_audit_pack_command():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -206,7 +223,7 @@ def test_audit_pack_command():
         assert os.path.exists(os.path.join(tmpdir, "audit-pack.zip"))
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_no_color_flag_strips_ansi():
     out = io.StringIO()
     err = io.StringIO()
@@ -215,7 +232,7 @@ def test_no_color_flag_strips_ansi():
     assert "\x1b[" not in out.getvalue()
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_check_sarif_output():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()

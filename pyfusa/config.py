@@ -18,9 +18,19 @@ EVIDENCE_FILE = ".fusa-evidence.json"
 CONFIG_VERSION = "1.0"
 
 _VALID_STANDARDS = {
-    "iso26262", "iec61508", "do178c", "iso21434", "iec62443-4-1",
-    "iec62443-4-2", "misra-c", "misra-cpp", "autosar-cpp14", "cert-c",
-    "cert-cpp", "unece-r155", "unece-r156",
+    "iso26262",
+    "iec61508",
+    "do178c",
+    "iso21434",
+    "iec62443-4-1",
+    "iec62443-4-2",
+    "misra-c",
+    "misra-cpp",
+    "autosar-cpp14",
+    "cert-c",
+    "cert-cpp",
+    "unece-r155",
+    "unece-r156",
 }
 
 
@@ -127,14 +137,16 @@ def load_requirements(path: str) -> tuple[list[dict], list[pyfusa.Finding]]:
     for req in reqs:
         rid = req.get("id", "")
         if rid in seen:
-            errors.append(pyfusa.Finding(
-                rule_id="REQ001",
-                severity=pyfusa.SEVERITY_ERROR,
-                message=f"duplicate requirement id '{rid}' in {REQS_FILE}",
-                location=pyfusa.Location(file=REQS_FILE),
-                category=pyfusa.CATEGORY_REQUIREMENT,
-                remediation=f"remove or rename the duplicate requirement '{rid}'",
-            ))
+            errors.append(
+                pyfusa.Finding(
+                    rule_id="REQ001",
+                    severity=pyfusa.SEVERITY_ERROR,
+                    message=f"duplicate requirement id '{rid}' in {REQS_FILE}",
+                    location=pyfusa.Location(file=REQS_FILE),
+                    category=pyfusa.CATEGORY_REQUIREMENT,
+                    remediation=f"remove or rename the duplicate requirement '{rid}'",
+                )
+            )
         seen.add(rid)
 
     return reqs, errors

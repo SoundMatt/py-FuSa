@@ -10,8 +10,8 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-VERSION = "0.2.1"
-SPEC_VERSION = "1.10.4"
+VERSION = "0.2.2"
+SPEC_VERSION = "1.10.12"
 LANGUAGE = "python"
 TOOL = "py-FuSa"
 BINARY = "pyfusa"
@@ -153,9 +153,9 @@ def ast_loc(file: str, node: object) -> Location:
     """Create a Location from a file path and an ast.AST node (§4 endLine/endColumn MAY)."""
     return Location(
         file=file,
-        line=getattr(node, 'lineno', 0),
-        end_line=getattr(node, 'end_lineno', 0),
-        end_column=getattr(node, 'end_col_offset', -1) + 1,
+        line=getattr(node, "lineno", 0),
+        end_line=getattr(node, "end_lineno", 0),
+        end_column=getattr(node, "end_col_offset", -1) + 1,
     )
 
 

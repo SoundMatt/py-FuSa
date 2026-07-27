@@ -10,12 +10,20 @@ import tempfile
 import pytest
 import pyfusa
 from pyfusa.cli.main import run
-from pyfusa.config import Config, ProjectConfig, default, load, load_dispositions, load_requirements
+from pyfusa.config import (
+    Config,
+    ProjectConfig,
+    default,
+    load,
+    load_dispositions,
+    load_requirements,
+)
 
 
 # ---------------------------------------------------------------------------
 # verify.py
 # ---------------------------------------------------------------------------
+
 
 def _make_verify_doc():
     return {
@@ -33,6 +41,7 @@ def _make_verify_doc():
 
 def test_verify_render_text():
     import pyfusa.verify as verify
+
     doc = _make_verify_doc()
     text = verify.render_text(doc)
     assert "testmod" in text
@@ -43,6 +52,7 @@ def test_verify_render_text():
 
 def test_verify_save_and_load():
     import pyfusa.verify as verify
+
     with tempfile.TemporaryDirectory() as tmpdir:
         doc = _make_verify_doc()
         path = verify.save(doc, tmpdir)
@@ -54,6 +64,7 @@ def test_verify_save_and_load():
 
 def test_verify_load_missing_returns_none():
     import pyfusa.verify as verify
+
     with tempfile.TemporaryDirectory() as tmpdir:
         result = verify.load(tmpdir)
         assert result is None
@@ -61,6 +72,7 @@ def test_verify_load_missing_returns_none():
 
 def test_verify_parse_pytest_output_passed():
     from pyfusa.verify import _parse_pytest_output
+
     output = "PASSED tests/test_foo.py::test_bar\n1 passed in 0.1s"
     result = _parse_pytest_output(output, 0)
     assert result["summary"]["passed"] >= 1
@@ -68,6 +80,7 @@ def test_verify_parse_pytest_output_passed():
 
 def test_verify_parse_pytest_output_failed():
     from pyfusa.verify import _parse_pytest_output
+
     output = "FAILED tests/test_foo.py::test_bad\n1 failed in 0.1s"
     result = _parse_pytest_output(output, 1)
     assert result["summary"]["failed"] >= 1
@@ -75,6 +88,7 @@ def test_verify_parse_pytest_output_failed():
 
 def test_verify_parse_pytest_output_summary_only():
     from pyfusa.verify import _parse_pytest_output
+
     output = "3 passed, 2 failed in 0.5s"
     result = _parse_pytest_output(output, 1)
     assert result["summary"]["passed"] == 3
@@ -83,6 +97,7 @@ def test_verify_parse_pytest_output_summary_only():
 
 def test_verify_parse_pytest_output_errors():
     from pyfusa.verify import _parse_pytest_output
+
     output = "ERROR tests/test_foo.py::test_bad\n"
     result = _parse_pytest_output(output, 2)
     assert result["summary"]["errored"] >= 1
@@ -90,6 +105,7 @@ def test_verify_parse_pytest_output_errors():
 
 def test_verify_run_no_tests():
     import pyfusa.verify as verify
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="testproj")
         doc = verify.run(tmpdir, cfg, timeout=10)
@@ -109,8 +125,20 @@ def test_verify_cli_text():
 def test_verify_cli_json():
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "verify.json")
-        run(["verify", "--dir", tmpdir, "--format", "json", "--output", out_path, "--timeout", "5"],
-            stdout=io.StringIO())
+        run(
+            [
+                "verify",
+                "--dir",
+                tmpdir,
+                "--format",
+                "json",
+                "--output",
+                out_path,
+                "--timeout",
+                "5",
+            ],
+            stdout=io.StringIO(),
+        )
         with open(out_path) as f:
             doc = json.load(f)
         assert doc["kind"] == "verify"
@@ -118,8 +146,10 @@ def test_verify_cli_json():
 
 def test_verify_render_text_many_results():
     import pyfusa.verify as verify
+
     doc = {
-        "module": "big", "pythonVersion": "3.12",
+        "module": "big",
+        "pythonVersion": "3.12",
         "summary": {"total": 25, "passed": 25, "failed": 0, "errored": 0, "skipped": 0},
         "results": [{"name": f"test_{i}", "status": "pass"} for i in range(25)],
     }
@@ -131,8 +161,10 @@ def test_verify_render_text_many_results():
 # impact.py
 # ---------------------------------------------------------------------------
 
+
 def test_impact_run_no_git():
     import pyfusa.impact as impact
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default()
         doc = impact.run(tmpdir, cfg)
@@ -142,12 +174,14 @@ def test_impact_run_no_git():
 
 def test_impact_load_reqs_missing():
     from pyfusa.impact import _load_reqs
+
     with tempfile.TemporaryDirectory() as tmpdir:
         assert _load_reqs(tmpdir) == []
 
 
 def test_impact_load_reqs_present():
     from pyfusa.impact import _load_reqs
+
     with tempfile.TemporaryDirectory() as tmpdir:
         data = {"requirements": [{"id": "REQ-001", "title": "test"}]}
         with open(os.path.join(tmpdir, ".fusa-reqs.json"), "w") as f:
@@ -158,12 +192,14 @@ def test_impact_load_reqs_present():
 
 def test_impact_load_trace_matrix_missing():
     from pyfusa.impact import _load_trace_matrix
+
     with tempfile.TemporaryDirectory() as tmpdir:
         assert _load_trace_matrix(tmpdir) == {}
 
 
 def test_impact_load_trace_matrix_present():
     from pyfusa.impact import _load_trace_matrix
+
     with tempfile.TemporaryDirectory() as tmpdir:
         data = {"requirements": [{"id": "REQ-001", "tags": [{"file": "src/a.py"}]}]}
         with open(os.path.join(tmpdir, "trace-matrix.json"), "w") as f:
@@ -174,6 +210,7 @@ def test_impact_load_trace_matrix_present():
 
 def test_impact_check_stale_no_artifacts():
     from pyfusa.impact import _check_stale
+
     with tempfile.TemporaryDirectory() as tmpdir:
         stale = _check_stale(tmpdir, [{"path": "src/x.py"}])
         assert stale == []
@@ -190,8 +227,10 @@ def test_impact_cli():
 # vuln.py
 # ---------------------------------------------------------------------------
 
+
 def test_vuln_installed_packages():
     from pyfusa.vuln import _installed_packages
+
     pkgs = _installed_packages()
     assert isinstance(pkgs, list)
     # pytest must be installed
@@ -201,12 +240,14 @@ def test_vuln_installed_packages():
 
 def test_vuln_query_osv_empty():
     from pyfusa.vuln import _query_osv
+
     result = _query_osv([], timeout=5)
     assert result == []
 
 
 def test_vuln_scan_returns_report():
     import pyfusa.vuln as vuln
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj")
         doc = vuln.scan(tmpdir, cfg, timeout=1)
@@ -226,8 +267,10 @@ def test_vuln_cli():
 # safetycase.py
 # ---------------------------------------------------------------------------
 
+
 def test_safetycase_assemble_empty():
     import pyfusa.safetycase as sc
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = sc.assemble(tmpdir, cfg)
@@ -238,11 +281,18 @@ def test_safetycase_assemble_empty():
 
 def test_safetycase_assemble_with_files():
     import pyfusa.safetycase as sc
+
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create some evidence files
         with open(os.path.join(tmpdir, "check-report.json"), "w") as f:
-            json.dump({"kind": "check-report", "summary": {"errors": 0, "warnings": 2},
-                       "findings": []}, f)
+            json.dump(
+                {
+                    "kind": "check-report",
+                    "summary": {"errors": 0, "warnings": 2},
+                    "findings": [],
+                },
+                f,
+            )
         with open(os.path.join(tmpdir, "qualify-report.json"), "w") as f:
             json.dump({"kind": "qualify", "total": 5, "passed": 5, "failed": 0}, f)
         with open(os.path.join(tmpdir, "sbom.json"), "w") as f:
@@ -255,6 +305,7 @@ def test_safetycase_assemble_with_files():
 
 def test_safetycase_to_markdown():
     import pyfusa.safetycase as sc
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = sc.assemble(tmpdir, cfg)
@@ -266,6 +317,7 @@ def test_safetycase_to_markdown():
 
 def test_safetycase_to_mermaid():
     import pyfusa.safetycase as sc
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = sc.assemble(tmpdir, cfg)
@@ -277,7 +329,10 @@ def test_safetycase_to_mermaid():
 def test_safetycase_cli_md():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["safety-case", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out)
+        code = run(
+            ["safety-case", "--dir", tmpdir, "--format", "md", "--output", ""],
+            stdout=out,
+        )
         assert code in (pyfusa.EXIT_OK, pyfusa.EXIT_GATE_FAIL)
         assert "Safety Case" in out.getvalue()
 
@@ -286,8 +341,10 @@ def test_safetycase_cli_md():
 # badge.py
 # ---------------------------------------------------------------------------
 
+
 def test_badge_status_errors():
     from pyfusa.badge import _status
+
     label, msg, color = _status(3, 0)
     assert label == "fail"
     assert "error" in msg
@@ -296,6 +353,7 @@ def test_badge_status_errors():
 
 def test_badge_status_warnings():
     from pyfusa.badge import _status
+
     label, msg, color = _status(0, 5)
     assert label == "warn"
     assert color == "#dfb317"
@@ -303,6 +361,7 @@ def test_badge_status_warnings():
 
 def test_badge_generate_with_errors():
     from pyfusa.badge import generate
+
     svg = generate(errors=2, warnings=0)
     assert "<svg" in svg
     assert "#e05d44" in svg
@@ -310,6 +369,7 @@ def test_badge_generate_with_errors():
 
 def test_badge_generate_custom_label():
     from pyfusa.badge import generate
+
     svg = generate(errors=0, warnings=1, label="myproject")
     assert "myproject" in svg
     assert "#dfb317" in svg
@@ -317,6 +377,7 @@ def test_badge_generate_custom_label():
 
 def test_badge_from_report():
     from pyfusa.badge import from_report
+
     with tempfile.TemporaryDirectory() as tmpdir:
         rpt = os.path.join(tmpdir, "check-report.json")
         with open(rpt, "w") as f:
@@ -329,6 +390,7 @@ def test_badge_from_report():
 # ---------------------------------------------------------------------------
 # config.py
 # ---------------------------------------------------------------------------
+
 
 def test_config_load_full():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -442,10 +504,12 @@ def test_load_requirements_missing():
 
 def test_load_requirements_present():
     with tempfile.TemporaryDirectory() as tmpdir:
-        data = {"requirements": [
-            {"id": "REQ-001", "title": "first"},
-            {"id": "REQ-002", "title": "second"},
-        ]}
+        data = {
+            "requirements": [
+                {"id": "REQ-001", "title": "first"},
+                {"id": "REQ-002", "title": "second"},
+            ]
+        }
         path = os.path.join(tmpdir, ".fusa-reqs.json")
         with open(path, "w") as f:
             json.dump(data, f)
@@ -456,10 +520,12 @@ def test_load_requirements_present():
 
 def test_load_requirements_duplicate_id():
     with tempfile.TemporaryDirectory() as tmpdir:
-        data = {"requirements": [
-            {"id": "REQ-001", "title": "first"},
-            {"id": "REQ-001", "title": "duplicate"},
-        ]}
+        data = {
+            "requirements": [
+                {"id": "REQ-001", "title": "first"},
+                {"id": "REQ-001", "title": "duplicate"},
+            ]
+        }
         path = os.path.join(tmpdir, ".fusa-reqs.json")
         with open(path, "w") as f:
             json.dump(data, f)
@@ -482,8 +548,10 @@ def test_load_requirements_invalid_json():
 # rules/comp.py
 # ---------------------------------------------------------------------------
 
+
 def test_comp001_high_complexity():
     from pyfusa.rules.comp import COMP001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         # Write a function with many decision points (complexity > 10)
         code = (
@@ -516,6 +584,7 @@ def test_comp001_high_complexity():
 
 def test_comp001_low_complexity_no_findings():
     from pyfusa.rules.comp import COMP001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         code = "def simple(x):\n    return x + 1\n"
         with open(os.path.join(tmpdir, "simple.py"), "w") as f:
@@ -529,6 +598,7 @@ def test_comp001_low_complexity_no_findings():
 
 def test_comp001_skips_private():
     from pyfusa.rules.comp import COMP001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         code = (
             "def _private_complex(a, b, c, d, e, f, g, h, i, j):\n"
@@ -554,6 +624,7 @@ def test_comp001_skips_private():
 
 def test_comp001_dal_threshold():
     from pyfusa.rules.comp import COMP001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         # complexity=5, DAL-A threshold=4 → should flag
         code = (
@@ -578,8 +649,10 @@ def test_comp001_dal_threshold():
 # rules/evidence.py
 # ---------------------------------------------------------------------------
 
+
 def test_verify001_missing_bundle():
     from pyfusa.rules.evidence import VERIFY001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default()
         findings = VERIFY001().run(tmpdir, cfg)
@@ -588,6 +661,7 @@ def test_verify001_missing_bundle():
 
 def test_verify001_bundle_present():
     from pyfusa.rules.evidence import VERIFY001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa-evidence.json"), "w") as f:
             json.dump({"kind": "verify"}, f)
@@ -597,9 +671,12 @@ def test_verify001_bundle_present():
 
 def test_verify002_failed_tests():
     from pyfusa.rules.evidence import VERIFY002
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa-evidence.json"), "w") as f:
-            json.dump({"summary": {"total": 5, "passed": 3, "failed": 2, "errored": 0}}, f)
+            json.dump(
+                {"summary": {"total": 5, "passed": 3, "failed": 2, "errored": 0}}, f
+            )
         cfg = default()
         findings = VERIFY002().run(tmpdir, cfg)
         assert any(f.rule_id == "VERIFY002" for f in findings)
@@ -607,15 +684,19 @@ def test_verify002_failed_tests():
 
 def test_verify002_all_pass():
     from pyfusa.rules.evidence import VERIFY002
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa-evidence.json"), "w") as f:
-            json.dump({"summary": {"total": 5, "passed": 5, "failed": 0, "errored": 0}}, f)
+            json.dump(
+                {"summary": {"total": 5, "passed": 5, "failed": 0, "errored": 0}}, f
+            )
         cfg = default()
         assert VERIFY002().run(tmpdir, cfg) == []
 
 
 def test_hara001_missing():
     from pyfusa.rules.evidence import HARA001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default()
         cfg.standard = "iso26262"
@@ -626,6 +707,7 @@ def test_hara001_missing():
 
 def test_hara001_present():
     from pyfusa.rules.evidence import HARA001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa-hara.json"), "w") as f:
             json.dump({}, f)
@@ -635,6 +717,7 @@ def test_hara001_present():
 
 def test_hara002_incomplete_risk():
     from pyfusa.rules.evidence import HARA002
+
     with tempfile.TemporaryDirectory() as tmpdir:
         hara = {"hazards": [{"id": "HZ-001", "risk": {"severity": "S2"}}]}
         with open(os.path.join(tmpdir, ".fusa-hara.json"), "w") as f:
@@ -646,8 +729,20 @@ def test_hara002_incomplete_risk():
 
 def test_hara002_complete_risk():
     from pyfusa.rules.evidence import HARA002
+
     with tempfile.TemporaryDirectory() as tmpdir:
-        hara = {"hazards": [{"id": "HZ-001", "risk": {"severity": "S2", "exposure": "E3", "controllability": "C2"}}]}
+        hara = {
+            "hazards": [
+                {
+                    "id": "HZ-001",
+                    "risk": {
+                        "severity": "S2",
+                        "exposure": "E3",
+                        "controllability": "C2",
+                    },
+                }
+            ]
+        }
         with open(os.path.join(tmpdir, ".fusa-hara.json"), "w") as f:
             json.dump(hara, f)
         cfg = default()
@@ -656,6 +751,7 @@ def test_hara002_complete_risk():
 
 def test_hara003_no_safety_goal():
     from pyfusa.rules.evidence import HARA003
+
     with tempfile.TemporaryDirectory() as tmpdir:
         hara = {"hazards": [{"id": "HZ-001", "safetyGoals": []}], "safetyGoals": []}
         with open(os.path.join(tmpdir, ".fusa-hara.json"), "w") as f:
@@ -667,6 +763,7 @@ def test_hara003_no_safety_goal():
 
 def test_hara004_no_asil():
     from pyfusa.rules.evidence import HARA004
+
     with tempfile.TemporaryDirectory() as tmpdir:
         hara = {"safetyGoals": [{"id": "SG-001"}]}
         with open(os.path.join(tmpdir, ".fusa-hara.json"), "w") as f:
@@ -678,6 +775,7 @@ def test_hara004_no_asil():
 
 def test_hara005_asil_exceeds_project():
     from pyfusa.rules.evidence import HARA005
+
     with tempfile.TemporaryDirectory() as tmpdir:
         hara = {"safetyGoals": [{"id": "SG-001", "asil": "ASIL-D"}]}
         with open(os.path.join(tmpdir, ".fusa-hara.json"), "w") as f:
@@ -690,6 +788,7 @@ def test_hara005_asil_exceeds_project():
 
 def test_release001_missing():
     from pyfusa.rules.evidence import RELEASE001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         findings = RELEASE001().run(tmpdir, default())
         assert any(f.rule_id == "RELEASE001" for f in findings)
@@ -697,6 +796,7 @@ def test_release001_missing():
 
 def test_release001_present():
     from pyfusa.rules.evidence import RELEASE001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "sbom.json"), "w") as f:
             json.dump({}, f)
@@ -705,6 +805,7 @@ def test_release001_present():
 
 def test_disp001_no_check_report():
     from pyfusa.rules.evidence import DISP001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         findings = DISP001().run(tmpdir, default())
         assert any(f.rule_id == "DISP001" for f in findings)
@@ -712,6 +813,7 @@ def test_disp001_no_check_report():
 
 def test_disp001_no_unresolved():
     from pyfusa.rules.evidence import DISP001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "check-report.json"), "w") as f:
             json.dump({"findings": [{"severity": "WARNING", "ruleId": "LINT001"}]}, f)
@@ -722,14 +824,17 @@ def test_disp001_no_unresolved():
 # rules/slsa.py  and  rules/iec62443.py
 # ---------------------------------------------------------------------------
 
+
 def test_slsa001_no_provenance():
     from pyfusa.rules.slsa import SLSA001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         assert SLSA001().run(tmpdir, default()) == []  # no file → no finding
 
 
 def test_slsa001_missing_vcs_revision():
     from pyfusa.rules.slsa import SLSA001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "provenance.json"), "w") as f:
             json.dump({"builder": "github-actions"}, f)
@@ -739,6 +844,7 @@ def test_slsa001_missing_vcs_revision():
 
 def test_slsa002_missing_builder():
     from pyfusa.rules.slsa import SLSA002
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "provenance.json"), "w") as f:
             json.dump({"vcsRevision": "abc123"}, f)
@@ -748,6 +854,7 @@ def test_slsa002_missing_builder():
 
 def test_slsa003_no_codeowners():
     from pyfusa.rules.slsa import SLSA003
+
     with tempfile.TemporaryDirectory() as tmpdir:
         findings = SLSA003().run(tmpdir, default())
         assert any(f.rule_id == "SLSA003" for f in findings)
@@ -755,6 +862,7 @@ def test_slsa003_no_codeowners():
 
 def test_iec62443_001_no_config():
     from pyfusa.rules.iec62443 import IEC62443_001
+
     with tempfile.TemporaryDirectory() as tmpdir:
         findings = IEC62443_001().run(tmpdir, default())
         assert any(f.rule_id == "IEC62443-001" for f in findings)
@@ -762,6 +870,7 @@ def test_iec62443_001_no_config():
 
 def test_iec62443_002_invalid_sl():
     from pyfusa.rules.iec62443 import IEC62443_002
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa-iec62443.json"), "w") as f:
             json.dump({"target_sl": 5}, f)
@@ -771,6 +880,7 @@ def test_iec62443_002_invalid_sl():
 
 def test_iec62443_002_valid_sl():
     from pyfusa.rules.iec62443 import IEC62443_002
+
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa-iec62443.json"), "w") as f:
             json.dump({"target_sl": 2}, f)
@@ -779,6 +889,7 @@ def test_iec62443_002_valid_sl():
 
 def test_iec62443_003_no_security_md():
     from pyfusa.rules.iec62443 import IEC62443_003
+
     with tempfile.TemporaryDirectory() as tmpdir:
         findings = IEC62443_003().run(tmpdir, default())
         assert any(f.rule_id == "IEC62443-003" for f in findings)
@@ -786,6 +897,7 @@ def test_iec62443_003_no_security_md():
 
 def test_iec62443_004_no_incident_response():
     from pyfusa.rules.iec62443 import IEC62443_004
+
     with tempfile.TemporaryDirectory() as tmpdir:
         findings = IEC62443_004().run(tmpdir, default())
         assert any(f.rule_id == "IEC62443-004" for f in findings)
@@ -795,8 +907,10 @@ def test_iec62443_004_no_incident_response():
 # gap report render_text functions
 # ---------------------------------------------------------------------------
 
+
 def test_iso26262_render_text():
     from pyfusa.compliance.iso26262 import run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         doc = run(tmpdir, cfg)
@@ -806,6 +920,7 @@ def test_iso26262_render_text():
 
 def test_iec61508_render_text():
     from pyfusa.compliance.iec61508 import run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         doc = run(tmpdir, cfg)
@@ -815,6 +930,7 @@ def test_iec61508_render_text():
 
 def test_do178_render_text():
     from pyfusa.compliance.do178 import run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         doc = run(tmpdir, cfg)
@@ -824,6 +940,7 @@ def test_do178_render_text():
 
 def test_iso21434_render_text():
     from pyfusa.compliance.iso21434 import run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         doc = run(tmpdir, cfg)
@@ -833,6 +950,7 @@ def test_iso21434_render_text():
 
 def test_unece_render_text():
     from pyfusa.compliance.unece import run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         doc = run(tmpdir, cfg)
@@ -844,8 +962,10 @@ def test_unece_render_text():
 # boundary render_text
 # ---------------------------------------------------------------------------
 
+
 def test_boundary_render_mermaid():
     import pyfusa.boundary as boundary
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         graph = boundary.scan(tmpdir, cfg)
@@ -856,6 +976,7 @@ def test_boundary_render_mermaid():
 
 def test_boundary_render_dot():
     import pyfusa.boundary as boundary
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         graph = boundary.scan(tmpdir, cfg)
@@ -866,12 +987,17 @@ def test_boundary_render_dot():
 def test_boundary_cli_mermaid():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["boundary", "--dir", tmpdir, "--format", "mermaid", "--output", ""], stdout=out)
+        code = run(
+            ["boundary", "--dir", tmpdir, "--format", "mermaid", "--output", ""],
+            stdout=out,
+        )
         assert code == pyfusa.EXIT_OK
 
 
 def test_boundary_cli_dot():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["boundary", "--dir", tmpdir, "--format", "dot", "--output", ""], stdout=out)
+        code = run(
+            ["boundary", "--dir", tmpdir, "--format", "dot", "--output", ""], stdout=out
+        )
         assert code == pyfusa.EXIT_OK

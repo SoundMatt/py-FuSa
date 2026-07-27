@@ -68,14 +68,16 @@ def scan(project_root: str, cfg: Config, timeout: int = 30) -> dict:
         pkg = packages[i]
         vulns = result.get("vulns", [])
         for v in vulns:
-            findings.append({
-                "module": pkg["name"],
-                "version": pkg["version"],
-                "id": v.get("id", ""),
-                "aliases": v.get("aliases", []),
-                "summary": v.get("summary", ""),
-                "call_graph": [],
-            })
+            findings.append(
+                {
+                    "module": pkg["name"],
+                    "version": pkg["version"],
+                    "id": v.get("id", ""),
+                    "aliases": v.get("aliases", []),
+                    "summary": v.get("summary", ""),
+                    "call_graph": [],
+                }
+            )
 
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))

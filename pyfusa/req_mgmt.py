@@ -26,8 +26,15 @@ def save(project_root: str, data: dict) -> None:
         f.write("\n")
 
 
-def add(project_root: str, req_id: str, title: str, text: str = "",
-        standard: str = "", level: str = "HLR", asil: str = "") -> dict:
+def add(
+    project_root: str,
+    req_id: str,
+    title: str,
+    text: str = "",
+    standard: str = "",
+    level: str = "HLR",
+    asil: str = "",
+) -> dict:
     data = load(project_root)
     # Check for duplicate
     existing_ids = {r["id"] for r in data.get("requirements", [])}
@@ -52,10 +59,16 @@ def to_csv(requirements: List[dict]) -> str:
     w = csv.writer(buf)
     w.writerow(["id", "title", "text", "standard", "level", "asil"])
     for r in requirements:
-        w.writerow([
-            r.get("id", ""), r.get("title", ""), r.get("text", ""),
-            r.get("standard", ""), r.get("level", ""), r.get("asil", ""),
-        ])
+        w.writerow(
+            [
+                r.get("id", ""),
+                r.get("title", ""),
+                r.get("text", ""),
+                r.get("standard", ""),
+                r.get("level", ""),
+                r.get("asil", ""),
+            ]
+        )
     return buf.getvalue()
 
 
@@ -63,7 +76,10 @@ def from_csv(csv_text: str) -> List[dict]:
     reader = csv.DictReader(io.StringIO(csv_text))
     reqs = []
     for row in reader:
-        r: dict = {"id": row.get("id", "").strip(), "title": row.get("title", "").strip()}
+        r: dict = {
+            "id": row.get("id", "").strip(),
+            "title": row.get("title", "").strip(),
+        }
         for field in ("text", "standard", "level", "asil"):
             val = row.get(field, "").strip()
             if val:
@@ -78,7 +94,7 @@ def render_text(requirements: List[dict], verbose: bool = False) -> str:
         return "no requirements"
     lines = []
     for r in requirements:
-        lines.append(f"{r.get('id',''):20s} {r.get('title','')}")
+        lines.append(f"{r.get('id', ''):20s} {r.get('title', '')}")
         if verbose and r.get("text"):
             lines.append(f"    {r['text'][:120]}")
     return "\n".join(lines)

@@ -18,8 +18,10 @@ import pyfusa.tara as tara
 # report.py — all render formats
 # ---------------------------------------------------------------------------
 
+
 def _make_run_result():
     from pyfusa.report import RunResult
+
     findings = [
         pyfusa.Finding(
             rule_id="LINT001",
@@ -88,21 +90,27 @@ def test_report_render_dispatch():
 def test_check_cli_html_format():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["check", "--dir", tmpdir, "--format", "html", "--output", ""], stdout=out)
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "html", "--output", ""], stdout=out
+        )
         assert "<!DOCTYPE html>" in out.getvalue()
 
 
 def test_check_cli_md_format():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["check", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out)
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out
+        )
         assert "# py-FuSa Check Report" in out.getvalue()
 
 
 def test_check_cli_sarif_format():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["check", "--dir", tmpdir, "--format", "sarif", "--output", ""], stdout=out)
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "sarif", "--output", ""], stdout=out
+        )
         sarif = json.loads(out.getvalue())
         assert sarif["version"] == "2.1.0"
 
@@ -111,6 +119,7 @@ def test_check_cli_sarif_format():
 # tara.py — to_markdown
 # ---------------------------------------------------------------------------
 
+
 def test_tara_to_markdown():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
@@ -118,10 +127,19 @@ def test_tara_to_markdown():
             f.write("import hashlib\nh = hashlib.md5(b'test')\n")
         doc_check = json.loads(
             io.StringIO(
-                json.dumps({"kind": "check-report", "findings": [
-                    {"ruleId": "CYBER001", "severity": "WARNING",
-                     "message": "md5 weak hash", "location": {"file": "bad.py", "line": 2}}
-                ]})
+                json.dumps(
+                    {
+                        "kind": "check-report",
+                        "findings": [
+                            {
+                                "ruleId": "CYBER001",
+                                "severity": "WARNING",
+                                "message": "md5 weak hash",
+                                "location": {"file": "bad.py", "line": 2},
+                            }
+                        ],
+                    }
+                )
             ).getvalue()
         )
         entries = tara.build(doc_check["findings"], tmpdir, cfg)
@@ -140,7 +158,9 @@ def test_tara_to_dict_empty():
 def test_tara_cli_json():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["tara", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["tara", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "tara"
 
@@ -148,13 +168,16 @@ def test_tara_cli_json():
 def test_tara_cli_md():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["tara", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out)
+        code = run(
+            ["tara", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out
+        )
         assert "TARA" in out.getvalue()
 
 
 # ---------------------------------------------------------------------------
 # rules/lint.py — trigger individual rules
 # ---------------------------------------------------------------------------
+
 
 def _rule_by_id(rule_id: str, code: str):
     """Run a specific rule by ID via the engine and return its findings."""
@@ -222,6 +245,7 @@ def test_lint007_assert_used():
 # rules/security.py — trigger via CLI
 # ---------------------------------------------------------------------------
 
+
 def test_sec001_bare_except():
     code = "try:\n    pass\nexcept:\n    pass\n"
     findings = _rule_by_id("SEC001", code)
@@ -262,6 +286,7 @@ def test_sec006_shell_true():
 # rules/concurrency.py — trigger via direct instantiation (correct class names)
 # ---------------------------------------------------------------------------
 
+
 def _run_rule_direct(cls, code: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "m.py"), "w") as f:
@@ -273,6 +298,7 @@ def _run_rule_direct(cls, code: str):
 
 def test_conc001_thread_no_sync():
     from pyfusa.rules.concurrency import RuleThreadWithoutLock
+
     code = "import threading\nt = threading.Thread(target=lambda: None)\n"
     findings = _run_rule_direct(RuleThreadWithoutLock, code)
     assert any(f.rule_id == "CONC001" for f in findings)
@@ -280,6 +306,7 @@ def test_conc001_thread_no_sync():
 
 def test_conc002_global_mutation():
     from pyfusa.rules.concurrency import RuleGlobalMutation
+
     code = "x = 0\ndef inc():\n    global x\n    x += 1\n"
     findings = _run_rule_direct(RuleGlobalMutation, code)
     assert any(f.rule_id == "CONC002" for f in findings)
@@ -287,6 +314,7 @@ def test_conc002_global_mutation():
 
 def test_conc003_async_no_await():
     from pyfusa.rules.concurrency import RuleAsyncWithoutAwait
+
     code = "async def noop():\n    pass\n"
     findings = _run_rule_direct(RuleAsyncWithoutAwait, code)
     assert any(f.rule_id == "CONC003" for f in findings)
@@ -296,8 +324,10 @@ def test_conc003_async_no_await():
 # rules/analyze.py — trigger ANA001, ANA002, ANA003
 # ---------------------------------------------------------------------------
 
+
 def test_ana001_thread_no_stop_event():
     from pyfusa.rules.analyze import ANA001
+
     code = "import threading\nt = threading.Thread(target=lambda: None)\nt.start()\n"
     findings = _run_rule_direct(ANA001, code)
     assert any(f.rule_id == "ANA001" for f in findings)
@@ -305,6 +335,7 @@ def test_ana001_thread_no_stop_event():
 
 def test_ana001_thread_with_event_no_finding():
     from pyfusa.rules.analyze import ANA001
+
     code = (
         "import threading\n"
         "stop = threading.Event()\n"
@@ -316,6 +347,7 @@ def test_ana001_thread_with_event_no_finding():
 
 def test_ana002_thread_in_loop():
     from pyfusa.rules.analyze import ANA002
+
     code = (
         "import threading\n"
         "for i in range(10):\n"
@@ -328,6 +360,7 @@ def test_ana002_thread_in_loop():
 
 def test_ana003_runs_without_crash():
     from pyfusa.rules.analyze import ANA003
+
     code = (
         "import threading, time\n"
         "def worker():\n"
@@ -344,24 +377,31 @@ def test_ana003_runs_without_crash():
 # cli/main.py — test report command and more formats
 # ---------------------------------------------------------------------------
 
+
 def test_report_cli_html():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["report", "--dir", tmpdir, "--format", "html", "--output", ""], stdout=out)
+        code = run(
+            ["report", "--dir", tmpdir, "--format", "html", "--output", ""], stdout=out
+        )
         assert "<!DOCTYPE html>" in out.getvalue() or "<html" in out.getvalue()
 
 
 def test_report_cli_md():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["report", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out)
+        code = run(
+            ["report", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out
+        )
         assert "py-FuSa" in out.getvalue() or "#" in out.getvalue()
 
 
 def test_lint_cli_json():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["lint", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["lint", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert "findings" in doc
 
@@ -369,7 +409,9 @@ def test_lint_cli_json():
 def test_analyze_cli_json():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["analyze", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out)
+        code = run(
+            ["analyze", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
+        )
         doc = json.loads(out.getvalue())
         assert "findings" in doc
 
@@ -378,8 +420,10 @@ def test_check_cli_json_with_output():
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "report.json")
         out = io.StringIO()
-        code = run(["check", "--dir", tmpdir, "--format", "json", "--output", out_path],
-                   stdout=out)
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "json", "--output", out_path],
+            stdout=out,
+        )
         assert os.path.exists(out_path)
         with open(out_path) as f:
             doc = json.load(f)
@@ -397,8 +441,10 @@ def test_check_cli_strict_mode():
 def test_qualify_cli_json_output():
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "qual.json")
-        run(["qualify", "--dir", tmpdir, "--format", "json", "--output", out_path],
-            stdout=io.StringIO())
+        run(
+            ["qualify", "--dir", tmpdir, "--format", "json", "--output", out_path],
+            stdout=io.StringIO(),
+        )
         with open(out_path) as f:
             doc = json.load(f)
         assert doc["kind"] == "qualification"
@@ -431,23 +477,34 @@ def test_capabilities_json():
 def test_init_creates_config():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
-        code = run(["init", "--dir", tmpdir, "--name", "testproj", "--standard", "iso26262"],
-                   stdout=out)
+        code = run(
+            ["init", "--dir", tmpdir, "--name", "testproj", "--standard", "iso26262"],
+            stdout=out,
+        )
         assert code == pyfusa.EXIT_OK
         assert os.path.exists(os.path.join(tmpdir, ".fusa.json"))
 
 
 def test_init_already_exists():
     with tempfile.TemporaryDirectory() as tmpdir:
-        run(["init", "--dir", tmpdir, "--name", "p", "--standard", "iso26262"],
-            stdout=io.StringIO())
+        run(
+            ["init", "--dir", tmpdir, "--name", "p", "--standard", "iso26262"],
+            stdout=io.StringIO(),
+        )
         out = io.StringIO()
         err = io.StringIO()
-        code = run(["init", "--dir", tmpdir, "--name", "p", "--standard", "iso26262"],
-                   stdout=out, stderr=err)
+        code = run(
+            ["init", "--dir", tmpdir, "--name", "p", "--standard", "iso26262"],
+            stdout=out,
+            stderr=err,
+        )
         # Should fail or print warning when already exists
-        assert code in (pyfusa.EXIT_OK, pyfusa.EXIT_GATE_FAIL, pyfusa.EXIT_RUNTIME,
-                        pyfusa.EXIT_USAGE)
+        assert code in (
+            pyfusa.EXIT_OK,
+            pyfusa.EXIT_GATE_FAIL,
+            pyfusa.EXIT_RUNTIME,
+            pyfusa.EXIT_USAGE,
+        )
 
 
 def test_check_no_config_fallback():

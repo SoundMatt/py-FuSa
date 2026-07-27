@@ -15,7 +15,7 @@ def _write_file(path: str, content: str) -> None:
         f.write(content)
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_trace_empty_project():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default()
@@ -23,7 +23,7 @@ def test_trace_empty_project():
         assert matrix.coverage.total_requirements == 0
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_trace_scans_req_annotations():
     with tempfile.TemporaryDirectory() as tmpdir:
         reqs = {"requirements": [{"id": "REQ-001", "title": "Test req"}]}
@@ -38,7 +38,7 @@ def test_trace_scans_req_annotations():
         assert matrix.coverage.traced_requirements == 1
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_trace_scans_test_annotations():
     with tempfile.TemporaryDirectory() as tmpdir:
         reqs = {"requirements": [{"id": "REQ-001", "title": "Test req"}]}
@@ -52,7 +52,7 @@ def test_trace_scans_test_annotations():
         assert matrix.coverage.tested_requirements == 1
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_trace_sec_test_counts_toward_tested():
     with tempfile.TemporaryDirectory() as tmpdir:
         reqs = {"requirements": [{"id": "REQ-SEC001", "title": "Security req"}]}
@@ -67,7 +67,7 @@ def test_trace_sec_test_counts_toward_tested():
         assert matrix.coverage.tested_requirements == 1
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_trace_json_output_has_envelope():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="myproj", standard="iso26262")
@@ -79,13 +79,15 @@ def test_trace_json_output_has_envelope():
         assert "coverage" in doc
 
 
-#fusa:test REQ-FUSA001
+# fusa:test REQ-FUSA001
 def test_trace_gaps_only_filters():
     with tempfile.TemporaryDirectory() as tmpdir:
-        reqs = {"requirements": [
-            {"id": "REQ-001", "title": "Tested"},
-            {"id": "REQ-002", "title": "Not tested"},
-        ]}
+        reqs = {
+            "requirements": [
+                {"id": "REQ-001", "title": "Tested"},
+                {"id": "REQ-002", "title": "Not tested"},
+            ]
+        }
         with open(os.path.join(tmpdir, ".fusa-reqs.json"), "w") as f:
             json.dump(reqs, f)
         src = "#fusa:test REQ-001\ndef test_foo():\n    pass\n"

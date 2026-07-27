@@ -25,20 +25,29 @@ def _is_excluded(rel_path: str, patterns: list[str]) -> bool:
     return False
 
 
-def _python_files(project_root: str, source_dirs: list[str], exclude_patterns: list[str]) -> list[tuple[str, str]]:
+def _python_files(
+    project_root: str, source_dirs: list[str], exclude_patterns: list[str]
+) -> list[tuple[str, str]]:
     """Return list of (abs_path, rel_path) for all .py files in scope."""
     result = []
     for src_dir in source_dirs:
         abs_src = os.path.normpath(os.path.join(project_root, src_dir))
         for dirpath, dirnames, filenames in os.walk(abs_src):
             # Skip hidden directories and common non-source dirs
-            dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in ("__pycache__", "build", "dist", ".tox", "node_modules")]
+            dirnames[:] = [
+                d
+                for d in dirnames
+                if not d.startswith(".")
+                and d not in ("__pycache__", "build", "dist", ".tox", "node_modules")
+            ]
             for fname in filenames:
                 if not fname.endswith(".py"):
                     continue
                 abs_path = os.path.join(dirpath, fname)
                 try:
-                    rel_path = os.path.relpath(abs_path, project_root).replace("\\", "/")
+                    rel_path = os.path.relpath(abs_path, project_root).replace(
+                        "\\", "/"
+                    )
                 except ValueError:
                     rel_path = abs_path
                 if not _is_excluded(rel_path, exclude_patterns):
@@ -60,10 +69,25 @@ def _cyclomatic_complexity(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
     """Approximate cyclomatic complexity for a function."""
     complexity = 1
     for child in ast.walk(node):
-        if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor,
-                               ast.ExceptHandler, ast.With, ast.AsyncWith)):
+        if isinstance(
+            child,
+            (
+                ast.If,
+                ast.While,
+                ast.For,
+                ast.AsyncFor,
+                ast.ExceptHandler,
+                ast.With,
+                ast.AsyncWith,
+            ),
+        ):
             complexity += 1
-        elif isinstance(child, ast.BoolOp) and isinstance(child.op, ast.And) or isinstance(child, ast.BoolOp) and isinstance(child.op, ast.Or):
+        elif (
+            isinstance(child, ast.BoolOp)
+            and isinstance(child.op, ast.And)
+            or isinstance(child, ast.BoolOp)
+            and isinstance(child.op, ast.Or)
+        ):
             complexity += len(child.values) - 1
         elif isinstance(child, ast.comprehension) or isinstance(child, ast.IfExp):
             complexity += 1
@@ -72,8 +96,16 @@ def _cyclomatic_complexity(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
 
 def _max_nesting(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
     """Find maximum block nesting depth inside a function."""
-    _BLOCK_NODES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.With,
-                    ast.AsyncWith, ast.Try, ast.ExceptHandler)
+    _BLOCK_NODES = (
+        ast.If,
+        ast.For,
+        ast.AsyncFor,
+        ast.While,
+        ast.With,
+        ast.AsyncWith,
+        ast.Try,
+        ast.ExceptHandler,
+    )
 
     def depth(n: ast.AST, current: int) -> int:
         max_d = current
@@ -87,7 +119,7 @@ def _max_nesting(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
     return depth(node, 0)
 
 
-#fusa:req REQ-LINT001
+# fusa:req REQ-LINT001
 class RuleFunctionLength(Rule):
     rule_id = "LINT001"
     standard = "do178c"
@@ -96,7 +128,9 @@ class RuleFunctionLength(Rule):
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
-        for abs_path, rel_path in _python_files(project_root, cfg.source_dirs, cfg.exclude_patterns):
+        for abs_path, rel_path in _python_files(
+            project_root, cfg.source_dirs, cfg.exclude_patterns
+        ):
             tree, _ = _parse_file(abs_path)
             if tree is None:
                 continue
@@ -107,17 +141,23 @@ class RuleFunctionLength(Rule):
                     continue
                 length = node.end_lineno - node.lineno + 1
                 if length > _MAX_FUNC_LINES:
-                    findings.append(pyfusa.Finding(
-                        rule_id=self.rule_id,
-                        severity=pyfusa.SEVERITY_WARNING,
-                        message=f"function '{node.name}' is {length} lines (limit: {_MAX_FUNC_LINES})",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=node.end_lineno),
-                        remediation=f"split '{node.name}' into smaller, single-purpose functions",
-                    ))
+                    findings.append(
+                        pyfusa.Finding(
+                            rule_id=self.rule_id,
+                            severity=pyfusa.SEVERITY_WARNING,
+                            message=f"function '{node.name}' is {length} lines (limit: {_MAX_FUNC_LINES})",
+                            location=pyfusa.Location(
+                                file=rel_path,
+                                line=node.lineno,
+                                end_line=node.end_lineno,
+                            ),
+                            remediation=f"split '{node.name}' into smaller, single-purpose functions",
+                        )
+                    )
         return findings
 
 
-#fusa:req REQ-LINT002
+# fusa:req REQ-LINT002
 class RuleFileLength(Rule):
     rule_id = "LINT002"
     standard = "do178c"
@@ -126,24 +166,28 @@ class RuleFileLength(Rule):
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
-        for abs_path, rel_path in _python_files(project_root, cfg.source_dirs, cfg.exclude_patterns):
+        for abs_path, rel_path in _python_files(
+            project_root, cfg.source_dirs, cfg.exclude_patterns
+        ):
             try:
                 with open(abs_path, encoding="utf-8", errors="replace") as f:
                     lines = f.readlines()
             except OSError:
                 continue
             if len(lines) > _MAX_FILE_LINES:
-                findings.append(pyfusa.Finding(
-                    rule_id=self.rule_id,
-                    severity=pyfusa.SEVERITY_WARNING,
-                    message=f"file has {len(lines)} lines (limit: {_MAX_FILE_LINES})",
-                    location=pyfusa.Location(file=rel_path, line=1),
-                    remediation="split large files into focused modules",
-                ))
+                findings.append(
+                    pyfusa.Finding(
+                        rule_id=self.rule_id,
+                        severity=pyfusa.SEVERITY_WARNING,
+                        message=f"file has {len(lines)} lines (limit: {_MAX_FILE_LINES})",
+                        location=pyfusa.Location(file=rel_path, line=1),
+                        remediation="split large files into focused modules",
+                    )
+                )
         return findings
 
 
-#fusa:req REQ-LINT003
+# fusa:req REQ-LINT003
 class RuleNestingDepth(Rule):
     rule_id = "LINT003"
     standard = "do178c"
@@ -152,7 +196,9 @@ class RuleNestingDepth(Rule):
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
-        for abs_path, rel_path in _python_files(project_root, cfg.source_dirs, cfg.exclude_patterns):
+        for abs_path, rel_path in _python_files(
+            project_root, cfg.source_dirs, cfg.exclude_patterns
+        ):
             tree, _ = _parse_file(abs_path)
             if tree is None:
                 continue
@@ -161,17 +207,24 @@ class RuleNestingDepth(Rule):
                     continue
                 depth = _max_nesting(node)
                 if depth > _MAX_NESTING:
-                    findings.append(pyfusa.Finding(
-                        rule_id=self.rule_id,
-                        severity=pyfusa.SEVERITY_WARNING,
-                        message=f"function '{node.name}' has nesting depth {depth} (limit: {_MAX_NESTING})",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                        remediation="extract nested blocks into helper functions to reduce cognitive complexity",
-                    ))
+                    findings.append(
+                        pyfusa.Finding(
+                            rule_id=self.rule_id,
+                            severity=pyfusa.SEVERITY_WARNING,
+                            message=f"function '{node.name}' has nesting depth {depth} (limit: {_MAX_NESTING})",
+                            location=pyfusa.Location(
+                                file=rel_path,
+                                line=node.lineno,
+                                end_line=getattr(node, "end_lineno", 0),
+                                end_column=getattr(node, "end_col_offset", -1) + 1,
+                            ),
+                            remediation="extract nested blocks into helper functions to reduce cognitive complexity",
+                        )
+                    )
         return findings
 
 
-#fusa:req REQ-LINT004
+# fusa:req REQ-LINT004
 class RuleCyclomaticComplexity(Rule):
     rule_id = "LINT004"
     standard = "do178c"
@@ -180,7 +233,9 @@ class RuleCyclomaticComplexity(Rule):
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
-        for abs_path, rel_path in _python_files(project_root, cfg.source_dirs, cfg.exclude_patterns):
+        for abs_path, rel_path in _python_files(
+            project_root, cfg.source_dirs, cfg.exclude_patterns
+        ):
             tree, _ = _parse_file(abs_path)
             if tree is None:
                 continue
@@ -189,17 +244,24 @@ class RuleCyclomaticComplexity(Rule):
                     continue
                 cc = _cyclomatic_complexity(node)
                 if cc > _MAX_COMPLEXITY:
-                    findings.append(pyfusa.Finding(
-                        rule_id=self.rule_id,
-                        severity=pyfusa.SEVERITY_WARNING,
-                        message=f"function '{node.name}' has cyclomatic complexity {cc} (limit: {_MAX_COMPLEXITY})",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                        remediation="reduce branches or extract decision logic into separate functions",
-                    ))
+                    findings.append(
+                        pyfusa.Finding(
+                            rule_id=self.rule_id,
+                            severity=pyfusa.SEVERITY_WARNING,
+                            message=f"function '{node.name}' has cyclomatic complexity {cc} (limit: {_MAX_COMPLEXITY})",
+                            location=pyfusa.Location(
+                                file=rel_path,
+                                line=node.lineno,
+                                end_line=getattr(node, "end_lineno", 0),
+                                end_column=getattr(node, "end_col_offset", -1) + 1,
+                            ),
+                            remediation="reduce branches or extract decision logic into separate functions",
+                        )
+                    )
         return findings
 
 
-#fusa:req REQ-LINT005
+# fusa:req REQ-LINT005
 class RuleMutableDefaultArg(Rule):
     rule_id = "LINT005"
     standard = "iso26262"
@@ -208,7 +270,9 @@ class RuleMutableDefaultArg(Rule):
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
-        for abs_path, rel_path in _python_files(project_root, cfg.source_dirs, cfg.exclude_patterns):
+        for abs_path, rel_path in _python_files(
+            project_root, cfg.source_dirs, cfg.exclude_patterns
+        ):
             tree, _ = _parse_file(abs_path)
             if tree is None:
                 continue
@@ -220,17 +284,24 @@ class RuleMutableDefaultArg(Rule):
                         continue
                     if isinstance(default, (ast.List, ast.Dict, ast.Set)):
                         kind = type(default).__name__.lower()
-                        findings.append(pyfusa.Finding(
-                            rule_id=self.rule_id,
-                            severity=pyfusa.SEVERITY_WARNING,
-                            message=f"function '{node.name}' has mutable default argument ({kind})",
-                            location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            remediation="use 'None' as default and create the mutable object inside the function body",
-                        ))
+                        findings.append(
+                            pyfusa.Finding(
+                                rule_id=self.rule_id,
+                                severity=pyfusa.SEVERITY_WARNING,
+                                message=f"function '{node.name}' has mutable default argument ({kind})",
+                                location=pyfusa.Location(
+                                    file=rel_path,
+                                    line=node.lineno,
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                remediation="use 'None' as default and create the mutable object inside the function body",
+                            )
+                        )
         return findings
 
 
-#fusa:req REQ-LINT006
+# fusa:req REQ-LINT006
 class RuleStarImport(Rule):
     rule_id = "LINT006"
     standard = "do178c"
@@ -239,7 +310,9 @@ class RuleStarImport(Rule):
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
-        for abs_path, rel_path in _python_files(project_root, cfg.source_dirs, cfg.exclude_patterns):
+        for abs_path, rel_path in _python_files(
+            project_root, cfg.source_dirs, cfg.exclude_patterns
+        ):
             tree, _ = _parse_file(abs_path)
             if tree is None:
                 continue
@@ -249,17 +322,24 @@ class RuleStarImport(Rule):
                 for alias in node.names:
                     if alias.name == "*":
                         mod = node.module or "?"
-                        findings.append(pyfusa.Finding(
-                            rule_id=self.rule_id,
-                            severity=pyfusa.SEVERITY_WARNING,
-                            message=f"wildcard import 'from {mod} import *' obscures module interface",
-                            location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                            remediation=f"import only what is needed: 'from {mod} import Name1, Name2'",
-                        ))
+                        findings.append(
+                            pyfusa.Finding(
+                                rule_id=self.rule_id,
+                                severity=pyfusa.SEVERITY_WARNING,
+                                message=f"wildcard import 'from {mod} import *' obscures module interface",
+                                location=pyfusa.Location(
+                                    file=rel_path,
+                                    line=node.lineno,
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1) + 1,
+                                ),
+                                remediation=f"import only what is needed: 'from {mod} import Name1, Name2'",
+                            )
+                        )
         return findings
 
 
-#fusa:req REQ-LINT007
+# fusa:req REQ-LINT007
 class RuleAssertStatement(Rule):
     rule_id = "LINT007"
     standard = "iso26262"
@@ -268,20 +348,29 @@ class RuleAssertStatement(Rule):
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
-        for abs_path, rel_path in _python_files(project_root, cfg.source_dirs, cfg.exclude_patterns):
+        for abs_path, rel_path in _python_files(
+            project_root, cfg.source_dirs, cfg.exclude_patterns
+        ):
             tree, _ = _parse_file(abs_path)
             if tree is None:
                 continue
             for node in ast.walk(tree):
                 if isinstance(node, ast.Assert):
-                    findings.append(pyfusa.Finding(
-                        rule_id=self.rule_id,
-                        severity=pyfusa.SEVERITY_WARNING,
-                        message="assert statement removed by Python -O; use explicit if/raise for safety checks",
-                        location=pyfusa.Location(file=rel_path, line=node.lineno, end_line=getattr(node, 'end_lineno', 0), end_column=getattr(node, 'end_col_offset', -1) + 1),
-                        standard="iso26262",
-                        remediation="replace 'assert cond' with 'if not cond: raise ValueError(...)' for safety-critical checks",
-                    ))
+                    findings.append(
+                        pyfusa.Finding(
+                            rule_id=self.rule_id,
+                            severity=pyfusa.SEVERITY_WARNING,
+                            message="assert statement removed by Python -O; use explicit if/raise for safety checks",
+                            location=pyfusa.Location(
+                                file=rel_path,
+                                line=node.lineno,
+                                end_line=getattr(node, "end_lineno", 0),
+                                end_column=getattr(node, "end_col_offset", -1) + 1,
+                            ),
+                            standard="iso26262",
+                            remediation="replace 'assert cond' with 'if not cond: raise ValueError(...)' for safety-critical checks",
+                        )
+                    )
         return findings
 
 

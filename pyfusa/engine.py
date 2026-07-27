@@ -29,20 +29,24 @@ class RunResult:
     def has_errors(self) -> bool:
         return any(
             f.severity == pyfusa.SEVERITY_ERROR
-            and f.disposition not in (pyfusa.DISPOSITION_ACCEPTED, pyfusa.DISPOSITION_DEFERRED)
+            and f.disposition
+            not in (pyfusa.DISPOSITION_ACCEPTED, pyfusa.DISPOSITION_DEFERRED)
             for f in self.findings
         )
 
     def has_warnings(self) -> bool:
         return any(
             f.severity == pyfusa.SEVERITY_WARNING
-            and f.disposition not in (pyfusa.DISPOSITION_ACCEPTED, pyfusa.DISPOSITION_DEFERRED)
+            and f.disposition
+            not in (pyfusa.DISPOSITION_ACCEPTED, pyfusa.DISPOSITION_DEFERRED)
             for f in self.findings
         )
 
     def summary(self) -> dict:
         errors = sum(1 for f in self.findings if f.severity == pyfusa.SEVERITY_ERROR)
-        warnings = sum(1 for f in self.findings if f.severity == pyfusa.SEVERITY_WARNING)
+        warnings = sum(
+            1 for f in self.findings if f.severity == pyfusa.SEVERITY_WARNING
+        )
         infos = sum(1 for f in self.findings if f.severity == pyfusa.SEVERITY_INFO)
         return {
             "total": len(self.findings),
@@ -82,8 +86,8 @@ class Engine:
         for rule in self._rules:
             try:
                 findings = rule.run(project_root, cfg)
-                rule_std = getattr(type(rule), 'standard', '')
-                rule_clause = getattr(type(rule), 'clause', '')
+                rule_std = getattr(type(rule), "standard", "")
+                rule_clause = getattr(type(rule), "clause", "")
                 if rule_std or rule_clause:
                     for f in findings:
                         if not f.standard and rule_std:
@@ -121,8 +125,10 @@ def _apply_dispositions(
                 matched.add(idx)
                 break
             # Fallback: ruleId + file + line
-            if (disp.get("ruleId") == finding.rule_id
-                    and disp.get("file") == finding.location.file):
+            if (
+                disp.get("ruleId") == finding.rule_id
+                and disp.get("file") == finding.location.file
+            ):
                 line = disp.get("line")
                 if line is None or line == finding.location.line:
                     finding.disposition = status
@@ -141,14 +147,16 @@ def _apply_dispositions(
         status = disp.get("status", "")
         if status in (pyfusa.DISPOSITION_ACCEPTED, pyfusa.DISPOSITION_DEFERRED):
             fp = disp.get("fingerprint") or disp.get("ruleId") or "?"
-            result.findings.append(pyfusa.Finding(
-                rule_id="CFG001",
-                severity=pyfusa.SEVERITY_WARNING,
-                message=f"orphaned disposition entry for '{fp}' matches no current finding",
-                location=pyfusa.Location(file=".fusa-dispositions.json"),
-                category=pyfusa.CATEGORY_CONFIG,
-                remediation="remove the stale disposition entry from .fusa-dispositions.json",
-            ))
+            result.findings.append(
+                pyfusa.Finding(
+                    rule_id="CFG001",
+                    severity=pyfusa.SEVERITY_WARNING,
+                    message=f"orphaned disposition entry for '{fp}' matches no current finding",
+                    location=pyfusa.Location(file=".fusa-dispositions.json"),
+                    category=pyfusa.CATEGORY_CONFIG,
+                    remediation="remove the stale disposition entry from .fusa-dispositions.json",
+                )
+            )
 
 
 def _build_default() -> Engine:

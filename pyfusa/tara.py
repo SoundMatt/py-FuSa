@@ -266,23 +266,25 @@ def build(findings: List[dict], project_root: str, cfg: Config) -> dict:
         meta = _RULE_META.get(rule_id)
         if not meta:
             continue
-        entries.append({
-            "id": f"TARA-{counter:03d}",
-            "asset": f.get("message", ""),
-            "threat": meta["threat"],
-            "stride": meta["stride"],
-            "cwe": meta["cwe"],
-            "standard": "ISO 21434",
-            "attack_vector": meta["attack_vector"],
-            "likelihood": meta["likelihood"],
-            "impact": meta["impact"],
-            "security_level": meta["security_level"],
-            "current_control": meta["current_control"],
-            "residual_risk": meta["residual_risk"],
-            "cyber_rule_id": rule_id,
-            "source_file": f.get("location", {}).get("file", ""),
-            "source_line": f.get("location", {}).get("line", 0),
-        })
+        entries.append(
+            {
+                "id": f"TARA-{counter:03d}",
+                "asset": f.get("message", ""),
+                "threat": meta["threat"],
+                "stride": meta["stride"],
+                "cwe": meta["cwe"],
+                "standard": "ISO 21434",
+                "attack_vector": meta["attack_vector"],
+                "likelihood": meta["likelihood"],
+                "impact": meta["impact"],
+                "security_level": meta["security_level"],
+                "current_control": meta["current_control"],
+                "residual_risk": meta["residual_risk"],
+                "cyber_rule_id": rule_id,
+                "source_file": f.get("location", {}).get("file", ""),
+                "source_line": f.get("location", {}).get("line", 0),
+            }
+        )
         counter += 1
     return entries
 
@@ -304,8 +306,12 @@ def to_dict(entries: List[dict], project_root: str, cfg: Config) -> dict:
 
 
 def to_markdown(entries: List[dict], module: str) -> str:
-    lines = [f"# TARA — {module}", "", "| ID | Threat | STRIDE | CWE | Vector | Likelihood | Impact | SL | Residual |",
-             "|---|---|---|---|---|---|---|---|---|"]
+    lines = [
+        f"# TARA — {module}",
+        "",
+        "| ID | Threat | STRIDE | CWE | Vector | Likelihood | Impact | SL | Residual |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
     for e in entries:
         lines.append(
             f"| {e['id']} | {e['threat'][:60]} | {''.join(e['stride'])} | {e['cwe']} | "

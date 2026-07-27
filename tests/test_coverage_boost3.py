@@ -15,8 +15,10 @@ import io
 # compliance/iec62443.py
 # ---------------------------------------------------------------------------
 
+
 def test_iec62443_run_empty_dir():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg)
@@ -31,6 +33,7 @@ def test_iec62443_run_empty_dir():
 
 def test_iec62443_run_sl1():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg, sl="SL-1")
@@ -42,6 +45,7 @@ def test_iec62443_run_sl1():
 
 def test_iec62443_run_sl4():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg, sl="SL-4")
@@ -52,10 +56,16 @@ def test_iec62443_run_sl4():
 
 def test_iec62443_run_with_evidence():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         # Create several evidence files
-        for name in [".fusa.json", ".fusa-reqs.json", "SECURITY.md", "check-report.json"]:
+        for name in [
+            ".fusa.json",
+            ".fusa-reqs.json",
+            "SECURITY.md",
+            "check-report.json",
+        ]:
             open(os.path.join(tmpdir, name), "w").close()
         doc = iec_run(tmpdir, cfg)
         satisfied = [o for o in doc["objectives"] if o["status"] == "satisfied"]
@@ -64,12 +74,23 @@ def test_iec62443_run_with_evidence():
 
 def test_iec62443_run_full_evidence():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
-        for name in [".fusa-iec62443.json", "vuln.json", "tara.json",
-                     "check-report.json", ".fusa.json", ".fusa-reqs.json",
-                     "boundary.json", "SECURITY.md", "INCIDENT-RESPONSE.md",
-                     "sbom.json", "qualify-report.json", "audit-pack.zip"]:
+        for name in [
+            ".fusa-iec62443.json",
+            "vuln.json",
+            "tara.json",
+            "check-report.json",
+            ".fusa.json",
+            ".fusa-reqs.json",
+            "boundary.json",
+            "SECURITY.md",
+            "INCIDENT-RESPONSE.md",
+            "sbom.json",
+            "qualify-report.json",
+            "audit-pack.zip",
+        ]:
             open(os.path.join(tmpdir, name), "w").close()
         doc = iec_run(tmpdir, cfg)
         satisfied = [o for o in doc["objectives"] if o["status"] == "satisfied"]
@@ -79,6 +100,7 @@ def test_iec62443_run_full_evidence():
 
 def test_iec62443_run_sl3_partials():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg, sl="SL-2")
@@ -89,6 +111,7 @@ def test_iec62443_run_sl3_partials():
 
 def test_iec62443_render_text():
     from pyfusa.compliance.iec62443 import run as iec_run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="testproj")
         doc = iec_run(tmpdir, cfg)
@@ -102,6 +125,7 @@ def test_iec62443_render_text():
 
 def test_iec62443_render_text_satisfied_marker():
     from pyfusa.compliance.iec62443 import run as iec_run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         for name in [".fusa.json", ".fusa-reqs.json", "SECURITY.md"]:
@@ -114,6 +138,7 @@ def test_iec62443_render_text_satisfied_marker():
 
 def test_iec62443_render_text_partial_marker():
     from pyfusa.compliance.iec62443 import run as iec_run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg, sl="SL-2")
@@ -123,6 +148,7 @@ def test_iec62443_render_text_partial_marker():
 
 def test_iec62443_schema_fields():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg)
@@ -142,6 +168,7 @@ def test_iec62443_schema_fields():
 
 def test_iec62443_gap_has_remediation():
     from pyfusa.compliance.iec62443 import run as iec_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg)
@@ -162,7 +189,9 @@ def test_iec62443_cli_json():
     out = io.StringIO()
     err = io.StringIO()
     with tempfile.TemporaryDirectory() as tmpdir:
-        code = run(["iec62443", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err)
+        code = run(
+            ["iec62443", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err
+        )
     assert code in (0, 1, 3)
     doc = json.loads(out.getvalue())
     assert doc["kind"] == "gap-report"
@@ -172,8 +201,11 @@ def test_iec62443_cli_sl_flag():
     out = io.StringIO()
     err = io.StringIO()
     with tempfile.TemporaryDirectory() as tmpdir:
-        code = run(["iec62443", "--dir", tmpdir, "--sl", "SL-1", "--format", "json"],
-                   stdout=out, stderr=err)
+        code = run(
+            ["iec62443", "--dir", tmpdir, "--sl", "SL-1", "--format", "json"],
+            stdout=out,
+            stderr=err,
+        )
     assert code in (0, 1, 3)
     doc = json.loads(out.getvalue())
     assert doc["sl"] == "SL-1"
@@ -184,8 +216,11 @@ def test_iec62443_cli_output_file():
         out_path = os.path.join(tmpdir, "iec62443.json")
         out = io.StringIO()
         err = io.StringIO()
-        code = run(["iec62443", "--dir", tmpdir, "--format", "json", "--output", out_path],
-                   stdout=out, stderr=err)
+        code = run(
+            ["iec62443", "--dir", tmpdir, "--format", "json", "--output", out_path],
+            stdout=out,
+            stderr=err,
+        )
         assert code in (0, 1, 3)
         with open(out_path) as f:
             doc = json.load(f)
@@ -196,8 +231,10 @@ def test_iec62443_cli_output_file():
 # compliance/slsa.py
 # ---------------------------------------------------------------------------
 
+
 def test_slsa_run_empty_dir():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = slsa_run(tmpdir, cfg)
@@ -211,6 +248,7 @@ def test_slsa_run_empty_dir():
 
 def test_slsa_run_l1():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = slsa_run(tmpdir, cfg, level="L1")
@@ -222,6 +260,7 @@ def test_slsa_run_l1():
 
 def test_slsa_run_l4():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = slsa_run(tmpdir, cfg, level="L4")
@@ -230,6 +269,7 @@ def test_slsa_run_l4():
 
 def test_slsa_run_with_basic_evidence():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         open(os.path.join(tmpdir, "pyproject.toml"), "w").close()
@@ -244,6 +284,7 @@ def test_slsa_run_with_basic_evidence():
 
 def test_slsa_run_with_l2_evidence():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         open(os.path.join(tmpdir, "pyproject.toml"), "w").close()
@@ -261,6 +302,7 @@ def test_slsa_run_with_l2_evidence():
 
 def test_slsa_run_codeowners():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         os.makedirs(os.path.join(tmpdir, ".github"), exist_ok=True)
@@ -272,6 +314,7 @@ def test_slsa_run_codeowners():
 
 def test_slsa_run_branch_protection():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         os.makedirs(os.path.join(tmpdir, ".github"), exist_ok=True)
@@ -283,6 +326,7 @@ def test_slsa_run_branch_protection():
 
 def test_slsa_run_provenance_no_builder():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         open(os.path.join(tmpdir, "provenance.json"), "w").write(
@@ -295,12 +339,14 @@ def test_slsa_run_provenance_no_builder():
 
 def test_slsa_run_provenance_missing_file():
     from pyfusa.compliance.slsa import _provenance_has_builder
+
     with tempfile.TemporaryDirectory() as tmpdir:
         assert _provenance_has_builder(tmpdir) is False
 
 
 def test_slsa_run_provenance_bad_json():
     from pyfusa.compliance.slsa import _provenance_has_builder
+
     with tempfile.TemporaryDirectory() as tmpdir:
         open(os.path.join(tmpdir, "provenance.json"), "w").write("not json")
         assert _provenance_has_builder(tmpdir) is False
@@ -308,6 +354,7 @@ def test_slsa_run_provenance_bad_json():
 
 def test_slsa_codeowners_variants():
     from pyfusa.compliance.slsa import _codeowners_present
+
     with tempfile.TemporaryDirectory() as tmpdir:
         assert not _codeowners_present(tmpdir)
         open(os.path.join(tmpdir, "CODEOWNERS"), "w").close()
@@ -316,6 +363,7 @@ def test_slsa_codeowners_variants():
 
 def test_slsa_branch_prot_rulesets():
     from pyfusa.compliance.slsa import _branch_prot_present
+
     with tempfile.TemporaryDirectory() as tmpdir:
         assert not _branch_prot_present(tmpdir)
         os.makedirs(os.path.join(tmpdir, ".github"), exist_ok=True)
@@ -325,6 +373,7 @@ def test_slsa_branch_prot_rulesets():
 
 def test_slsa_render_text():
     from pyfusa.compliance.slsa import run as slsa_run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="testproj")
         doc = slsa_run(tmpdir, cfg)
@@ -338,6 +387,7 @@ def test_slsa_render_text():
 
 def test_slsa_render_text_markers():
     from pyfusa.compliance.slsa import run as slsa_run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         os.makedirs(os.path.join(tmpdir, ".git"), exist_ok=True)
@@ -350,6 +400,7 @@ def test_slsa_render_text_markers():
 
 def test_slsa_render_text_partial():
     from pyfusa.compliance.slsa import run as slsa_run, render_text
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = slsa_run(tmpdir, cfg, level="L2")
@@ -359,6 +410,7 @@ def test_slsa_render_text_partial():
 
 def test_slsa_schema_fields():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = slsa_run(tmpdir, cfg)
@@ -377,6 +429,7 @@ def test_slsa_schema_fields():
 
 def test_slsa_gap_has_remediation():
     from pyfusa.compliance.slsa import run as slsa_run
+
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         doc = slsa_run(tmpdir, cfg)
@@ -397,7 +450,9 @@ def test_slsa_cli_json():
     out = io.StringIO()
     err = io.StringIO()
     with tempfile.TemporaryDirectory() as tmpdir:
-        code = run(["slsa", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err)
+        code = run(
+            ["slsa", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err
+        )
     assert code in (0, 1, 3)
     doc = json.loads(out.getvalue())
     assert doc["kind"] == "gap-report"
@@ -407,8 +462,11 @@ def test_slsa_cli_level_flag():
     out = io.StringIO()
     err = io.StringIO()
     with tempfile.TemporaryDirectory() as tmpdir:
-        code = run(["slsa", "--dir", tmpdir, "--level", "L1", "--format", "json"],
-                   stdout=out, stderr=err)
+        code = run(
+            ["slsa", "--dir", tmpdir, "--level", "L1", "--format", "json"],
+            stdout=out,
+            stderr=err,
+        )
     assert code in (0, 1, 3)
     doc = json.loads(out.getvalue())
     assert doc["level"] == "L1"
@@ -419,8 +477,11 @@ def test_slsa_cli_output_file():
         out_path = os.path.join(tmpdir, "slsa.json")
         out = io.StringIO()
         err = io.StringIO()
-        code = run(["slsa", "--dir", tmpdir, "--format", "json", "--output", out_path],
-                   stdout=out, stderr=err)
+        code = run(
+            ["slsa", "--dir", tmpdir, "--format", "json", "--output", out_path],
+            stdout=out,
+            stderr=err,
+        )
         assert code in (0, 1, 3)
         with open(out_path) as f:
             doc = json.load(f)

@@ -72,7 +72,9 @@ def collect(project_root: str, cfg: Config, version: str = "") -> dict:
         "testedRequirements": tested,
         "coveragePct": coverage_pct,
         "untracedCount": max(0, total_reqs - traced),
-        "annotationDensityPct": round(traced / total_reqs * 100, 1) if total_reqs > 0 else 0.0,
+        "annotationDensityPct": round(traced / total_reqs * 100, 1)
+        if total_reqs > 0
+        else 0.0,
     }
 
 
@@ -88,14 +90,14 @@ def render_text(data: dict) -> str:
     snapshots = data.get("snapshots", [])
     if not snapshots:
         return "no metrics snapshots"
-    lines = [f"project: {data.get('project','')}  snapshots: {len(snapshots)}", ""]
+    lines = [f"project: {data.get('project', '')}  snapshots: {len(snapshots)}", ""]
     header = f"{'timestamp':26s} {'errors':7s} {'warnings':9s} {'reqs':6s} {'traced':7s} {'cov%':6s}"
     lines.append(header)
     lines.append("-" * len(header))
     for s in snapshots[-10:]:
         lines.append(
-            f"{s.get('timestamp',''):26s} {s.get('errorCount',0):7d} {s.get('warningCount',0):9d} "
-            f"{s.get('totalRequirements',0):6d} {s.get('tracedRequirements',0):7d} "
-            f"{s.get('coveragePct',0.0):5.1f}%"
+            f"{s.get('timestamp', ''):26s} {s.get('errorCount', 0):7d} {s.get('warningCount', 0):9d} "
+            f"{s.get('totalRequirements', 0):6d} {s.get('tracedRequirements', 0):7d} "
+            f"{s.get('coveragePct', 0.0):5.1f}%"
         )
     return "\n".join(lines)

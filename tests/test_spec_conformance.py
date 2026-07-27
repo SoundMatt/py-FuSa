@@ -14,6 +14,7 @@ from pyfusa.cli.main import run
 # Shared test project factory
 # ---------------------------------------------------------------------------
 
+
 def _make_project(tmpdir: str) -> str:
     """Create a minimal project that will always produce at least one finding."""
     open(os.path.join(tmpdir, ".fusa.json"), "w").write(
@@ -27,12 +28,16 @@ def _make_project(tmpdir: str) -> str:
 # §2.2 — --output must suppress stdout (no double-write)
 # ---------------------------------------------------------------------------
 
+
 def test_check_output_no_stdout():
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir)
         out_file = os.path.join(tmpdir, "check.json")
         out = io.StringIO()
-        run(["check", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["check", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         assert out.getvalue() == "", "check --output must not write to stdout"
         assert os.path.exists(out_file)
 
@@ -42,7 +47,10 @@ def test_report_output_no_stdout():
         _make_project(tmpdir)
         out_file = os.path.join(tmpdir, "report.json")
         out = io.StringIO()
-        run(["report", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["report", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         assert out.getvalue() == "", "report --output must not write to stdout"
         assert os.path.exists(out_file)
 
@@ -52,7 +60,10 @@ def test_trace_output_no_stdout():
         _make_project(tmpdir)
         out_file = os.path.join(tmpdir, "trace.json")
         out = io.StringIO()
-        run(["trace", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["trace", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         assert out.getvalue() == "", "trace --output must not write to stdout"
         assert os.path.exists(out_file)
 
@@ -62,7 +73,10 @@ def test_qualify_output_no_stdout():
         _make_project(tmpdir)
         out_file = os.path.join(tmpdir, "qualify.json")
         out = io.StringIO()
-        run(["qualify", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["qualify", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         assert out.getvalue() == "", "qualify --output must not write to stdout"
         assert os.path.exists(out_file)
 
@@ -73,7 +87,10 @@ def test_iso26262_gap_output_no_document_on_stdout():
         _make_project(tmpdir)
         out_file = os.path.join(tmpdir, "iso26262-gap.json")
         out = io.StringIO()
-        run(["iso26262", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["iso26262", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         # Document must be in the file, not on stdout (status messages on stdout are OK)
         assert os.path.exists(out_file)
         with open(out_file) as f:
@@ -87,7 +104,10 @@ def test_iec62443_gap_output_no_document_on_stdout():
         _make_project(tmpdir)
         out_file = os.path.join(tmpdir, "iec62443-gap.json")
         out = io.StringIO()
-        run(["iec62443", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["iec62443", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         assert os.path.exists(out_file)
         with open(out_file) as f:
             doc = json.load(f)
@@ -100,7 +120,10 @@ def test_slsa_gap_output_no_document_on_stdout():
         _make_project(tmpdir)
         out_file = os.path.join(tmpdir, "slsa-gap.json")
         out = io.StringIO()
-        run(["slsa", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["slsa", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         assert os.path.exists(out_file)
         with open(out_file) as f:
             doc = json.load(f)
@@ -111,10 +134,15 @@ def test_slsa_gap_output_no_document_on_stdout():
 def test_comp_output_no_stdout_suppresses_json_to_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir)
-        open(os.path.join(tmpdir, "mod.py"), "w").write("def simple(x):\n    return x\n")
+        open(os.path.join(tmpdir, "mod.py"), "w").write(
+            "def simple(x):\n    return x\n"
+        )
         out_file = os.path.join(tmpdir, "comp.json")
         out = io.StringIO()
-        run(["comp", "--dir", tmpdir, "--format", "json", "--output", out_file], stdout=out)
+        run(
+            ["comp", "--dir", tmpdir, "--format", "json", "--output", out_file],
+            stdout=out,
+        )
         # stdout gets the text summary; the JSON document goes to the file
         assert os.path.exists(out_file)
         with open(out_file) as f:
@@ -126,10 +154,20 @@ def test_comp_output_no_stdout_suppresses_json_to_file():
 # §3.1 — gap-report kind must be "gap-report" (not "<std>-gap-report")
 # ---------------------------------------------------------------------------
 
+
 def test_gap_report_kind_is_canonical():
     """All compliance gap-report commands must emit kind='gap-report' (§3.1 MUST)."""
     import tempfile
-    _GAP_CMDS = ["iso26262", "iec62443", "slsa", "iec61508", "do178", "iso21434", "unece"]
+
+    _GAP_CMDS = [
+        "iso26262",
+        "iec62443",
+        "slsa",
+        "iec61508",
+        "do178",
+        "iso21434",
+        "unece",
+    ]
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir)
         for cmd in _GAP_CMDS:
@@ -146,6 +184,7 @@ def test_gap_report_kind_is_canonical():
 # §2.9 — format-invariant identifiers (ruleId/severity/category)
 #         JSON findings must match SARIF results on same project
 # ---------------------------------------------------------------------------
+
 
 def test_format_invariant_ruleid_json_vs_sarif():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -172,7 +211,12 @@ def test_format_invariant_ruleid_json_vs_sarif():
 
 def test_format_invariant_severity_json_vs_sarif():
     """SARIF severity levels must correspond to JSON severity values."""
-    _SARIF_MAP = {"error": "ERROR", "warning": "WARNING", "note": "INFO", "none": "INFO"}
+    _SARIF_MAP = {
+        "error": "ERROR",
+        "warning": "WARNING",
+        "note": "INFO",
+        "none": "INFO",
+    }
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir)
         json_out = io.StringIO()
@@ -229,8 +273,12 @@ def test_format_invariant_category_present_in_json():
         out = io.StringIO()
         run(["check", "--dir", tmpdir, "--format", "json"], stdout=out)
         doc = json.loads(out.getvalue())
-        missing_cat = [f["ruleId"] for f in doc.get("findings", []) if not f.get("category")]
-        assert missing_cat == [], f"findings missing category: {sorted(set(missing_cat))}"
+        missing_cat = [
+            f["ruleId"] for f in doc.get("findings", []) if not f.get("category")
+        ]
+        assert missing_cat == [], (
+            f"findings missing category: {sorted(set(missing_cat))}"
+        )
 
 
 def test_format_invariant_remediation_present_in_json():
@@ -240,8 +288,12 @@ def test_format_invariant_remediation_present_in_json():
         out = io.StringIO()
         run(["check", "--dir", tmpdir, "--format", "json"], stdout=out)
         doc = json.loads(out.getvalue())
-        missing_rem = [f["ruleId"] for f in doc.get("findings", []) if not f.get("remediation")]
-        assert missing_rem == [], f"findings missing remediation: {sorted(set(missing_rem))}"
+        missing_rem = [
+            f["ruleId"] for f in doc.get("findings", []) if not f.get("remediation")
+        ]
+        assert missing_rem == [], (
+            f"findings missing remediation: {sorted(set(missing_rem))}"
+        )
 
 
 def test_format_invariant_standard_clause_present_in_json():
@@ -251,15 +303,24 @@ def test_format_invariant_standard_clause_present_in_json():
         out = io.StringIO()
         run(["check", "--dir", tmpdir, "--format", "json"], stdout=out)
         doc = json.loads(out.getvalue())
-        missing_std = [f["ruleId"] for f in doc.get("findings", []) if not f.get("standard")]
-        missing_clause = [f["ruleId"] for f in doc.get("findings", []) if not f.get("clause")]
-        assert missing_std == [], f"findings missing standard: {sorted(set(missing_std))}"
-        assert missing_clause == [], f"findings missing clause: {sorted(set(missing_clause))}"
+        missing_std = [
+            f["ruleId"] for f in doc.get("findings", []) if not f.get("standard")
+        ]
+        missing_clause = [
+            f["ruleId"] for f in doc.get("findings", []) if not f.get("clause")
+        ]
+        assert missing_std == [], (
+            f"findings missing standard: {sorted(set(missing_std))}"
+        )
+        assert missing_clause == [], (
+            f"findings missing clause: {sorted(set(missing_clause))}"
+        )
 
 
 # ---------------------------------------------------------------------------
 # §4 MAY — endLine/endColumn on AST-based findings
 # ---------------------------------------------------------------------------
+
 
 def test_endline_on_ast_findings():
     """AST-based findings (e.g. LINT001) must carry endLine (§4 MAY)."""
@@ -299,6 +360,7 @@ def test_endline_omitted_for_file_level_findings():
 # §2.7 — sbom components[].hash must be sha256:<hex>
 # ---------------------------------------------------------------------------
 
+
 def test_sbom_components_hash_format():
     """sbom.json components with hash must use sha256:<hex> format (§2.7)."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -312,19 +374,27 @@ def test_sbom_components_hash_format():
         for comp in doc.get("components", []):
             if "hash" in comp:
                 h = comp["hash"]
-                assert h.startswith("sha256:"), f"hash must start with 'sha256:', got: {h[:30]}"
+                assert h.startswith("sha256:"), (
+                    f"hash must start with 'sha256:', got: {h[:30]}"
+                )
                 hex_part = h[7:]
-                assert len(hex_part) == 64, f"sha256 hex must be 64 chars, got {len(hex_part)}"
-                assert all(c in "0123456789abcdef" for c in hex_part), f"non-hex in hash: {h}"
+                assert len(hex_part) == 64, (
+                    f"sha256 hex must be 64 chars, got {len(hex_part)}"
+                )
+                assert all(c in "0123456789abcdef" for c in hex_part), (
+                    f"non-hex in hash: {h}"
+                )
 
 
 # ---------------------------------------------------------------------------
 # §3.2 — structured error on exit-3 when --format json
 # ---------------------------------------------------------------------------
 
+
 def test_exit3_json_error_envelope():
     """check --format json on engine failure must emit error envelope with exit 3."""
     import pyfusa.engine as eng
+
     orig = eng.Default.run
 
     def fail(*a, **kw):
@@ -334,7 +404,9 @@ def test_exit3_json_error_envelope():
     try:
         out = io.StringIO()
         err = io.StringIO()
-        code = run(["check", "--dir", "/tmp", "--format", "json"], stdout=out, stderr=err)
+        code = run(
+            ["check", "--dir", "/tmp", "--format", "json"], stdout=out, stderr=err
+        )
         assert code == pyfusa.EXIT_RUNTIME
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "check-report"
