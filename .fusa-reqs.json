@@ -556,6 +556,159 @@
       "text": "The tool shall generate a Software Configuration Index enumerating the presence of source, requirements, hazard analysis, and other evidence artefacts per DO-178C \u00a711.16.",
       "standard": "do178c",
       "clause": "11.16"
+    },
+    {
+      "id": "REQ-ANA001",
+      "title": "Thread/task without stop-event detection",
+      "text": "The tool shall report a WARNING when a thread or async task is created without an apparent stop/done event signal in scope (ANA001).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA002",
+      "title": "Unbounded thread/task spawn in loop detection",
+      "text": "The tool shall report a WARNING when a thread or async task is created inside a loop without a concurrency bound (ANA002).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA003",
+      "title": "Uninterruptible sleep in thread worker detection",
+      "text": "The tool shall report a WARNING when time.sleep() is called inside a thread worker target, since it cannot be interrupted (ANA003).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA004",
+      "title": "Exception raised inside finally block detection",
+      "text": "The tool shall report a WARNING when a finally block may raise, swallowing the original exception (ANA004).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA005",
+      "title": "Redundant global/config lookup detection",
+      "text": "The tool shall report a WARNING when a function re-fetches a value from global/config state that it already receives as a parameter (ANA005).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA006",
+      "title": "Discarded call return value detection",
+      "text": "The tool shall report a WARNING when the return value of a call that must be checked (e.g. subprocess.run, os.rename) is discarded (ANA006).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA007",
+      "title": "Potential None dereference detection",
+      "text": "The tool shall report a WARNING when an attribute is accessed on a value that may be None because it came from a lookup call such as .get()/.find() (ANA007).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA008",
+      "title": "Shared mutable state modified in thread context detection",
+      "text": "The tool shall report a WARNING when a thread target mutates shared mutable state via 'global' without synchronisation (ANA008).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ANA009",
+      "title": "Unreachable code (dead code) detection",
+      "text": "The tool shall report a WARNING for statements that are unreachable after a return/raise/break/continue (ANA009).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-SLSA001",
+      "title": "SLSA L1 vcsRevision provenance rule",
+      "text": "The tool shall report an INFO finding when provenance.json is missing a vcsRevision field, as required by SLSA L1 (SLSA001).",
+      "standard": "slsa",
+      "clause": "2.1"
+    },
+    {
+      "id": "REQ-SLSA002",
+      "title": "SLSA L2 builder identification rule",
+      "text": "The tool shall report an INFO finding when provenance.json is missing a builder field, as required by SLSA L2 (SLSA002).",
+      "standard": "slsa",
+      "clause": "2.2"
+    },
+    {
+      "id": "REQ-SLSA003",
+      "title": "SLSA L3 two-party review policy rule",
+      "text": "The tool shall report an INFO finding when no CODEOWNERS file or branch-protection policy is found, as required by SLSA L3 (SLSA003).",
+      "standard": "slsa",
+      "clause": "2.3"
+    },
+    {
+      "id": "REQ-COMP001",
+      "title": "Cyclomatic complexity threshold engine rule",
+      "text": "The engine shall report a WARNING when a public function's cyclomatic complexity V(G) exceeds the project's ASIL/DAL threshold (COMP001, DO-178C \u00a76.3.4).",
+      "standard": "do178c",
+      "clause": "6.3.4"
+    },
+    {
+      "id": "REQ-COUP001",
+      "title": "Module-level mutable variable coupling rule",
+      "text": "The engine shall report an INFO finding for a public module-level mutable variable, which creates data coupling (COUP001).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-COUP002",
+      "title": "Callable-parameter control-coupling rule",
+      "text": "The engine shall report an INFO finding when a public function accepts a Callable parameter, which creates control coupling (COUP002).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-COUP003",
+      "title": "Coupling report presence rule",
+      "text": "The engine shall report a WARNING when coupling-report.json is not present in the project (COUP003).",
+      "standard": "iso26262",
+      "clause": "6.4.3"
+    },
+    {
+      "id": "REQ-ICS001",
+      "title": "IEC 62443 Security Level declaration rule",
+      "text": "The engine shall report an INFO finding when .fusa-iec62443.json declaring the IEC 62443 Security Level is not present (IEC62443-001).",
+      "standard": "iec62443",
+      "clause": "4-1 \u00a78"
+    },
+    {
+      "id": "REQ-ICS002",
+      "title": "IEC 62443 target_sl range validation rule",
+      "text": "The engine shall report a WARNING when the declared target_sl is not an integer in the range 1-4 (IEC62443-002).",
+      "standard": "iec62443",
+      "clause": "4-1 \u00a78"
+    },
+    {
+      "id": "REQ-ICS003",
+      "title": "IEC 62443 security policy document rule",
+      "text": "The engine shall report an INFO finding when no security policy document (e.g. SECURITY.md) is found, as required by IEC 62443-4-2 CR 6.2 (IEC62443-003).",
+      "standard": "iec62443",
+      "clause": "4-2 CR 6.2"
+    },
+    {
+      "id": "REQ-ICS004",
+      "title": "IEC 62443 incident response plan rule",
+      "text": "The engine shall report an INFO finding when no cyber incident response plan is found, as required by IEC 62443-4-2 CR 6.2.1 (IEC62443-004).",
+      "standard": "iec62443",
+      "clause": "4-2 CR 6.2.1"
+    },
+    {
+      "id": "REQ-CONFIG001",
+      "title": "Project configuration loading and validation",
+      "text": "The tool shall load and validate .fusa.json (including legacy flat project-name form), derive an integrity label from ASIL/SIL/DAL, and load the dispositions and requirements sidecar files.",
+      "standard": "iso26262",
+      "clause": "1.2.1"
+    },
+    {
+      "id": "REQ-COMPLY001",
+      "title": "Standard-specific compliance gap report generation",
+      "text": "The tool shall generate a standard-specific compliance gap report (ISO 26262, IEC 61508, DO-178C, ISO 21434, UNECE R.155, SLSA, IEC 62443) summarising which evidence artefacts are present or missing for the requested compliance level.",
+      "standard": "iso26262"
     }
   ]
 }

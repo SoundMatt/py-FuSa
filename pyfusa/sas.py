@@ -24,6 +24,7 @@ _SECTIONS = [
 ]
 
 
+# fusa:req REQ-CLI009
 def generate(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -62,6 +63,7 @@ def generate(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def render_text(doc: dict) -> str:
     lines = [
         f"SAS — {doc['module']}  DAL={doc['dal']}",

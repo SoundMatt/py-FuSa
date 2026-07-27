@@ -218,6 +218,7 @@ class TestAnalyzeRules:
         cfg.source_dirs = ["."]
         return cfg
 
+    # fusa:test REQ-ANA001
     # ANA001 — thread without stop event
     def test_ana001_thread_no_event(self):
         from pyfusa.rules.analyze import ANA001
@@ -257,6 +258,7 @@ class TestAnalyzeRules:
             findings = ANA001().run(tmpdir, self._cfg(tmpdir))
             assert isinstance(findings, list)
 
+    # fusa:test REQ-ANA002
     # ANA002 — thread in loop
     def test_ana002_thread_in_for_loop(self):
         from pyfusa.rules.analyze import ANA002
@@ -296,6 +298,7 @@ class TestAnalyzeRules:
             findings = ANA002().run(tmpdir, self._cfg(tmpdir))
             assert findings == []
 
+    # fusa:test REQ-ANA003
     # ANA003 — sleep in thread target
     def test_ana003_sleep_in_thread_lambda(self):
         from pyfusa.rules.analyze import ANA003
@@ -322,6 +325,7 @@ class TestAnalyzeRules:
             findings = ANA003().run(tmpdir, self._cfg(tmpdir))
             assert findings == []
 
+    # fusa:test REQ-ANA004
     # ANA004 — raise in finally
     def test_ana004_raise_in_finally(self):
         from pyfusa.rules.analyze import ANA004
@@ -340,6 +344,7 @@ class TestAnalyzeRules:
             # May or may not find depending on Python version
             assert isinstance(findings, list)
 
+    # fusa:test REQ-ANA005
     # ANA005 — redundant global fetch
     def test_ana005_redundant_os_getenv(self):
         from pyfusa.rules.analyze import ANA005
@@ -365,6 +370,7 @@ class TestAnalyzeRules:
             findings = ANA005().run(tmpdir, self._cfg(tmpdir))
             assert findings == []
 
+    # fusa:test REQ-ANA006
     # ANA006 — unchecked return value
     def test_ana006_subprocess_run_unchecked(self):
         from pyfusa.rules.analyze import ANA006
@@ -393,6 +399,7 @@ class TestAnalyzeRules:
             findings = ANA006().run(tmpdir, self._cfg(tmpdir))
             assert findings == []
 
+    # fusa:test REQ-ANA007
     # ANA007 — None dereference
     def test_ana007_none_deref(self):
         from pyfusa.rules.analyze import ANA007
@@ -421,6 +428,7 @@ class TestAnalyzeRules:
             findings = ANA007().run(tmpdir, self._cfg(tmpdir))
             assert any(f.rule_id == "ANA007" for f in findings)
 
+    # fusa:test REQ-ANA008
     # ANA008 — global mutation in thread
     def test_ana008_global_in_lambda_thread(self):
         from pyfusa.rules.analyze import ANA008
@@ -441,6 +449,7 @@ class TestAnalyzeRules:
             findings = ANA008().run(tmpdir, self._cfg(tmpdir))
             assert findings == []
 
+    # fusa:test REQ-ANA009
     # ANA009 — dead code
     def test_ana009_dead_code_after_return(self):
         from pyfusa.rules.analyze import ANA009

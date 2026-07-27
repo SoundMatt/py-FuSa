@@ -16,6 +16,7 @@ import io
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-COMPLY001
 def test_iec62443_run_empty_dir():
     from pyfusa.compliance.iec62443 import run as iec_run
 
@@ -232,6 +233,7 @@ def test_iec62443_cli_output_file():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-COMPLY001
 def test_slsa_run_empty_dir():
     from pyfusa.compliance.slsa import run as slsa_run
 

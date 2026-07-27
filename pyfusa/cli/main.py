@@ -2433,6 +2433,7 @@ def _usage(w=sys.stdout) -> None:
     print(f"\nRun '{BINARY} <command> --help' for command-specific flags.", file=w)
 
 
+# fusa:req REQ-CLI001
 def run(args: list[str] | None = None, stdout=sys.stdout, stderr=sys.stderr) -> int:
     if args is None:
         args = sys.argv[1:]

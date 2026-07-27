@@ -54,6 +54,7 @@ def _is_callable_annotation(ann) -> bool:
 # ---------------------------------------------------------------------------
 # COUP001 — Module-level mutable variables (data coupling)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-COUP001
 class COUP001(Rule):
     rule_id = "COUP001"
     standard = "iso26262"
@@ -123,6 +124,7 @@ class COUP001(Rule):
 # ---------------------------------------------------------------------------
 # COUP002 — Exported functions accepting callable parameters (control coupling)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-COUP002
 class COUP002(Rule):
     rule_id = "COUP002"
     standard = "iso26262"
@@ -166,6 +168,7 @@ class COUP002(Rule):
 # ---------------------------------------------------------------------------
 # COUP003 — Coupling report must be present
 # ---------------------------------------------------------------------------
+# fusa:req REQ-COUP003
 class COUP003(Rule):
     rule_id = "COUP003"
     standard = "iso26262"

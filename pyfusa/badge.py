@@ -13,6 +13,7 @@ def _status(errors: int, warnings: int) -> tuple:
     return "pass", "passing", "#4c1"
 
 
+# fusa:req REQ-CLI009
 def from_report(report_path: str) -> str:
     with open(report_path, encoding="utf-8") as f:
         doc = json.load(f)
@@ -22,6 +23,7 @@ def from_report(report_path: str) -> str:
     return generate(errors, warnings)
 
 
+# fusa:req REQ-CLI009
 def generate(errors: int = 0, warnings: int = 0, label: str = "py-fusa") -> str:
     _, message, color = _status(errors, warnings)
     label_width = max(len(label) * 7, 50)

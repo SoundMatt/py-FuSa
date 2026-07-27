@@ -28,6 +28,7 @@ class FunctionComplexity(NamedTuple):
     status: str  # "PASS" | "FAIL"
 
 
+# fusa:req REQ-CLI009
 def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], int]:
     """Return (results, threshold) for all non-private, non-test functions."""
     level = cfg.asil or cfg.dal or ""
@@ -76,6 +77,7 @@ def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], i
     return results, threshold
 
 
+# fusa:req REQ-CLI009
 def run(project_root: str, cfg: Config) -> dict:
     results, threshold = analyze(project_root, cfg)
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -111,6 +113,7 @@ def run(project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def render_text(doc: dict) -> str:
     s = doc["summary"]
     lines = [

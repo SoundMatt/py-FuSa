@@ -18,6 +18,7 @@ RESULT_SKIP = "SKIP"
 RESULT_ERROR = "ERROR"
 
 
+# fusa:req REQ-QUAL001
 @dataclass
 class TestCase:
     name: str
@@ -198,6 +199,7 @@ _ALL_TESTS: list[tuple[str, Callable[[], bool]]] = [
 ]
 
 
+# fusa:req REQ-QUAL001
 def compute_hash(report: QualifyReport) -> str:
     """§6 reproducible hash: sort results by name, remove hash and generatedAt."""
     doc = {
@@ -237,6 +239,7 @@ def _independence_status(report: QualifyReport) -> str:  # fusa:req REQ-QUAL002
     return INDEPENDENCE_INDEPENDENT
 
 
+# fusa:req REQ-QUAL001
 def run(
     qualification_method: str = "",
     qualification_record_uri: str = "",
@@ -272,9 +275,8 @@ def run(
     return report
 
 
-def to_dict(
-    report: QualifyReport, project_root: str, cfg: Config
-) -> dict:  # fusa:req REQ-QUAL001
+# fusa:req REQ-QUAL001
+def to_dict(report: QualifyReport, project_root: str, cfg: Config) -> dict:
     from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
 
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

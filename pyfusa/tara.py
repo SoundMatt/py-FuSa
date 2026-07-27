@@ -257,6 +257,7 @@ _RULE_META = {
 }
 
 
+# fusa:req REQ-CLI009
 def build(findings: List[dict], project_root: str, cfg: Config) -> dict:
     """Generate TARA from a list of cyber/security finding dicts."""
     entries = []
@@ -289,6 +290,7 @@ def build(findings: List[dict], project_root: str, cfg: Config) -> dict:
     return entries
 
 
+# fusa:req REQ-CLI009
 def to_dict(entries: List[dict], project_root: str, cfg: Config) -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -305,6 +307,7 @@ def to_dict(entries: List[dict], project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def to_markdown(entries: List[dict], module: str) -> str:
     lines = [
         f"# TARA — {module}",

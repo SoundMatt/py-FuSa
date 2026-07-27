@@ -116,6 +116,7 @@ def _status(
     return "gap", []
 
 
+# fusa:req REQ-COMPLY001
 def run(project_root: str, cfg: Config, asil: str = "ASIL-B") -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -161,6 +162,7 @@ def run(project_root: str, cfg: Config, asil: str = "ASIL-B") -> dict:
     return doc
 
 
+# fusa:req REQ-COMPLY001
 def render_text(doc: dict) -> str:
     s = doc.get("summary", {})
     lines = [

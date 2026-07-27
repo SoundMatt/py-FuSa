@@ -44,6 +44,7 @@ def _complexity(tree: ast.FunctionDef) -> int:
     return count
 
 
+# fusa:req REQ-COMP001
 class COMP001(Rule):
     rule_id = "COMP001"
     standard = "do178c"

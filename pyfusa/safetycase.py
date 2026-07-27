@@ -69,6 +69,7 @@ _CLAUSES = [
 ]
 
 
+# fusa:req REQ-CLI009
 def assemble(project_root: str, cfg: Config) -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -126,6 +127,7 @@ def assemble(project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def to_markdown(doc: dict) -> str:
     lines = [
         f"# Safety Case — {doc['module']}",
@@ -160,6 +162,7 @@ def to_markdown(doc: dict) -> str:
     return "\n".join(lines)
 
 
+# fusa:req REQ-CLI009
 def to_mermaid(doc: dict) -> str:
     lines = ["graph LR", f'    safety_case["{doc["module"]} Safety Case"]']
     for ev in doc["evidence"]:

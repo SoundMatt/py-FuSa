@@ -149,10 +149,12 @@ All artefacts are under version control (git). See SCI (sci.json).
 }
 
 
+# fusa:req REQ-CLI009
 def list_templates() -> List[str]:
     return list(_TEMPLATES.keys())
 
 
+# fusa:req REQ-CLI009
 def generate(name: str, project_root: str, cfg: Config, force: bool = False) -> str:
     if name not in _TEMPLATES:
         raise ValueError(

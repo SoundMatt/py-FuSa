@@ -19,6 +19,7 @@ _BRANCH_PROT = [
 ]
 
 
+# fusa:req REQ-SLSA001
 class SLSA001(Rule):
     rule_id = "SLSA001"
     standard = "slsa"
@@ -46,6 +47,7 @@ class SLSA001(Rule):
         ]
 
 
+# fusa:req REQ-SLSA002
 class SLSA002(Rule):
     rule_id = "SLSA002"
     standard = "slsa"
@@ -73,6 +75,7 @@ class SLSA002(Rule):
         ]
 
 
+# fusa:req REQ-SLSA003
 class SLSA003(Rule):
     rule_id = "SLSA003"
     standard = "slsa"

@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.2.6 — 2026-07-27
+
+### Tests
+
+- Boosted function-tag coverage (`pyfusa trace --func-coverage`) from
+  **42% to 100%** (253/253 public module-level functions and class methods
+  under `pyfusa/` now carry a `#fusa:req` tag on themselves or their
+  containing class).
+- Registered 22 new requirement IDs in `.fusa-reqs.json` for previously
+  untagged behaviour, each backed by a genuine `#fusa:test` tag on an
+  existing or newly-written test — no fabricated coverage:
+  - `REQ-ANA001..009` — the 9 static-analysis rule classes in
+    `pyfusa/rules/analyze.py` (thread/task lifecycle, sleep-in-thread,
+    finally-raises, redundant lookups, discarded returns, None deref,
+    thread-unsafe mutation, dead code) plus their (some dead-code) helper
+    `ast.NodeVisitor` classes; all had existing dedicated tests in
+    `tests/test_coverage_boost4.py`, just missing tags.
+  - `REQ-SLSA001..003` and `REQ-ICS001..004` — the SLSA and IEC 62443
+    engine rule classes in `pyfusa/rules/slsa.py` /
+    `pyfusa/rules/iec62443.py`; existing tests in
+    `tests/test_coverage_boost.py` tagged.
+  - `REQ-COMP001` — the cyclomatic-complexity engine rule
+    (`pyfusa/rules/comp.py:COMP001`), distinct from the standalone
+    `pyfusa comp` report command (folded into `REQ-CLI009`).
+  - `REQ-COUP001..003` — the coupling engine rules
+    (`pyfusa/rules/coupling.py`). `COUP001` already had an exercising test;
+    `COUP002`/`COUP003` had none, so new
+    `test_coup002_callable_parameter_flagged` and
+    `test_coup003_missing_report_flagged` (plus negative-case siblings)
+    were added to `tests/test_coverage_boost5.py`.
+  - `REQ-CONFIG001` — `pyfusa/config.py`'s `Config`/`default`/`load`/
+    `load_dispositions`/`load_requirements`, tagged onto the existing
+    `test_config_load_full`.
+  - `REQ-COMPLY001` — the 7 standard-specific compliance gap-report
+    generators (`pyfusa/compliance/{iso26262,iec61508,do178,iso21434,
+    unece,slsa,iec62443}.py`), tagged onto their existing
+    `tests/test_new_commands.py` / `tests/test_coverage_boost3.py` tests.
+- The remaining untagged functions were folded under existing,
+  already-tested requirements where the behaviour clearly matched:
+  `REQ-FUSA001` (core types/fingerprint helpers in `pyfusa/__init__.py`,
+  `auditpack.create`, `release.py`'s SBOM/provenance/manifest generators),
+  `REQ-ENGINE001` (`Rule` ABC, `RunResult`), `REQ-TRACE001` (`Tag`/
+  `Coverage` dataclasses, `trace.build/to_dict/render_text/
+  compute_func_coverage` — these already carried a `#fusa:req` comment but
+  as a trailing inline comment on a later line of a multi-line signature,
+  which the strict `--func-coverage` scanner doesn't recognise; moved to a
+  standalone line directly above each `def`), `REQ-QUAL001`/`REQ-QUAL002`
+  (same inline→standalone fix in `qualify.py`/`verify.py`), `REQ-COV001`
+  (same fix in `coverage.py`), `REQ-SCI001`/`REQ-DFMEA001` (sibling
+  functions in the same file as an already-tagged one), and `REQ-CLI009`
+  (the ~20 CLI-subcommand-backing library modules — `disposition_mgmt`,
+  `metrics`, `pr`, `req_mgmt`, `hara`, `tara`, `badge`, `template`, `diff`,
+  `misra`, `vuln`, `sign`, `sas`, `boundary`, `safetycase`, `comp.py`,
+  `report.py`, `verify.py`'s `load`/`save`/`render_text`, and `cli/main.py`'s
+  top-level `run()` dispatcher — REQ-CLI009's own requirement text already
+  names each of these subcommands explicitly).
+- `pyfusa trace --dir .` now reports `99/99 traced, 99/99 tested` (up from
+  77/77 before the 22 new IDs were added) with no dangling `#fusa:test`
+  tags and no regression in the pre-existing HLR/LLR violation set.
+
 ## v0.2.5 — 2026-07-27
 
 ### Tests

@@ -395,6 +395,7 @@ def test_badge_from_report():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CONFIG001
 def test_config_load_full():
     with tempfile.TemporaryDirectory() as tmpdir:
         data = {
@@ -552,6 +553,7 @@ def test_load_requirements_invalid_json():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-COMP001
 def test_comp001_high_complexity():
     from pyfusa.rules.comp import COMP001
 
@@ -976,6 +978,7 @@ def test_disp001_no_unresolved():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-SLSA001
 def test_slsa001_no_provenance():
     from pyfusa.rules.slsa import SLSA001
 
@@ -993,6 +996,7 @@ def test_slsa001_missing_vcs_revision():
         assert any(f.rule_id == "SLSA001" for f in findings)
 
 
+# fusa:test REQ-SLSA002
 def test_slsa002_missing_builder():
     from pyfusa.rules.slsa import SLSA002
 
@@ -1003,6 +1007,7 @@ def test_slsa002_missing_builder():
         assert any(f.rule_id == "SLSA002" for f in findings)
 
 
+# fusa:test REQ-SLSA003
 def test_slsa003_no_codeowners():
     from pyfusa.rules.slsa import SLSA003
 
@@ -1011,6 +1016,7 @@ def test_slsa003_no_codeowners():
         assert any(f.rule_id == "SLSA003" for f in findings)
 
 
+# fusa:test REQ-ICS001
 def test_iec62443_001_no_config():
     from pyfusa.rules.iec62443 import IEC62443_001
 
@@ -1019,6 +1025,7 @@ def test_iec62443_001_no_config():
         assert any(f.rule_id == "IEC62443-001" for f in findings)
 
 
+# fusa:test REQ-ICS002
 def test_iec62443_002_invalid_sl():
     from pyfusa.rules.iec62443 import IEC62443_002
 
@@ -1038,6 +1045,7 @@ def test_iec62443_002_valid_sl():
         assert IEC62443_002().run(tmpdir, default()) == []
 
 
+# fusa:test REQ-ICS003
 def test_iec62443_003_no_security_md():
     from pyfusa.rules.iec62443 import IEC62443_003
 
@@ -1046,6 +1054,7 @@ def test_iec62443_003_no_security_md():
         assert any(f.rule_id == "IEC62443-003" for f in findings)
 
 
+# fusa:test REQ-ICS004
 def test_iec62443_004_no_incident_response():
     from pyfusa.rules.iec62443 import IEC62443_004
 

@@ -637,6 +637,7 @@ class TestCouplingAnalysis:
             result = ca._run_rules([BrokenRule()], tmpdir, _cfg(tmpdir))
             assert result == []
 
+    # fusa:test REQ-COUP001
     def test_coup001_findings_go_to_data_coupling(self):
         """Findings from COUP001 appear in dataCoupling."""
         import pyfusa.coupling_analysis as ca
@@ -654,6 +655,47 @@ class TestCouplingAnalysis:
             doc = ca.run(tmpdir, cfg)
             # dataCoupling contains COUP001 findings
             assert all(e["ruleId"] == "COUP001" for e in doc["dataCoupling"])
+
+    # fusa:test REQ-COUP002
+    def test_coup002_callable_parameter_flagged(self):
+        """COUP002 flags a public function accepting a Callable parameter."""
+        from pyfusa.rules.coupling import COUP002
+
+        code = (
+            "from typing import Callable\n"
+            "def register(handler: Callable) -> None:\n"
+            "    pass\n"
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _write(tmpdir, "mod.py", code)
+            findings = COUP002().run(tmpdir, _cfg(tmpdir))
+            assert any(f.rule_id == "COUP002" for f in findings)
+
+    def test_coup002_no_callable_parameter_no_finding(self):
+        from pyfusa.rules.coupling import COUP002
+
+        code = "def add(a: int, b: int) -> int:\n    return a + b\n"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _write(tmpdir, "mod.py", code)
+            findings = COUP002().run(tmpdir, _cfg(tmpdir))
+            assert findings == []
+
+    # fusa:test REQ-COUP003
+    def test_coup003_missing_report_flagged(self):
+        """COUP003 warns when coupling-report.json is absent."""
+        from pyfusa.rules.coupling import COUP003
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            findings = COUP003().run(tmpdir, _cfg(tmpdir))
+            assert any(f.rule_id == "COUP003" for f in findings)
+
+    def test_coup003_present_report_no_finding(self):
+        from pyfusa.rules.coupling import COUP003
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _write(tmpdir, "coupling-report.json", "{}")
+            findings = COUP003().run(tmpdir, _cfg(tmpdir))
+            assert findings == []
 
 
 # ---------------------------------------------------------------------------
