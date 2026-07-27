@@ -61,6 +61,7 @@ def _sha256_file(path: str) -> str:
         return ""
 
 
+# fusa:req REQ-FUSA001
 def create(project_root: str, output_path: Optional[str] = None) -> str:
     """Create audit-pack.zip at output_path (default: project_root/audit-pack.zip).
 

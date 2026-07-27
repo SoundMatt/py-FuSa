@@ -101,10 +101,12 @@ _ASIL_TABLE: dict = {
 _ASIL_RANK = {"QM": 0, "ASIL-A": 1, "ASIL-B": 2, "ASIL-C": 3, "ASIL-D": 4}
 
 
+# fusa:req REQ-CLI009
 def determine_asil(severity: str, exposure: str, controllability: str) -> str:
     return _ASIL_TABLE.get((severity, exposure, controllability), "QM")
 
 
+# fusa:req REQ-CLI009
 def load(project_root: str) -> Optional[dict]:
     path = os.path.join(project_root, HARA_FILE)
     if not os.path.exists(path):
@@ -113,6 +115,7 @@ def load(project_root: str) -> Optional[dict]:
         return json.load(f)
 
 
+# fusa:req REQ-CLI009
 def save(project_root: str, data: dict) -> None:
     path = os.path.join(project_root, HARA_FILE)
     with open(path, "w", encoding="utf-8") as f:
@@ -120,6 +123,7 @@ def save(project_root: str, data: dict) -> None:
         f.write("\n")
 
 
+# fusa:req REQ-CLI009
 def init_template(project_name: str, standard: str = "ISO 26262") -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {
@@ -158,6 +162,7 @@ def init_template(project_name: str, standard: str = "ISO 26262") -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def validate(data: dict, project_asil: str) -> List[str]:
     """Return list of validation error strings."""
     errors: List[str] = []

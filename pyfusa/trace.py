@@ -33,6 +33,7 @@ _ERROR_LEVELS = {"DAL-A", "ASIL-D"}
 _WARN_LEVELS = {"DAL-B", "DAL-C", "ASIL-A", "ASIL-B", "ASIL-C"}
 
 
+# fusa:req REQ-TRACE001
 @dataclass
 class Tag:
     requirement_id: str
@@ -49,6 +50,7 @@ class Tag:
         }
 
 
+# fusa:req REQ-TRACE001
 @dataclass
 class Coverage:
     total_requirements: int = 0
@@ -231,9 +233,10 @@ def _validate_hlr_llr(requirements: list[dict]) -> list[HLRViolation]:
     return violations
 
 
+# fusa:req REQ-TRACE001
 def build(
     project_root: str, cfg: Config | None = None, strict_hlr_llr: bool = False
-) -> Matrix:  # fusa:req REQ-TRACE001
+) -> Matrix:
     if cfg is None:
         from pyfusa.config import default
 
@@ -354,9 +357,10 @@ def build(
     )
 
 
+# fusa:req REQ-TRACE001
 def to_dict(
     matrix: Matrix, project_root: str, cfg: Config, gaps_only: bool = False
-) -> dict:  # fusa:req REQ-TRACE001
+) -> dict:
     from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
 
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -397,9 +401,8 @@ def to_dict(
     return doc
 
 
-def render_text(
-    matrix: Matrix, gaps_only: bool = False
-) -> str:  # fusa:req REQ-TRACE001
+# fusa:req REQ-TRACE001
+def render_text(matrix: Matrix, gaps_only: bool = False) -> str:
     lines: list[str] = []
     cov = matrix.coverage
 
@@ -514,9 +517,8 @@ def _tag_directly_above(node: ast.AST, lines: list[str]) -> bool:
     return False
 
 
-def compute_func_coverage(
-    project_root: str, cfg: Config
-) -> tuple[int, int]:  # fusa:req REQ-TRACE001
+# fusa:req REQ-TRACE001
+def compute_func_coverage(project_root: str, cfg: Config) -> tuple[int, int]:
     """§1.4.1.2 — count public (non `_`-prefixed) module-level functions and
     class methods under `cfg.source_dirs` (never the test tree) and how many
     carry a fusa:req tag on themselves or on their containing class (this

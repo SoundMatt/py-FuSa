@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from pyfusa.config import Config
 
 
+# fusa:req REQ-ENGINE001
 class Rule(ABC):
     @property
     @abstractmethod

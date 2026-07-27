@@ -10,7 +10,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-VERSION = "0.2.5"
+VERSION = "0.2.6"
 SPEC_VERSION = "1.10.12"
 LANGUAGE = "python"
 TOOL = "py-FuSa"
@@ -81,6 +81,7 @@ _PREFIX_CATEGORY: dict[str, str] = {
 _RULE_ID_RE = re.compile(r"^[A-Z][A-Z0-9]*(-[A-Z0-9.]+)*$")
 
 
+# fusa:req REQ-FUSA001
 def derive_category(rule_id: str) -> str:
     """Return category for a rule id using the §1.5.1 prefix registry."""
     upper = rule_id.upper()
@@ -90,6 +91,7 @@ def derive_category(rule_id: str) -> str:
     return _PREFIX_CATEGORY.get(prefix, CATEGORY_OTHER)
 
 
+# fusa:req REQ-FUSA001
 def normalize_message(msg: str) -> str:
     """§4.2 message normalization: replace digit runs with '#', collapse whitespace."""
     # NFC for non-ASCII
@@ -118,6 +120,7 @@ def normalize_message(msg: str) -> str:
     return "".join(result).strip()
 
 
+# fusa:req REQ-FUSA001
 def compute_fingerprint(rule_id: str, file: str, message: str) -> str:
     """Compute §4.2 canonical SHA-256 fingerprint."""
     normalized = normalize_message(message)
@@ -126,6 +129,7 @@ def compute_fingerprint(rule_id: str, file: str, message: str) -> str:
     return "sha256:" + digest
 
 
+# fusa:req REQ-FUSA001
 @dataclass
 class Location:
     """§4 Finding location."""
@@ -149,6 +153,7 @@ class Location:
         return d
 
 
+# fusa:req REQ-FUSA001
 def ast_loc(file: str, node: object) -> Location:
     """Create a Location from a file path and an ast.AST node (§4 endLine/endColumn MAY)."""
     return Location(
@@ -159,6 +164,7 @@ def ast_loc(file: str, node: object) -> Location:
     )
 
 
+# fusa:req REQ-FUSA001
 @dataclass
 class Finding:
     """§4 canonical finding atom."""

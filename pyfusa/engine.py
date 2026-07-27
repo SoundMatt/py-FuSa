@@ -21,6 +21,7 @@ from pyfusa.rules import security as _sec_rules
 from pyfusa.rules import slsa as _slsa_rules
 
 
+# fusa:req REQ-ENGINE001
 @dataclass
 class RunResult:
     findings: list[pyfusa.Finding] = field(default_factory=list)

@@ -43,6 +43,7 @@ def _package_label(path: str, root: str) -> str:
     return os.path.dirname(rel).replace(os.sep, ".") or "root"
 
 
+# fusa:req REQ-CLI009
 def scan(project_root: str, cfg: Config) -> dict:
     """Build the boundary graph."""
     nodes: Dict[str, dict] = {}
@@ -118,6 +119,7 @@ def scan(project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def to_dict(graph: dict, project_root: str, cfg: Config) -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -135,6 +137,7 @@ def to_dict(graph: dict, project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def to_mermaid(graph: dict, module: str) -> str:
     lines = ["graph TD", f"    %% {module} component boundary"]
     for node in graph["nodes"]:
@@ -147,6 +150,7 @@ def to_mermaid(graph: dict, module: str) -> str:
     return "\n".join(lines)
 
 
+# fusa:req REQ-CLI009
 def to_dot(graph: dict, module: str) -> str:
     lines = ["digraph boundary {", f'  label="{module}";', "  rankdir=LR;"]
     for node in graph["nodes"]:

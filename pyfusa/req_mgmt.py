@@ -11,6 +11,7 @@ from typing import List
 from pyfusa.config import REQS_FILE
 
 
+# fusa:req REQ-CLI009
 def load(project_root: str) -> dict:
     path = os.path.join(project_root, REQS_FILE)
     if not os.path.exists(path):
@@ -19,6 +20,7 @@ def load(project_root: str) -> dict:
         return json.load(f)
 
 
+# fusa:req REQ-CLI009
 def save(project_root: str, data: dict) -> None:
     path = os.path.join(project_root, REQS_FILE)
     with open(path, "w", encoding="utf-8") as f:
@@ -26,6 +28,7 @@ def save(project_root: str, data: dict) -> None:
         f.write("\n")
 
 
+# fusa:req REQ-CLI009
 def add(
     project_root: str,
     req_id: str,
@@ -54,6 +57,7 @@ def add(
     return entry
 
 
+# fusa:req REQ-CLI009
 def to_csv(requirements: List[dict]) -> str:
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -72,6 +76,7 @@ def to_csv(requirements: List[dict]) -> str:
     return buf.getvalue()
 
 
+# fusa:req REQ-CLI009
 def from_csv(csv_text: str) -> List[dict]:
     reader = csv.DictReader(io.StringIO(csv_text))
     reqs = []
@@ -89,6 +94,7 @@ def from_csv(csv_text: str) -> List[dict]:
     return reqs
 
 
+# fusa:req REQ-CLI009
 def render_text(requirements: List[dict], verbose: bool = False) -> str:
     if not requirements:
         return "no requirements"

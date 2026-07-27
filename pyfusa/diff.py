@@ -10,6 +10,7 @@ def _key(finding: dict) -> str:
     return f"{finding.get('ruleId', '')}:{loc.get('file', '')}:{loc.get('line', 0)}"
 
 
+# fusa:req REQ-CLI009
 def compare(baseline_path: str, current_path: str) -> dict:
     with open(baseline_path, encoding="utf-8") as f:
         baseline = json.load(f)
@@ -33,6 +34,7 @@ def compare(baseline_path: str, current_path: str) -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def render_text(diff: dict) -> str:
     lines = []
     lines.append(

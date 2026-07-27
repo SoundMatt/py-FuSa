@@ -69,6 +69,7 @@ def generate(project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-SCI001
 def render_text(doc: dict) -> str:
     lines = [
         f"SCI — {doc['module']}",

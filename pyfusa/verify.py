@@ -90,9 +90,8 @@ def _parse_pytest_output(output: str, returncode: int) -> dict:
     }
 
 
-def run(
-    project_root: str, cfg: Config, timeout: int = 120
-) -> dict:  # fusa:req REQ-QUAL002
+# fusa:req REQ-QUAL002
+def run(project_root: str, cfg: Config, timeout: int = 120) -> dict:
     """Run tests and build the evidence bundle."""
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
@@ -125,6 +124,7 @@ def run(
     return doc
 
 
+# fusa:req REQ-CLI009
 def load(project_root: str) -> Optional[dict]:
     path = os.path.join(project_root, EVIDENCE_FILE)
     try:
@@ -134,6 +134,7 @@ def load(project_root: str) -> Optional[dict]:
         return None
 
 
+# fusa:req REQ-CLI009
 def save(doc: dict, project_root: str) -> str:
     path = os.path.join(project_root, EVIDENCE_FILE)
     with open(path, "w", encoding="utf-8") as f:
@@ -142,6 +143,7 @@ def save(doc: dict, project_root: str) -> str:
     return path
 
 
+# fusa:req REQ-CLI009
 def render_text(doc: dict) -> str:
     s = doc.get("summary", {})
     lines = [

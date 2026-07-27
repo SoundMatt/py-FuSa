@@ -34,6 +34,7 @@ def _load_config(project_root: str) -> Optional[dict]:
         return None
 
 
+# fusa:req REQ-ICS001
 class IEC62443_001(Rule):
     rule_id = "IEC62443-001"
     standard = "iec62443"
@@ -55,6 +56,7 @@ class IEC62443_001(Rule):
         ]
 
 
+# fusa:req REQ-ICS002
 class IEC62443_002(Rule):
     rule_id = "IEC62443-002"
     standard = "iec62443"
@@ -80,6 +82,7 @@ class IEC62443_002(Rule):
         ]
 
 
+# fusa:req REQ-ICS003
 class IEC62443_003(Rule):
     rule_id = "IEC62443-003"
     standard = "iec62443"
@@ -104,6 +107,7 @@ class IEC62443_003(Rule):
         ]
 
 
+# fusa:req REQ-ICS004
 class IEC62443_004(Rule):
     rule_id = "IEC62443-004"
     standard = "iec62443"

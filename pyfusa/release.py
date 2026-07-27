@@ -90,6 +90,7 @@ def _collect_dependencies() -> list[dict]:
     return sorted(deps, key=lambda d: d["name"].lower())
 
 
+# fusa:req REQ-FUSA001
 def generate_sbom(project_root: str, cfg: Config) -> dict:
     """§7 sbom.json payload."""
     from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
@@ -115,6 +116,7 @@ def generate_sbom(project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-FUSA001
 def generate_provenance(project_root: str, cfg: Config) -> dict:
     """§7 provenance.json payload."""
     from pyfusa import LANGUAGE, SPEC_VERSION, TOOL, VERSION
@@ -142,6 +144,7 @@ def generate_provenance(project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-FUSA001
 def generate_artifact_manifest(
     output_dir: str, artifacts: list[str], project_root: str, cfg: Config
 ) -> dict:
@@ -174,6 +177,7 @@ def generate_artifact_manifest(
     }
 
 
+# fusa:req REQ-FUSA001
 def run_release(
     project_root: str, cfg: Config, output_dir: Optional[str] = None
 ) -> list[str]:

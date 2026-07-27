@@ -40,6 +40,7 @@ _MAPPING = [
 ]
 
 
+# fusa:req REQ-CLI009
 def render_text() -> str:
     lines = [
         "py-FuSa → MISRA C:2023 mapping",
@@ -52,6 +53,7 @@ def render_text() -> str:
     return "\n".join(lines)
 
 
+# fusa:req REQ-CLI009
 def to_dict() -> List[dict]:
     return [
         {"pyfusaRule": r, "misraRule": m, "description": d, "status": s}

@@ -57,6 +57,7 @@ def _query_osv(packages: List[dict], timeout: int = 30) -> List[dict]:
         return []
 
 
+# fusa:req REQ-CLI009
 def scan(project_root: str, cfg: Config, timeout: int = 30) -> dict:
     packages = _installed_packages()
     results = _query_osv(packages, timeout=timeout)

@@ -52,6 +52,7 @@ def _parse(path: str):
         return None, []
 
 
+# fusa:req REQ-ANA002
 class _ThreadVisitor(ast.NodeVisitor):
     """Walk looking for threading.Thread / asyncio.create_task usages."""
 
@@ -97,6 +98,7 @@ def _call_name(node: ast.Call) -> str:
     return ""
 
 
+# fusa:req REQ-ANA001
 class _AsyncEmptyVisitor(ast.NodeVisitor):
     """Find async defs with no await."""
 
@@ -113,6 +115,7 @@ class _AsyncEmptyVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+# fusa:req REQ-ANA009
 class _DeadCodeVisitor(ast.NodeVisitor):
     """Find unreachable statements after return/raise/break/continue."""
 
@@ -153,6 +156,7 @@ class _DeadCodeVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+# fusa:req REQ-ANA003
 class _SleepInThreadVisitor(ast.NodeVisitor):
     """Find time.sleep() calls inside thread worker functions (target=...)."""
 
@@ -175,6 +179,7 @@ class _SleepInThreadVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+# fusa:req REQ-ANA008
 class _GlobalMutationVisitor(ast.NodeVisitor):
     """Find global variable mutations inside functions (ANA008)."""
 
@@ -196,6 +201,7 @@ class _GlobalMutationVisitor(ast.NodeVisitor):
         self.visit_FunctionDef(node)
 
 
+# fusa:req REQ-ANA007
 class _NoneDerefVisitor(ast.NodeVisitor):
     """Find potential None dereferences: var = x.get(...) followed by var.attr (ANA007)."""
 
@@ -222,6 +228,7 @@ class _NoneDerefVisitor(ast.NodeVisitor):
 # ---------------------------------------------------------------------------
 # ANA001 — thread/task creation without termination signal
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA001
 class ANA001(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -293,6 +300,7 @@ class ANA001(Rule):
 # ---------------------------------------------------------------------------
 # ANA002 — thread/task creation inside a loop
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA002
 class ANA002(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -346,6 +354,7 @@ class ANA002(Rule):
 # ---------------------------------------------------------------------------
 # ANA003 — time.sleep inside thread worker
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA003
 class ANA003(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -382,6 +391,7 @@ class ANA003(Rule):
 # ---------------------------------------------------------------------------
 # ANA004 — resource cleanup in finally block that itself raises
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA004
 class ANA004(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -420,6 +430,7 @@ class ANA004(Rule):
 # ---------------------------------------------------------------------------
 # ANA005 — re-fetching context/config inside function that already has it
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA005
 class ANA005(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -491,6 +502,7 @@ class ANA005(Rule):
 # ---------------------------------------------------------------------------
 # ANA006 — unchecked return value (None check omitted)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA006
 class ANA006(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -541,6 +553,7 @@ class ANA006(Rule):
 # ---------------------------------------------------------------------------
 # ANA007 — potential None dereference
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA007
 class ANA007(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -590,6 +603,7 @@ class ANA007(Rule):
 # ---------------------------------------------------------------------------
 # ANA008 — mutable shared state modified in thread context
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA008
 class ANA008(Rule):
     standard = "iso26262"
     clause = "6.4.3"
@@ -639,6 +653,7 @@ class ANA008(Rule):
 # ---------------------------------------------------------------------------
 # ANA009 — dead code (unreachable after return/raise/break/continue)
 # ---------------------------------------------------------------------------
+# fusa:req REQ-ANA009
 class ANA009(Rule):
     standard = "iso26262"
     clause = "6.4.3"

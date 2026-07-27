@@ -12,6 +12,7 @@ from pyfusa.config import DISPOSITIONS_FILE
 ACTIONS = ["accept", "fix", "defer", "reject"]
 
 
+# fusa:req REQ-CLI009
 def load(project_root: str) -> dict:
     path = os.path.join(project_root, DISPOSITIONS_FILE)
     if not os.path.exists(path):
@@ -24,6 +25,7 @@ def load(project_root: str) -> dict:
     return raw
 
 
+# fusa:req REQ-CLI009
 def save(project_root: str, data: dict) -> None:
     path = os.path.join(project_root, DISPOSITIONS_FILE)
     with open(path, "w", encoding="utf-8") as f:
@@ -31,6 +33,7 @@ def save(project_root: str, data: dict) -> None:
         f.write("\n")
 
 
+# fusa:req REQ-CLI009
 def add(
     project_root: str,
     rule_id: str,
@@ -57,6 +60,7 @@ def add(
     return entry
 
 
+# fusa:req REQ-CLI009
 def list_all(project_root: str, rule_filter: Optional[str] = None) -> List[dict]:
     data = load(project_root)
     entries = data.get("entries", [])
@@ -65,6 +69,7 @@ def list_all(project_root: str, rule_filter: Optional[str] = None) -> List[dict]
     return entries
 
 
+# fusa:req REQ-CLI009
 def render_text(entries: List[dict]) -> str:
     if not entries:
         return "no disposition entries"

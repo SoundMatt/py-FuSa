@@ -137,11 +137,12 @@ def _parse_llvm_mcdc(path: str) -> dict:  # fusa:req REQ-COV001
     }
 
 
+# fusa:req REQ-COV001
 def run(
     project_root: str,
     cfg: Config,
     dal: str = "",
-    asil: str = "",  # fusa:req REQ-COV001
+    asil: str = "",
     mcdc: bool = False,
     mcdc_file: str = "",
     mcdc_threshold: float = 100.0,

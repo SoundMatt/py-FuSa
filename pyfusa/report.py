@@ -48,6 +48,7 @@ def _check_envelope(
     return d
 
 
+# fusa:req REQ-CLI009
 def render_text(result: RunResult, project_root: str) -> str:
     lines: list[str] = []
     for f in result.findings:
@@ -68,6 +69,7 @@ def render_text(result: RunResult, project_root: str) -> str:
     return "\n".join(lines)
 
 
+# fusa:req REQ-CLI009
 def render_md(result: RunResult, project_root: str) -> str:
     lines: list[str] = ["# py-FuSa Check Report", ""]
     lines.append("| Severity | Rule | Location | Message |")
@@ -87,6 +89,7 @@ def render_md(result: RunResult, project_root: str) -> str:
     return "\n".join(lines)
 
 
+# fusa:req REQ-CLI009
 def render_html(result: RunResult, project_root: str) -> str:
     rows: list[str] = []
     for f in result.findings:
@@ -125,6 +128,7 @@ tr.warning td:first-child {{color:#c80;font-weight:bold;}}
 """
 
 
+# fusa:req REQ-CLI009
 def render_sarif(result: RunResult, project_root: str, cfg: Config) -> dict:
     """§2.9 SARIF 2.1.0 with physicalLocation on every result."""
     from pyfusa import TOOL, VERSION
@@ -199,6 +203,7 @@ def render_sarif(result: RunResult, project_root: str, cfg: Config) -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def render(
     w: TextIO, result: RunResult, fmt: str, project_root: str, cfg: Config
 ) -> None:

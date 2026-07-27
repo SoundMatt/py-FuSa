@@ -8,6 +8,7 @@ import os
 import secrets
 
 
+# fusa:req REQ-CLI009
 def keygen(output_path: str) -> None:
     key = secrets.token_bytes(32).hex()
     with open(output_path, "w", encoding="utf-8") as f:
@@ -20,6 +21,7 @@ def _load_key(key_path: str) -> bytes:
         return bytes.fromhex(f.read().strip())
 
 
+# fusa:req REQ-CLI009
 def sign_file(target_path: str, key_path: str, sig_path: str = "") -> str:
     key = _load_key(key_path)
     with open(target_path, "rb") as f:
@@ -32,6 +34,7 @@ def sign_file(target_path: str, key_path: str, sig_path: str = "") -> str:
     return sig_path
 
 
+# fusa:req REQ-CLI009
 def verify_file(target_path: str, key_path: str, sig_path: str = "") -> bool:
     key = _load_key(key_path)
     if not sig_path:

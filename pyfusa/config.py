@@ -40,6 +40,7 @@ class ProjectConfig:
     version: str = "0.1.0"
 
 
+# fusa:req REQ-CONFIG001
 @dataclass
 class Config:
     config_version: str = CONFIG_VERSION
@@ -64,10 +65,12 @@ class Config:
         return ""
 
 
+# fusa:req REQ-CONFIG001
 def default(project_name: str = "", standard: str = "iso26262") -> Config:
     return Config(project=ProjectConfig(name=project_name), standard=standard)
 
 
+# fusa:req REQ-CONFIG001
 def load(path: str) -> Config:
     """Load and validate .fusa.json. Raises pyfusa.ErrNoConfig / ErrInvalidConfig."""
     if not os.path.exists(path):
@@ -108,6 +111,7 @@ def load(path: str) -> Config:
     return cfg
 
 
+# fusa:req REQ-CONFIG001
 def load_dispositions(path: str) -> list[dict]:
     """Load .fusa-dispositions.json (§1.2.3). Returns empty list if absent."""
     if not os.path.exists(path):
@@ -120,6 +124,7 @@ def load_dispositions(path: str) -> list[dict]:
     return data.get("dispositions", [])
 
 
+# fusa:req REQ-CONFIG001
 def load_requirements(path: str) -> tuple[list[dict], list[pyfusa.Finding]]:
     """Load .fusa-reqs.json (§1.2.2). Returns (requirements, error_findings)."""
     if not os.path.exists(path):

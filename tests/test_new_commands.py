@@ -506,6 +506,7 @@ def test_safety_case_json_schema():
 
 
 # fusa:test REQ-CLI001
+# fusa:test REQ-COMPLY001
 def test_iso26262_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -519,6 +520,7 @@ def test_iso26262_json_schema():
 
 
 # fusa:test REQ-CLI001
+# fusa:test REQ-COMPLY001
 def test_iec61508_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -531,6 +533,7 @@ def test_iec61508_json_schema():
 
 
 # fusa:test REQ-CLI001
+# fusa:test REQ-COMPLY001
 def test_do178_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -543,6 +546,7 @@ def test_do178_json_schema():
 
 
 # fusa:test REQ-CLI001
+# fusa:test REQ-COMPLY001
 def test_iso21434_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -556,6 +560,7 @@ def test_iso21434_json_schema():
 
 # fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
+# fusa:test REQ-COMPLY001
 def test_unece_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()

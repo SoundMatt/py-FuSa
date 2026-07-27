@@ -12,6 +12,7 @@ from pyfusa.config import Config
 METRICS_FILE = ".fusa-metrics.json"
 
 
+# fusa:req REQ-CLI009
 def load(project_root: str) -> dict:
     path = os.path.join(project_root, METRICS_FILE)
     if not os.path.exists(path):
@@ -20,6 +21,7 @@ def load(project_root: str) -> dict:
         return json.load(f)
 
 
+# fusa:req REQ-CLI009
 def save(project_root: str, data: dict) -> None:
     path = os.path.join(project_root, METRICS_FILE)
     with open(path, "w", encoding="utf-8") as f:
@@ -34,6 +36,7 @@ def _load_json(path: str) -> Optional[dict]:
         return json.load(f)
 
 
+# fusa:req REQ-CLI009
 def collect(project_root: str, cfg: Config, version: str = "") -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -78,6 +81,7 @@ def collect(project_root: str, cfg: Config, version: str = "") -> dict:
     }
 
 
+# fusa:req REQ-CLI009
 def record(project_root: str, cfg: Config, version: str = "") -> dict:
     snapshot = collect(project_root, cfg, version)
     data = load(project_root)
@@ -86,6 +90,7 @@ def record(project_root: str, cfg: Config, version: str = "") -> dict:
     return snapshot
 
 
+# fusa:req REQ-CLI009
 def render_text(data: dict) -> str:
     snapshots = data.get("snapshots", [])
     if not snapshots:
