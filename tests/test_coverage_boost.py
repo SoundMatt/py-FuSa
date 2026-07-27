@@ -114,6 +114,7 @@ def test_verify_run_no_tests():
         assert "pythonVersion" in doc
 
 
+# fusa:test REQ-CLI009
 def test_verify_cli_text():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -216,6 +217,7 @@ def test_impact_check_stale_no_artifacts():
         assert stale == []
 
 
+# fusa:test REQ-CLI009
 def test_impact_cli():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -256,6 +258,7 @@ def test_vuln_scan_returns_report():
         assert "findings" in doc
 
 
+# fusa:test REQ-CLI009
 def test_vuln_cli():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
@@ -650,6 +653,7 @@ def test_comp001_dal_threshold():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-EVIDENCE009
 def test_verify001_missing_bundle():
     from pyfusa.rules.evidence import VERIFY001
 
@@ -659,6 +663,7 @@ def test_verify001_missing_bundle():
         assert any(f.rule_id == "VERIFY001" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE009
 def test_verify001_bundle_present():
     from pyfusa.rules.evidence import VERIFY001
 
@@ -669,6 +674,7 @@ def test_verify001_bundle_present():
         assert VERIFY001().run(tmpdir, cfg) == []
 
 
+# fusa:test REQ-EVIDENCE010
 def test_verify002_failed_tests():
     from pyfusa.rules.evidence import VERIFY002
 
@@ -682,6 +688,7 @@ def test_verify002_failed_tests():
         assert any(f.rule_id == "VERIFY002" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE010
 def test_verify002_all_pass():
     from pyfusa.rules.evidence import VERIFY002
 
@@ -694,6 +701,7 @@ def test_verify002_all_pass():
         assert VERIFY002().run(tmpdir, cfg) == []
 
 
+# fusa:test REQ-EVIDENCE011
 def test_hara001_missing():
     from pyfusa.rules.evidence import HARA001
 
@@ -705,6 +713,7 @@ def test_hara001_missing():
         assert findings[0].severity == pyfusa.SEVERITY_WARNING
 
 
+# fusa:test REQ-EVIDENCE011
 def test_hara001_present():
     from pyfusa.rules.evidence import HARA001
 
@@ -715,6 +724,7 @@ def test_hara001_present():
         assert HARA001().run(tmpdir, cfg) == []
 
 
+# fusa:test REQ-EVIDENCE012
 def test_hara002_incomplete_risk():
     from pyfusa.rules.evidence import HARA002
 
@@ -727,6 +737,7 @@ def test_hara002_incomplete_risk():
         assert any(f.rule_id == "HARA002" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE012
 def test_hara002_complete_risk():
     from pyfusa.rules.evidence import HARA002
 
@@ -749,6 +760,7 @@ def test_hara002_complete_risk():
         assert HARA002().run(tmpdir, cfg) == []
 
 
+# fusa:test REQ-EVIDENCE013
 def test_hara003_no_safety_goal():
     from pyfusa.rules.evidence import HARA003
 
@@ -761,6 +773,7 @@ def test_hara003_no_safety_goal():
         assert any(f.rule_id == "HARA003" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE014
 def test_hara004_no_asil():
     from pyfusa.rules.evidence import HARA004
 
@@ -773,6 +786,7 @@ def test_hara004_no_asil():
         assert any(f.rule_id == "HARA004" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE015
 def test_hara005_asil_exceeds_project():
     from pyfusa.rules.evidence import HARA005
 
@@ -786,6 +800,7 @@ def test_hara005_asil_exceeds_project():
         assert any(f.rule_id == "HARA005" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE001
 def test_release001_missing():
     from pyfusa.rules.evidence import RELEASE001
 
@@ -794,6 +809,7 @@ def test_release001_missing():
         assert any(f.rule_id == "RELEASE001" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE001
 def test_release001_present():
     from pyfusa.rules.evidence import RELEASE001
 
@@ -803,6 +819,140 @@ def test_release001_present():
         assert RELEASE001().run(tmpdir, default()) == []
 
 
+# fusa:test REQ-EVIDENCE002
+def test_release002_missing():
+    from pyfusa.rules.evidence import RELEASE002
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        findings = RELEASE002().run(tmpdir, default())
+        assert any(f.rule_id == "RELEASE002" for f in findings)
+
+
+# fusa:test REQ-EVIDENCE002
+def test_release002_present():
+    from pyfusa.rules.evidence import RELEASE002
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "provenance.json"), "w") as f:
+            json.dump({}, f)
+        assert RELEASE002().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE003
+def test_qualify001_missing():
+    from pyfusa.rules.evidence import QUALIFY001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        findings = QUALIFY001().run(tmpdir, default())
+        assert any(f.rule_id == "QUALIFY001" for f in findings)
+
+
+# fusa:test REQ-EVIDENCE003
+def test_qualify001_present():
+    from pyfusa.rules.evidence import QUALIFY001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "qualify-report.json"), "w") as f:
+            json.dump({}, f)
+        assert QUALIFY001().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE004
+def test_fmea001_missing():
+    from pyfusa.rules.evidence import FMEA001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        findings = FMEA001().run(tmpdir, default())
+        assert any(f.rule_id == "FMEA001" for f in findings)
+
+
+# fusa:test REQ-EVIDENCE004
+def test_fmea001_present():
+    from pyfusa.rules.evidence import FMEA001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "fmea.json"), "w") as f:
+            json.dump({}, f)
+        assert FMEA001().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE005
+def test_tara001_missing():
+    from pyfusa.rules.evidence import TARA001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        findings = TARA001().run(tmpdir, default())
+        assert any(f.rule_id == "TARA001" for f in findings)
+
+
+# fusa:test REQ-EVIDENCE005
+def test_tara001_present():
+    from pyfusa.rules.evidence import TARA001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "tara.json"), "w") as f:
+            json.dump({}, f)
+        assert TARA001().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE006
+def test_boundary001_missing():
+    from pyfusa.rules.evidence import BOUNDARY001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        findings = BOUNDARY001().run(tmpdir, default())
+        assert any(f.rule_id == "BOUNDARY001" for f in findings)
+
+
+# fusa:test REQ-EVIDENCE006
+def test_boundary001_present_mermaid():
+    from pyfusa.rules.evidence import BOUNDARY001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "boundary.mermaid"), "w") as f:
+            f.write("graph TD\n")
+        assert BOUNDARY001().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE007
+def test_safetycase001_missing():
+    from pyfusa.rules.evidence import SAFETYCASE001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        findings = SAFETYCASE001().run(tmpdir, default())
+        assert any(f.rule_id == "SAFETYCASE001" for f in findings)
+
+
+# fusa:test REQ-EVIDENCE007
+def test_safetycase001_present():
+    from pyfusa.rules.evidence import SAFETYCASE001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "safety-case.json"), "w") as f:
+            json.dump({}, f)
+        assert SAFETYCASE001().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE008
+def test_auditpack001_missing():
+    from pyfusa.rules.evidence import AUDITPACK001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        findings = AUDITPACK001().run(tmpdir, default())
+        assert any(f.rule_id == "AUDITPACK001" for f in findings)
+
+
+# fusa:test REQ-EVIDENCE008
+def test_auditpack001_present():
+    from pyfusa.rules.evidence import AUDITPACK001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "audit-pack.zip"), "w") as f:
+            f.write("PK\x03\x04")
+        assert AUDITPACK001().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE016
 def test_disp001_no_check_report():
     from pyfusa.rules.evidence import DISP001
 
@@ -811,6 +961,7 @@ def test_disp001_no_check_report():
         assert any(f.rule_id == "DISP001" for f in findings)
 
 
+# fusa:test REQ-EVIDENCE016
 def test_disp001_no_unresolved():
     from pyfusa.rules.evidence import DISP001
 

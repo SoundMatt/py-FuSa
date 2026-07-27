@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.2.5 — 2026-07-27
+
+### Tests
+
+- Closed all 17 requirements left untested by the v0.2.4 `#fusa:req`
+  annotation retrofit of `pyfusa/rules/evidence.py` and the remaining
+  `cmd_*` handlers in `pyfusa/cli/main.py`:
+  - `REQ-EVIDENCE001..016` (the 16 evidence-presence rule classes —
+    `RELEASE001/002`, `QUALIFY001`, `FMEA001`, `TARA001`, `BOUNDARY001`,
+    `SAFETYCASE001`, `AUDITPACK001`, `VERIFY001/002`, `HARA001..005`,
+    `DISP001`): 9 already had exercising tests in
+    `tests/test_coverage_boost.py` and just needed a `#fusa:test` tag;
+    7 (`RELEASE002`, `QUALIFY001`, `FMEA001`, `TARA001`, `BOUNDARY001`,
+    `SAFETYCASE001`, `AUDITPACK001`) had no test at all and got new
+    missing/present pairs following the existing `RELEASE001`/`DISP001`
+    style.
+  - `REQ-CLI009` (the 30 additional CLI subcommands): 29 already had
+    CLI-level tests across `tests/test_new_commands.py`,
+    `tests/test_coverage_boost.py`, `tests/test_coverage_boost2.py`,
+    `tests/test_comp_command.py`, and `tests/test_e2e.py` — each got a
+    stacked `#fusa:test REQ-CLI009` tag alongside its existing tag. `hooks`
+    had no test; added `test_hooks_install_creates_pre_commit`,
+    `test_hooks_remove_deletes_pre_commit`, and
+    `test_hooks_remove_when_absent` to `tests/test_new_commands.py`.
+  - `pyfusa trace --dir . --gaps` now reports zero gaps (77/77 requirements
+    traced and tested, up from 60/77).
+
 ## v0.2.4 — 2026-07-27
 
 ### Fixed

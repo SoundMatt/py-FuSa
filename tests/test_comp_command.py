@@ -256,6 +256,7 @@ def test_render_text_header():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 def test_comp_cli_writes_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY)

@@ -35,6 +35,7 @@ def _tmpdir_with_fusa(name: str = "myproj") -> tuple:
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_lint_exits_0_clean():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -57,6 +58,7 @@ def test_lint_json_schema():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_analyze_exits_0_clean():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -70,6 +72,7 @@ def test_analyze_exits_0_clean():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_cyber_exits_0_clean():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -142,6 +145,7 @@ def test_cyber007_tls_verify_false():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_fmea_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -178,6 +182,7 @@ def test_fmea_skips_private():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_boundary_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -197,6 +202,7 @@ def test_boundary_json_schema():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_coupling_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -216,6 +222,7 @@ def test_coupling_json_schema():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_tara_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -233,6 +240,7 @@ def test_tara_json_schema():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_hara_init():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -256,6 +264,7 @@ def test_hara_validate_ok():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_diff_no_changes():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -314,6 +323,7 @@ def test_diff_introduced():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_badge_generates_svg():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -345,6 +355,7 @@ def test_badge_generates_svg():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_sign_keygen_and_verify():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -396,6 +407,7 @@ def test_sign_keygen_and_verify():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_pr_add_and_list():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -425,6 +437,7 @@ def test_pr_add_and_list():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_disposition_add_and_list():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -454,6 +467,7 @@ def test_disposition_add_and_list():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_metrics_record_and_show():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -471,6 +485,7 @@ def test_metrics_record_and_show():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_safety_case_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -539,6 +554,7 @@ def test_iso21434_json_schema():
         assert doc["kind"] == "gap-report"
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_unece_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -555,6 +571,7 @@ def test_unece_json_schema():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_sas_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -567,6 +584,7 @@ def test_sas_json_schema():
         assert "sections" in doc
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_sci_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -584,6 +602,7 @@ def test_sci_json_schema():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_coverage_text_output():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -597,6 +616,7 @@ def test_coverage_text_output():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_template_list():
     out = io.StringIO()
@@ -619,6 +639,7 @@ def test_template_generate_safety_plan():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_misra_text():
     out = io.StringIO()
@@ -641,6 +662,7 @@ def test_misra_json():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_req_add_and_list():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -681,9 +703,54 @@ def test_req_export_csv():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_fix_lists_fixable():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
         code = run(["fix", "--dir", tmpdir], stdout=out)
         assert code == pyfusa.EXIT_OK
+
+
+# ---------------------------------------------------------------------------
+# hooks
+# ---------------------------------------------------------------------------
+
+
+# fusa:test REQ-CLI009
+def test_hooks_install_creates_pre_commit():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.makedirs(os.path.join(tmpdir, ".git", "hooks"))
+        out = io.StringIO()
+        code = run(["hooks", "install", "--dir", tmpdir], stdout=out)
+        assert code == pyfusa.EXIT_OK
+        hook_path = os.path.join(tmpdir, ".git", "hooks", "pre-commit")
+        assert os.path.exists(hook_path)
+        with open(hook_path) as f:
+            content = f.read()
+        assert "pyfusa check --strict" in content
+        assert "installed pre-commit hook" in out.getvalue()
+
+
+# fusa:test REQ-CLI009
+def test_hooks_remove_deletes_pre_commit():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.makedirs(os.path.join(tmpdir, ".git", "hooks"))
+        run(["hooks", "install", "--dir", tmpdir], stdout=io.StringIO())
+        hook_path = os.path.join(tmpdir, ".git", "hooks", "pre-commit")
+        assert os.path.exists(hook_path)
+
+        out = io.StringIO()
+        code = run(["hooks", "remove", "--dir", tmpdir], stdout=out)
+        assert code == pyfusa.EXIT_OK
+        assert not os.path.exists(hook_path)
+        assert "removed pre-commit hook" in out.getvalue()
+
+
+# fusa:test REQ-CLI009
+def test_hooks_remove_when_absent():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out = io.StringIO()
+        code = run(["hooks", "remove", "--dir", tmpdir], stdout=out)
+        assert code == pyfusa.EXIT_OK
+        assert "no pre-commit hook found" in out.getvalue()

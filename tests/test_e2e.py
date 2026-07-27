@@ -90,6 +90,7 @@ def test_check_json_schema():
         assert "summary" in doc
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-FUSA001
 def test_report_always_exits_0():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -124,6 +125,7 @@ def test_check_output_to_file():
         assert "findings" in doc
 
 
+# fusa:test REQ-CLI009
 # fusa:test REQ-FUSA001
 def test_init_creates_files():
     with tempfile.TemporaryDirectory() as tmpdir:
