@@ -30,19 +30,28 @@ _ACTION_PRIORITY = {"high": "high", "medium": "medium", "low": "low"}
 
 
 def _python_files(root: str, cfg: Config) -> List[str]:
+    """Discover .py files under cfg.source_dirs, sorted deterministically.
+
+    os.walk's enumeration order is filesystem-dependent (observed to differ
+    between filesystems for a directory that has just gained a new entry,
+    e.g. a freshly-written fmea.json sitting alongside the scanned .py
+    files) — sorting here keeps entries[] order, and therefore the §1.6.2
+    content hash, stable across repeated runs on the same unchanged source,
+    regardless of OS/filesystem.
+    """
     source_dirs = cfg.source_dirs or ["."]
     paths: List[str] = []
     skip = {"__pycache__", ".git", ".tox", "venv", ".venv", "dist", "build"}
     for sdir in source_dirs:
         base = os.path.join(root, sdir)
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [
+            dirnames[:] = sorted(
                 d for d in dirnames if d not in skip and not d.startswith(".")
-            ]
-            for fn in filenames:
+            )
+            for fn in sorted(filenames):
                 if fn.endswith(".py"):
                     paths.append(os.path.join(dirpath, fn))
-    return paths
+    return sorted(paths)
 
 
 def _rel(path: str, root: str) -> str:
