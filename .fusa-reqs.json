@@ -219,6 +219,14 @@
       "parent_id": "REQ-QUAL001"
     },
     {
+      "id": "REQ-QUAL001-LLR3",
+      "title": "qualify --output always writes JSON",
+      "text": "When --output <file> is given, the qualify command shall write the JSON qualification record to that file regardless of the --format flag's value, since the x-FuSa spec documents only a JSON schema for the qualify artifact.",
+      "standard": "iso26262",
+      "level": "LLR",
+      "parent_id": "REQ-QUAL001"
+    },
+    {
       "id": "REQ-QUAL002",
       "title": "V&V independence reporting",
       "text": "The qualify command shall accept --implementation-author, --independent-reviewer, --independent-test-executor flags and emit an independenceStatus field.",

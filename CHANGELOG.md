@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## v0.2.8 — 2026-07-27
 
 ### Added
 - `docker-publish.yml` now notifies `SoundMatt/FuSaOps` via `repository_dispatch`
@@ -8,6 +8,16 @@
   bundled image promptly instead of waiting for its weekly cron. Requires a
   `FUSAOPS_DISPATCH_TOKEN` secret in this repo; falls back silently
   (`continue-on-error`) to the weekly rebuild if it's not set.
+
+### Fixed
+- `qualify --output <file>` (#22) wrote the human-readable text report to the
+  output file when `--format` was omitted, instead of the JSON qualification
+  record documented as the only artifact schema in spec §6. `--output` now
+  always writes JSON regardless of `--format`, which continues to control
+  only the optional human-readable stdout rendering. This was silently
+  breaking FuSaOps's `conform` §6 check and its production `Qualifier`
+  adapter capability, which both invoke `qualify --output` without an
+  explicit `--format json`.
 
 ## v0.2.7 — 2026-07-27
 
