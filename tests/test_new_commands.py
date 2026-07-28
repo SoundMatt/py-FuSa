@@ -592,6 +592,60 @@ def test_sas_json_schema():
 
 
 # fusa:test REQ-CLI009
+def test_sas_always_writes_md_companion():
+    """x-FuSa spec §9.3 sas MUST: sas.json is not a replacement for the
+    human-readable sas.md companion — a tool MUST also write it, regardless
+    of the requested --format/--output."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out = io.StringIO()
+        code = run(
+            [
+                "sas",
+                "--dir",
+                tmpdir,
+                "--format",
+                "json",
+                "--output",
+                os.path.join(tmpdir, "sas.json"),
+            ],
+            stdout=out,
+        )
+        assert code == pyfusa.EXIT_OK
+        md_path = os.path.join(tmpdir, "sas.md")
+        assert os.path.exists(md_path)
+        with open(md_path, encoding="utf-8") as f:
+            content = f.read()
+        assert content.startswith("# Software Accomplishment Summary")
+        assert "|" in content  # markdown table, not the plain-text renderer
+
+
+# fusa:test REQ-CLI009
+def test_sas_format_md_accepted():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out = io.StringIO()
+        code = run(
+            ["sas", "--dir", tmpdir, "--format", "md", "--output", ""], stdout=out
+        )
+        assert code == pyfusa.EXIT_OK
+        assert out.getvalue().startswith("# Software Accomplishment Summary")
+
+
+# fusa:test REQ-CLI009
+def test_sas_md_companion_not_duplicated_when_output_is_sas_md():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out = io.StringIO()
+        md_path = os.path.join(tmpdir, "sas.md")
+        code = run(
+            ["sas", "--dir", tmpdir, "--format", "md", "--output", md_path],
+            stdout=out,
+        )
+        assert code == pyfusa.EXIT_OK
+        # exactly one "wrote" line — no duplicate write of the same file
+        lines = [l for l in out.getvalue().splitlines() if l.startswith("wrote")]
+        assert lines == ["wrote sas.md"]
+
+
+# fusa:test REQ-CLI009
 # fusa:test REQ-CLI001
 def test_sci_json_schema():
     with tempfile.TemporaryDirectory() as tmpdir:

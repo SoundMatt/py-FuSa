@@ -758,20 +758,6 @@
       "parent": "REQ-QUALBASE004"
     },
     {
-      "id": "REQ-QUALBASE007",
-      "title": "FUSA-STUB001 check-engine rule",
-      "text": "The check engine shall scan every committed fmea.json/tara.json/.fusa-hara.json/safety-case.json/sas.json for placeholder text and surface FUSA-STUB001 findings alongside the tool's other check findings.",
-      "standard": "iso26262",
-      "parent": "REQ-QUALBASE001"
-    },
-    {
-      "id": "REQ-QUALBASE008",
-      "title": "FUSA-STUB002 check-engine rule",
-      "text": "The check engine shall scan every committed fmea.json/tara.json/.fusa-hara.json/safety-case.json/sas.json for a blanket qualitative fallback and surface an unsuppressed FUSA-STUB002 finding alongside the tool's other check findings.",
-      "standard": "iso26262",
-      "parent": "REQ-QUALBASE002"
-    },
-    {
       "id": "REQ-ATTEST001",
       "title": "Attestation content hash",
       "text": "The tool shall compute a canonical sha256: content hash over an evidence document's substantive content, excluding its header/attestation/generatedAt fields, per x-FuSa spec section 1.6.2.",

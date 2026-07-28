@@ -221,6 +221,7 @@ jobs:
             sbom.json
             provenance.json
             sas.json
+            sas.md
             sci.json
 
   # ── SARIF upload (GitHub Code Scanning) ──────────────────────────────────

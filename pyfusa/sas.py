@@ -10,6 +10,7 @@ from pyfusa.config import Config
 from pyfusa import content_quality
 
 SAS_FILE = "sas.json"
+SAS_MD_FILE = "sas.md"
 
 # (item, clause, candidate evidence files) — DO-178C §11 data items relevant
 # to the project's DAL. `clause` is the informal §11.<n> reference; some
@@ -79,6 +80,29 @@ def render_text(doc: dict) -> str:
         lines.append(f"  {marker} [{c['clause']}] {c['item']}")
         if not c["present"]:
             lines.append("      missing")
+    return "\n".join(lines)
+
+
+# fusa:req REQ-CLI009
+def to_markdown(doc: dict) -> str:
+    """The human-readable `sas.md` companion (x-FuSa spec §9.3 `sas` MUST) —
+    `sas.json` is not a replacement for it, per the existing `sas.{json,md}`
+    filename convention (§1.3)."""
+    lines = [
+        f"# Software Accomplishment Summary — {doc['project']}",
+        "",
+        f"DAL: {doc['dal']}  ",
+        f"Generated: {doc['generatedAt']}",
+        "",
+        f"**Checklist: {doc['summary']['present']}/{doc['summary']['total']} present**",
+        "",
+        "| Clause | Item | Present | Evidence |",
+        "|---|---|---|---|",
+    ]
+    for c in doc["checklist"]:
+        present = "yes" if c["present"] else "no"
+        evidence = c.get("evidence", "")
+        lines.append(f"| {c['clause']} | {c['item']} | {present} | {evidence} |")
     return "\n".join(lines)
 
 

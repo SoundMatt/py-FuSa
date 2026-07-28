@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.3.0 — 2026-07-28
+
+Adopts x-FuSa spec v1.15.0 and fixes five defects found by a deep-audit pass
+that ran py-FuSa against its own codebase and diffed the real output against
+the spec (`SoundMatt/py-FuSa` #26–#31).
+
+### Fixed
+
+- **`tara`: `impact` axes used the wrong enum vocabulary (#26).**
+  `impact.{safety,financial,operational,privacy}` was emitted from a
+  `low|medium|high|critical` scale — the same vocabulary reserved for
+  `attackFeasibility` — instead of the spec's closed
+  `critical|major|moderate|negligible` enum. Any consumer validating
+  against the closed enum rejected every `tara.json` entry py-FuSa produced.
+- **`tara`: risk computation silently defaulted to `"low"` for the
+  highest-severity threats (#27).** `_compute_risk` looked up the risk
+  combination table as `(feasibility, worst)` instead of `(worst,
+  feasibility)`, and the table had no row for `worst == "critical"`. Command
+  injection and SQL injection findings (feasibility `high`, impact
+  `critical`) rated `risk: "low"` — the lowest possible value — instead of
+  `"critical"`. Risk is now computed directly against the spec's canonical
+  table, with every `worst` row covered so no combination falls through to
+  a default.
+- **`fmea`: test-fixture functions counted as project components, inflating
+  `summary.coveragePct` past 100% (#28).** `fmea`'s file-discovery skip set
+  didn't exclude the `tests`/`test` tree the way `trace --func-coverage`'s
+  denominator already did, so a project with a nested test tree could see
+  `coveragePct` values like `500%`. The two scanners now share one
+  exclusion definition (`trace.EXCLUDED_SOURCE_DIRS`), and `fmea`/`tara`'s
+  `coveragePct` also gained a defensive `min(pct, 100.0)` clamp per the
+  spec's new §9.2 MUST.
+- **`FUSA-STUB001`/`FUSA-STUB002` no longer gate `check`'s own exit code
+  (#29).** These content-quality rules read committed sibling evidence
+  artifacts (`fmea.json`, `tara.json`, `.fusa-hara.json`, `safety-case.json`,
+  `sas.json`) and fed findings into `pyfusa check`'s result set — a
+  committed-but-stale stub artifact could fail an unrelated `check` run.
+  Per x-FuSa spec §1.6.1 ("Who runs this" — MUST), detection now runs only
+  inside each artifact-producing command's own gate, which already
+  implemented this correctly.
+- **`sas`: the required `sas.md` companion was never written, and
+  `--format` didn't accept `md` (#30).** `pyfusa sas --format json --output
+  sas.json` — the exact invocation this project's own CI uses — produced
+  only `sas.json`; the human-readable DO-178C §11.20 artifact was never
+  generated. `sas` now always writes `sas.md` alongside whatever
+  `--format`/`--output` was requested, and `--format md` is accepted.
+
+### Added
+
+- **x-FuSa spec v1.15.0 §1.6.2 attestation carry-forward (MUST).** Verified
+  already correctly implemented across `fmea`/`tara`/`hara`/`safety-case`/
+  `sas` (`content_quality.load_existing_attestation`, wired into each
+  command's `to_dict`/`generate`) — added end-to-end regression tests
+  covering both the carry-forward and the staleness-on-content-change path.
+
 ## v0.2.9 — 2026-07-28
 
 Adopts x-FuSa spec v1.13.0/v1.14.0: real JSON schemas for the six evidence

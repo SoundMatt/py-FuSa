@@ -18,11 +18,20 @@ from pyfusa import content_quality
 
 TARA_FILE = "tara.json"
 
-# SFOP/risk scale, low → critical (spec's own attackFeasibility scale plus a
-# "critical" ceiling for impact, since a threat's worst-case damage can
-# exceed what "high" implies for attacker feasibility).
+# Internal coarse severity scale used only to rank each `_RULE_META["impact"]`
+# label (itself "Low"/"Medium"/"High"/"Critical") before it is projected onto
+# the two *distinct*, spec-mandated output vocabularies below. This scale is
+# never emitted verbatim.
 _SCALE = ["low", "medium", "high", "critical"]
 _RANK = {v: i for i, v in enumerate(_SCALE)}
+
+# x-FuSa spec §9.2 tara closed enum for impact.{safety,financial,operational,
+# privacy}: critical|major|moderate|negligible — NOT the high/medium/low
+# vocabulary used for attackFeasibility. Index-aligned with `_SCALE` above so
+# an `_RANK` value can be projected straight across (rank 0 -> "negligible",
+# rank 3 -> "critical").
+_IMPACT_ENUM = ["negligible", "moderate", "major", "critical"]
+_IMPACT_RANK = {v: i for i, v in enumerate(_IMPACT_ENUM)}
 
 # STRIDE metadata per CYBER rule. `impact` here is this project's own coarse
 # overall-severity label (Low/Medium/High/Critical) from which the four SFOP
@@ -229,8 +238,12 @@ _RULE_META = {
 }
 
 
-def _scale_at(rank: int) -> str:
-    return _SCALE[max(0, min(len(_SCALE) - 1, rank))]
+def _impact_at(rank: int) -> str:
+    """Project an internal 0-3 severity rank onto the spec's closed
+    `impact.{safety,financial,operational,privacy}` enum (critical | major |
+    moderate | negligible) — never onto `_SCALE`, which is a different scale
+    (attackFeasibility's) and must not be substituted here."""
+    return _IMPACT_ENUM[max(0, min(len(_IMPACT_ENUM) - 1, rank))]
 
 
 # fusa:req REQ-TARA006
@@ -251,33 +264,38 @@ def _sfop_impact(meta: dict) -> dict:
     financial = max(0, overall - 1) if stride & {"R"} else overall
 
     return {
-        "safety": _scale_at(safety),
-        "financial": _scale_at(financial),
-        "operational": _scale_at(operational),
-        "privacy": _scale_at(privacy),
+        "safety": _impact_at(safety),
+        "financial": _impact_at(financial),
+        "operational": _impact_at(operational),
+        "privacy": _impact_at(privacy),
     }
 
 
-# ISO 21434 Clause 15: attackFeasibility x worst-SFOP-axis -> risk.
-_RISK_MATRIX = {
-    ("critical", "high"): "critical",
-    ("critical", "medium"): "critical",
-    ("critical", "low"): "high",
-    ("high", "high"): "critical",
-    ("high", "medium"): "high",
-    ("high", "low"): "medium",
-    ("medium", "high"): "high",
-    ("medium", "medium"): "medium",
-    ("medium", "low"): "low",
-    ("low", "high"): "medium",
-    ("low", "medium"): "low",
-    ("low", "low"): "low",
-}
-
-
 def _compute_risk(impact: dict, feasibility: str) -> str:
-    worst = max(impact.values(), key=lambda v: _RANK.get(v, 0))
-    return _RISK_MATRIX.get((feasibility, worst), "low")
+    """x-FuSa spec §9.2 tara risk combination table: the highest-ranked of
+    the four SFOP axes against `attackFeasibility`. Every `worst` row is
+    covered (including "critical", the family's own ceiling above ISO
+    21434's own Severe/Major/Moderate/Negligible scale) so no combination
+    silently falls through to a default "low" — a feasibility outside
+    high|medium|low (e.g. "very-low", or an unrecognised value) is treated
+    fail-safe, at the table's own "very-low" column rather than its "low"
+    column."""
+    worst = max(impact.values(), key=lambda v: _IMPACT_RANK.get(v, 0))
+    if worst == "critical":
+        if feasibility in ("high", "medium"):
+            return "critical"
+        if feasibility == "low":
+            return "high"
+        return "medium"
+    if worst == "major":
+        if feasibility in ("high", "medium"):
+            return "high"
+        return "medium"
+    if worst == "moderate":
+        if feasibility in ("high", "medium"):
+            return "medium"
+        return "low"
+    return "low"
 
 
 def _treatment(risk: str, current_control: str) -> str:
@@ -343,6 +361,10 @@ def _coverage(project_root: str, cfg: Config, entries: List[dict]) -> dict:
         if assets_in_project
         else 100.0
     )
+    # x-FuSa spec §9.2 tara MUST: coveragePct must never exceed 100 — a
+    # defensive backstop alongside `_python_files`' test-tree exclusion
+    # (shared with fmea, which is what stops this in the normal case).
+    pct = min(pct, 100.0)
     return {
         "assetsAnalyzed": assets_analyzed,
         "assetsInProject": assets_in_project,

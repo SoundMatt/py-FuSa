@@ -2095,7 +2095,9 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p = argparse.ArgumentParser(prog="pyfusa sas", add_help=True)
     p.add_argument("--dir", default="")
     p.add_argument("--dal", default="DAL-B")
-    p.add_argument("--format", default="json", dest="fmt", choices=["json", "text"])
+    p.add_argument(
+        "--format", default="json", dest="fmt", choices=["json", "md", "text"]
+    )
     p.add_argument("--output", default="")
     p.add_argument("--strict", action="store_true")
     p.add_argument("--require-attestation", action="store_true")
@@ -2122,6 +2124,9 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
+        elif ns.fmt == "md":
+            w.write(_sas.to_markdown(doc))
+            w.write("\n")
         else:
             w.write(_sas.render_text(doc))
             w.write("\n")
@@ -2131,6 +2136,31 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if out_path:
         print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
+    # x-FuSa spec §9.3 sas MUST: the human-readable sas.md companion is
+    # written unconditionally alongside whatever --format/--output was
+    # requested — sas.json is not a replacement for it. Skip only when the
+    # primary output just written above is already that exact file.
+    md_path = os.path.join(project_root, _sas.SAS_MD_FILE)
+    already_wrote_md = (
+        out_path
+        and ns.fmt in ("md", "text")
+        and os.path.abspath(out_path) == os.path.abspath(md_path)
+    )
+    if not already_wrote_md:
+        try:
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(_sas.to_markdown(doc))
+                f.write("\n")
+        except OSError as e:
+            print(f"pyfusa sas: {e}", file=stderr)
+            return EXIT_RUNTIME
+        # Only announce the write when stdout isn't already the primary
+        # payload channel (out_path unset means the requested --format
+        # content itself was written to stdout above) — same convention
+        # every other "wrote <file>" message in this module follows.
+        if out_path:
+            print(f"wrote {os.path.relpath(md_path, project_root)}", file=stdout)
 
     require_attestation = ns.require_attestation or ns.strict
     gate_failed = _quality_gate(
