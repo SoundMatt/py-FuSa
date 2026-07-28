@@ -405,6 +405,27 @@ def test_qualify_cli_qualification_flags_json():
         assert doc["qualificationBadge"] == qualify.BADGE_INDEPENDENT
 
 
+# fusa:test REQ-QUAL001-LLR3
+def test_qualify_output_is_json_when_format_omitted():
+    """qualify --output <file> writes JSON even without an explicit --format
+    (§6 documents only a JSON schema for the qualify artifact; the default
+    --format text must not leak into the --output file)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out_file = os.path.join(tmpdir, "qualify-report.json")
+        out = io.StringIO()
+        code = run(
+            ["qualify", "--dir", tmpdir, "--output", out_file],
+            stdout=out,
+        )
+        assert code == pyfusa.EXIT_OK
+        assert out.getvalue() == ""
+        with open(out_file, encoding="utf-8") as f:
+            content = f.read()
+        doc = json.loads(content)
+        assert "total" in doc
+        assert "results" in doc
+
+
 # ===========================================================================
 # Feature 3 — MC/DC Coverage
 # ===========================================================================

@@ -722,8 +722,13 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             print(f"pyfusa qualify: create output: {e}", file=stderr)
             return EXIT_RUNTIME
 
+    # fusa:req REQ-QUAL001-LLR3
+    # §6: --output always writes the JSON qualification record, regardless
+    # of --format (which only controls the human-readable stdout rendering).
+    effective_fmt = "json" if output_path else ns.fmt
+
     try:
-        if ns.fmt == "json":
+        if effective_fmt == "json":
             doc = _qualify.to_dict(report, project_root, cfg)
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
