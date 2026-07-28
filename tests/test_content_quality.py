@@ -445,7 +445,7 @@ def test_fmea_cli_valid_attestation_suppresses_stub002():
         out = io.StringIO()
         run(["fmea", "--dir", tmpdir, "--format", "json", "--output", fmea_path])
 
-        with open(fmea_path) as f:
+        with open(fmea_path, encoding="utf-8") as f:
             doc = json.load(f)
 
         current_hash = cq.content_hash(doc)
@@ -456,8 +456,8 @@ def test_fmea_cli_valid_attestation_suppresses_stub002():
             "reviewedAt": "2026-07-28T00:00:00Z",
             "contentHash": current_hash,
         }
-        with open(fmea_path, "w") as f:
-            json.dump(doc, f)
+        with open(fmea_path, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False)
 
         out2 = io.StringIO()
         err2 = io.StringIO()
