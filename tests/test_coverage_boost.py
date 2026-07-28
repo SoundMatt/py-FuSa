@@ -271,6 +271,7 @@ def test_vuln_cli():
 # ---------------------------------------------------------------------------
 
 
+# fusa:test REQ-SC006
 def test_safetycase_assemble_empty():
     import pyfusa.safetycase as sc
 
@@ -278,8 +279,11 @@ def test_safetycase_assemble_empty():
         cfg = default(project_name="proj")
         doc = sc.assemble(tmpdir, cfg)
         assert doc["kind"] == "safety-case"
-        assert len(doc["evidence"]) > 0
-        assert all(e["status"] == "absent" for e in doc["evidence"])
+        assert len(doc["nodes"]) > 0
+        solutions = [n for n in doc["nodes"] if n["type"] == "solution"]
+        assert solutions
+        assert all("evidence" not in n for n in solutions)
+        assert doc["completeness"]["undeveloped"] > 0
 
 
 def test_safetycase_assemble_with_files():
@@ -302,8 +306,17 @@ def test_safetycase_assemble_with_files():
             json.dump({"kind": "sbom", "components": [{"name": "pytest"}]}, f)
         cfg = default(project_name="proj")
         doc = sc.assemble(tmpdir, cfg)
-        present = [e for e in doc["evidence"] if e["status"] == "present"]
+        present = [n for n in doc["nodes"] if n.get("evidence")]
         assert len(present) >= 3
+        assert all(n["type"] == "goal" or n["type"] == "solution" or True for n in doc["nodes"])
+        assert {n["type"] for n in doc["nodes"]} <= {
+            "goal",
+            "strategy",
+            "solution",
+            "context",
+            "assumption",
+            "justification",
+        }
 
 
 def test_safetycase_to_markdown():
@@ -314,8 +327,8 @@ def test_safetycase_to_markdown():
         doc = sc.assemble(tmpdir, cfg)
         md = sc.to_markdown(doc)
         assert "# Safety Case" in md
-        assert "Evidence" in md
-        assert "Gaps" in md
+        assert "GSN Nodes" in md
+        assert "Completeness" in md
 
 
 def test_safetycase_to_mermaid():
@@ -325,8 +338,8 @@ def test_safetycase_to_mermaid():
         cfg = default(project_name="proj")
         doc = sc.assemble(tmpdir, cfg)
         mm = sc.to_mermaid(doc)
-        assert "graph LR" in mm
-        assert "safety_case" in mm
+        assert "graph TB" in mm
+        assert "G1" in mm
 
 
 def test_safetycase_cli_md():

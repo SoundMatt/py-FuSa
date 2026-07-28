@@ -1,4 +1,4 @@
-# py-FuSa — v0.2.8
+# py-FuSa — v0.2.9
 
 A functional safety enablement toolkit for Python projects. py-FuSa provides static checks,
 coding rules, traceability helpers, CI evidence bundles, and tool qualification support to help
@@ -240,7 +240,7 @@ Every finding carries the §4.2 canonical SHA-256 fingerprint for stable cross-t
 
 ## x-FuSa spec conformance
 
-py-FuSa implements x-FuSa spec **v1.10.12**. All §9.1 required commands are implemented:
+py-FuSa implements x-FuSa spec **v1.14.0**. All §9.1 required commands are implemented:
 `version`, `capabilities`, `init`, `check`, `report`, `trace`, `verify`, `qualify`, `release`, `audit-pack`.
 
 | Item | Status |
@@ -270,6 +270,13 @@ py-FuSa implements x-FuSa spec **v1.10.12**. All §9.1 required commands are imp
 | Project-relative `location.file` | ✅ |
 | `location.endLine` / `endColumn` on AST findings (§4 MAY) | ✅ |
 | gap-report `kind` = `"gap-report"` on all 7 compliance reports (§3.1) | ✅ |
+| §1.2.5 `.fusa-hara.json` schema (`operationalSituations`/`hazards`/`safetyGoals`, `fssrRefs` MUST ≥1) | ✅ |
+| §9.2 `fmea`/`tara`/`safety-case` canonical schemas (SFOP impact, GSN node types) | ✅ |
+| §9.3 `sas`/`sci` canonical schemas (`checklist[]`, `artifacts[].hash`) | ✅ |
+| §2.7 hash conventions on all evidence artifacts (`hash` → `sha256:`-prefixed) | ✅ |
+| §1.6.1 `FUSA-STUB001`/`FUSA-STUB002` content-quality detection | ✅ |
+| §1.6.2 attestation (`--require-attestation`, `--strict`) | ✅ |
+| `fmea`/`tara` `summary.coveragePct` + `--min-coverage N` | ✅ |
 
 ## Standards
 

@@ -92,7 +92,7 @@ All artefacts are under version control (git). See SCI (sci.json).
                             "hazards": ["H-001"],
                             "asil": "ASIL-C",
                             "safeState": "TODO: describe safe state",
-                            "fssrRef": "",
+                            "fssrRefs": [],
                         }
                     ],
                 },

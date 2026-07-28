@@ -149,10 +149,13 @@ class TestSas:
             cfg = default(project_name="myproj")
             doc = sas.generate(tmpdir, cfg)
             assert doc["kind"] == "sas"
-            assert doc["module"] == "myproj"
-            assert doc["totalSections"] > 0
-            assert "completeSections" in doc
-            assert "sections" in doc
+            assert doc["project"] == "myproj"
+            assert doc["summary"]["total"] > 0
+            assert "checklist" in doc
+            for c in doc["checklist"]:
+                assert "item" in c
+                assert "clause" in c
+                assert "present" in c
 
     def test_generate_dal_flag(self):
         import pyfusa.sas as sas
@@ -163,7 +166,7 @@ class TestSas:
             assert doc["dal"] == "DAL-A"
 
     def test_render_text_empty_dir(self):
-        """Covers render_text lines 52–61."""
+        """Covers render_text output for an empty project."""
         import pyfusa.sas as sas
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -172,15 +175,15 @@ class TestSas:
             text = sas.render_text(doc)
             assert "SAS" in text
             assert "myproj" in text
-            # All sections are incomplete in empty dir
+            # All checklist items are missing in an empty dir
             assert "✗" in text
 
     def test_render_text_with_present_files(self):
-        """render_text shows ✓ for complete sections."""
+        """render_text shows ✓ for present checklist items."""
         import pyfusa.sas as sas
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create files that make at least one section complete
+            # Create files that make at least one checklist item present
             for fname in [".fusa.json", "CONTRIBUTING.md"]:
                 with open(os.path.join(tmpdir, fname), "w") as f:
                     f.write("{}")
@@ -190,14 +193,14 @@ class TestSas:
             assert "✓" in text
 
     def test_render_text_missing_files_shown(self):
-        """render_text shows 'missing:' for incomplete sections."""
+        """render_text shows 'missing' for absent checklist items."""
         import pyfusa.sas as sas
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cfg = default(project_name="proj")
             doc = sas.generate(tmpdir, cfg)
             text = sas.render_text(doc)
-            assert "missing:" in text
+            assert "missing" in text
 
 
 # ---------------------------------------------------------------------------

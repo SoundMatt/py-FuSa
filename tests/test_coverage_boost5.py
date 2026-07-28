@@ -254,6 +254,26 @@ class TestFmea:
         func = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)][0]
         assert fmea._returns_none(func) is False
 
+    def test_has_args_true(self):
+        """_has_args returns True when the function takes a parameter."""
+        import ast
+
+        import pyfusa.fmea as fmea
+
+        tree = ast.parse("def f(x):\n    return x\n")
+        func = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)][0]
+        assert fmea._has_args(func) is True
+
+    def test_has_args_false(self):
+        """_has_args returns False for a niladic function."""
+        import ast
+
+        import pyfusa.fmea as fmea
+
+        tree = ast.parse("def f():\n    return 1\n")
+        func = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)][0]
+        assert fmea._has_args(func) is False
+
     def test_req_ids_from_comments(self):
         """_req_ids_from_comments extracts IDs from #fusa:req comments."""
         import pyfusa.fmea as fmea
@@ -278,29 +298,32 @@ class TestFmea:
         assert fmea._req_ids_from_comments(lines, 0, 2) == []
 
     def test_derive_analysis_raise_only(self):
-        """_derive_analysis: has_raise → severity=high, detection=unit testing."""
+        """_derive_analysis: has_raise → severity=high."""
         import pyfusa.fmea as fmea
 
-        fm, eff, sev, det, cyber = fmea._derive_analysis("f", False, False, True, [])
+        mode, effect, cause, sev, mitigations = fmea._derive_analysis(
+            False, False, True, False, []
+        )
         assert sev == "high"
-        assert det == "unit testing"
-        assert "uncaught exception / early return" in fm
+        assert "uncaught exception" in mode
+        assert mitigations
 
     def test_derive_analysis_thread_only(self):
-        """_derive_analysis: has_thread → severity=high, detection=integration testing."""
+        """_derive_analysis: has_thread → severity=high."""
         import pyfusa.fmea as fmea
 
-        fm, eff, sev, det, cyber = fmea._derive_analysis("f", False, True, False, [])
+        mode, effect, cause, sev, mitigations = fmea._derive_analysis(
+            False, True, False, False, []
+        )
         assert sev == "high"
-        assert det == "integration testing"
-        assert "race condition" in cyber
+        assert "thread" in mode or "task" in mode
 
     def test_derive_analysis_req_ids_only(self):
-        """_derive_analysis: req_ids only → severity=medium."""
+        """_derive_analysis: req_ids only (no other signal) → severity=medium."""
         import pyfusa.fmea as fmea
 
-        fm, eff, sev, det, cyber = fmea._derive_analysis(
-            "f", False, False, False, ["REQ-001"]
+        mode, effect, cause, sev, mitigations = fmea._derive_analysis(
+            False, False, False, False, ["REQ-001"]
         )
         assert sev == "medium"
 
@@ -308,16 +331,30 @@ class TestFmea:
         """_derive_analysis: returns_none only → severity=low."""
         import pyfusa.fmea as fmea
 
-        fm, eff, sev, det, cyber = fmea._derive_analysis("f", True, False, False, [])
-        assert "silent None return" in fm
+        mode, effect, cause, sev, mitigations = fmea._derive_analysis(
+            True, False, False, False, []
+        )
+        assert "silent None return" in mode
+        assert sev == "low"
+
+    def test_derive_analysis_has_args_only(self):
+        """_derive_analysis: has_args only → an input-validation failure mode."""
+        import pyfusa.fmea as fmea
+
+        mode, effect, cause, sev, mitigations = fmea._derive_analysis(
+            False, False, False, True, []
+        )
+        assert "argument" in mode
         assert sev == "low"
 
     def test_derive_analysis_no_signals(self):
         """_derive_analysis: no signals → unexpected return value, severity=low."""
         import pyfusa.fmea as fmea
 
-        fm, eff, sev, det, cyber = fmea._derive_analysis("f", False, False, False, [])
-        assert "unexpected return value" in fm
+        mode, effect, cause, sev, mitigations = fmea._derive_analysis(
+            False, False, False, False, []
+        )
+        assert "unexpected return value" in mode
         assert sev == "low"
 
     def test_scan_skips_private_functions(self):
@@ -359,32 +396,70 @@ class TestFmea:
             cfg = default()
             cfg.source_dirs = ["."]
             entries = fmea.scan(tmpdir, cfg)
-            assert any("REQ-001" in e["requirement_ids"] for e in entries)
+            assert any("REQ-001" in e["requirementIds"] for e in entries)
 
-    def test_to_dict_structure(self):
-        """to_dict returns a valid fmea document dict."""
+    def test_scan_item_id_and_severity(self):
+        """scan() sets 'item' to Component.Function and a valid severity."""
         import pyfusa.fmea as fmea
 
-        entries = [
-            {
-                "component": ".",
-                "function": "run",
-                "file": "mod.py",
-                "line": 1,
-                "failure_modes": ["uncaught exception"],
-                "effects": ["loss of service"],
-                "severity": "high",
-                "detection_control": "unit testing",
-                "requirement_ids": [],
-                "cyber_risks": [],
-            }
-        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _write(tmpdir, "mod.py", "def run(x):\n    raise ValueError(x)\n")
+            cfg = default()
+            cfg.source_dirs = ["."]
+            entries = fmea.scan(tmpdir, cfg)
+            assert entries
+            e = entries[0]
+            assert e["item"] == "run"
+            assert e["severity"] in ("high", "medium", "low")
+            assert e["actionPriority"] in ("high", "medium", "low")
+
+    def test_scan_skips_nested_inner_functions(self):
+        """scan() only counts module-level/class-method functions, matching
+        trace.compute_func_coverage's denominator (§9.2 fmea coveragePct)."""
+        import pyfusa.fmea as fmea
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _write(
+                tmpdir,
+                "mod.py",
+                "def outer():\n    def inner():\n        return 1\n    return inner()\n",
+            )
+            cfg = default()
+            cfg.source_dirs = ["."]
+            entries = fmea.scan(tmpdir, cfg)
+            names = [e["function"] for e in entries]
+            assert "outer" in names
+            assert "inner" not in names
+
+    def test_to_dict_structure(self):
+        """to_dict returns a valid fmea-report document dict."""
+        import pyfusa.fmea as fmea
+
         cfg = default(project_name="mymod")
         with tempfile.TemporaryDirectory() as tmpdir:
+            _write(tmpdir, "mod.py", "def run(x):\n    raise ValueError(x)\n")
+            cfg.source_dirs = ["."]
+            entries = fmea.scan(tmpdir, cfg)
             doc = fmea.to_dict(entries, tmpdir, cfg)
-        assert doc["kind"] == "fmea"
+        assert doc["kind"] == "fmea-report"
         assert doc["schemaVersion"] == pyfusa.SPEC_VERSION
         assert len(doc["entries"]) == 1
+        assert doc["summary"]["componentsAnalyzed"] == 1
+        assert doc["summary"]["componentsInProject"] >= 1
+        assert "componentInventoryMethod" in doc["summary"]
+
+    def test_to_dict_carries_existing_attestation(self):
+        """to_dict passes through a human-added attestation from a previously
+        written fmea.json (§1.6.2)."""
+        import pyfusa.fmea as fmea
+
+        cfg = default(project_name="mymod")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            existing = {"kind": "fmea-report", "entries": [], "attestation": {"status": "reviewed"}}
+            with open(os.path.join(tmpdir, "fmea.json"), "w") as f:
+                json.dump(existing, f)
+            doc = fmea.to_dict([], tmpdir, cfg)
+        assert doc["attestation"] == {"status": "reviewed"}
 
     def test_to_csv_round_trip(self):
         """to_csv produces CSV with a header row and one data row."""
@@ -392,21 +467,58 @@ class TestFmea:
 
         entries = [
             {
-                "component": ".",
-                "function": "run",
+                "id": "FMEA-001",
+                "item": "mod.run",
                 "file": "mod.py",
-                "failure_modes": ["uncaught exception"],
-                "effects": ["loss of service"],
+                "failureMode": "uncaught exception propagates to caller",
+                "effect": "loss of service for the calling component",
+                "cause": "an unhandled error path inside the function body",
                 "severity": "high",
-                "detection_control": "unit testing",
-                "requirement_ids": ["REQ-001"],
-                "cyber_risks": [],
+                "actionPriority": "high",
+                "mitigations": ["add explicit exception handling at the call site"],
+                "requirementIds": ["REQ-001"],
             }
         ]
         csv_text = fmea.to_csv(entries)
-        assert "component" in csv_text
-        assert "run" in csv_text
+        assert "item" in csv_text
+        assert "mod.run" in csv_text
         assert "REQ-001" in csv_text
+
+    def test_quality_findings_flags_placeholder(self):
+        """quality_findings() flags literal placeholder text (FUSA-STUB001)."""
+        import pyfusa.fmea as fmea
+
+        doc = {
+            "entries": [
+                {
+                    "id": "FMEA-001",
+                    "failureMode": "TBD",
+                    "effect": "loss of service",
+                    "cause": "unknown",
+                }
+            ]
+        }
+        findings = fmea.quality_findings(doc)
+        assert any(f.rule_id == "FUSA-STUB001" for f in findings)
+
+    def test_quality_findings_flags_blanket_fallback(self):
+        """quality_findings() flags a single hardcoded string across >=10 entries
+        (FUSA-STUB002)."""
+        import pyfusa.fmea as fmea
+
+        doc = {
+            "entries": [
+                {
+                    "id": f"FMEA-{i:03d}",
+                    "failureMode": "unexpected return value",
+                    "effect": "incorrect computation",
+                    "cause": "no branching logic",
+                }
+                for i in range(12)
+            ]
+        }
+        findings = fmea.quality_findings(doc)
+        assert any(f.rule_id == "FUSA-STUB002" for f in findings)
 
 
 # ---------------------------------------------------------------------------
@@ -707,47 +819,57 @@ class TestSci:
     # fusa:test REQ-SCI001
 
     def test_generate_with_existing_artifact(self):
-        """generate() marks artifact items present when their files exist."""
+        """generate() includes an artifact entry, with a real sha256: hash,
+        for every known evidence file that exists on disk."""
         import pyfusa.sci as sci
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create a few artifact files that SCI looks for
             _write(tmpdir, ".fusa-reqs.json", '{"requirements": []}')
             _write(tmpdir, "CHANGELOG.md", "# Changelog\n")
             _write(tmpdir, "LICENSE", "MIT\n")
             cfg = default(project_name="mymod")
             doc = sci.generate(tmpdir, cfg)
             assert doc["kind"] == "sci"
-            assert doc["present"] >= 1  # at least source code always present
+            files = {a["file"] for a in doc["artifacts"]}
+            assert "CHANGELOG.md" in files
+            assert "LICENSE" in files
+            assert ".fusa-reqs.json" in files
 
     def test_generate_items_structure(self):
-        """generate() returns items with id/title/present/files keys."""
+        """generate() returns artifacts with file/hash/version keys, and every
+        hash is a real sha256:<64-hex> per §2.7."""
         import pyfusa.sci as sci
 
         with tempfile.TemporaryDirectory() as tmpdir:
+            _write(tmpdir, "mod.py", "def f():\n    return 1\n")
             cfg = default(project_name="mymod")
             doc = sci.generate(tmpdir, cfg)
-            for item in doc["items"]:
-                assert "id" in item
-                assert "title" in item
-                assert "present" in item
-                assert "files" in item
+            assert doc["artifacts"]
+            for item in doc["artifacts"]:
+                assert "file" in item
+                assert "hash" in item
+                assert "version" in item
+                assert item["hash"].startswith("sha256:")
+                assert len(item["hash"]) == len("sha256:") + 64
 
-    def test_render_text_present_and_missing(self):
-        """render_text shows checkmarks for present items and crosses for missing."""
+    def test_generate_hash_matches_file_content(self):
+        """generate()'s hash is a real SHA-256 of the file's current content,
+        not a placeholder (§9.3 sci MUST)."""
+        import hashlib
+
         import pyfusa.sci as sci
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            _write(tmpdir, "CHANGELOG.md", "# log\n")
+            path = _write(tmpdir, "CHANGELOG.md", "# log\n")
             cfg = default(project_name="proj")
             doc = sci.generate(tmpdir, cfg)
-            text = sci.render_text(doc)
-            assert "SCI" in text
-            assert "proj" in text
-            assert "✓" in text or "✗" in text
+            entry = next(a for a in doc["artifacts"] if a["file"] == "CHANGELOG.md")
+            with open(path, "rb") as f:
+                expected = "sha256:" + hashlib.sha256(f.read()).hexdigest()
+            assert entry["hash"] == expected
 
     def test_render_text_format(self):
-        """render_text header contains module name and Present: N/M line."""
+        """render_text header contains module name and an Artifacts: N line."""
         import pyfusa.sci as sci
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -755,7 +877,7 @@ class TestSci:
             doc = sci.generate(tmpdir, cfg)
             text = sci.render_text(doc)
             assert "testmod" in text
-            assert "Present:" in text
+            assert "Artifacts:" in text
 
 
 # ---------------------------------------------------------------------------

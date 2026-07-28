@@ -1,5 +1,70 @@
 # Changelog
 
+## v0.2.9 — 2026-07-28
+
+Adopts x-FuSa spec v1.13.0/v1.14.0: real JSON schemas for the six evidence
+commands, the cross-cutting content-quality baseline (§1.6), and coverage
+metrics for `fmea`/`tara` (`SoundMatt/py-FuSa` #24).
+
+### Added
+
+- **`hara`/`fmea`/`tara`/`safety-case`/`sas`/`sci` schema conformance (§9.2/§9.3):**
+  - `.fusa-hara.json`/`hara`: `safetyGoals[].fssrRefs` is now a **MUST, ≥1-entry
+    array** (was a single optional `fssrRef` string); `init` scaffolds
+    **empty** collections, never dummy rows; new referential-integrity checks
+    (`HARA006`/`HARA007`/`HARA008`) for missing/dangling `fssrRefs` and
+    dangling `operationalSituations` references; `hara --format json` now
+    emits the §3.1 header, the file's content verbatim, and a `completeness`
+    roll-up (`hara-report` kind).
+  - `fmea`: canonical `entries[]` shape (`item` = `Component.Function`,
+    `failureMode`/`effect`/`cause`/`actionPriority`/`mitigations`), each
+    derived from the function's actual signature/behaviour rather than one
+    fixed string per entry.
+  - `tara`: canonical `threats[]` key (was `entries`); `impact` is now an
+    **SFOP object** (`safety`/`financial`/`operational`/`privacy`, ISO 21434
+    Clause 15.7) instead of one generic severity; adds `attackVector`,
+    `attackFeasibility`, `risk`, `treatment`.
+  - `safety-case`: real **GSN** (`nodes[]`/`edges[]`) with all six node types
+    (`goal`/`strategy`/`solution`/`context`/`assumption`/`justification`) and
+    edge types (`supportedBy`/`inContextOf`), plus a `completeness` block
+    (was a bespoke `evidence[]`/`clauses[]`/`gaps[]` shape).
+  - `sas`: `checklist[]`/`summary` per DO-178C §11.20 (was `sections[]`).
+  - `sci`: `artifacts[]` with a **real per-file `sha256:`-prefixed hash** of
+    current file content (was a presence-only `items[]` list) — closes a
+    real gap where `sci` never actually hashed anything.
+  - `kind` corrected to `fmea-report`/`tara-report` (was `fmea`/`tara`) per
+    §3.1.
+- **§1.6.1 content-quality baseline — `FUSA-STUB001`/`FUSA-STUB002`:** a new
+  `pyfusa/content_quality.py` module implements both detection heuristics —
+  a deny-list placeholder-text scan (`FUSA-STUB001`, always `ERROR`,
+  disposition-suppressible only) and a distinct-value-ratio blanket-fallback
+  scan (`FUSA-STUB002`, `WARNING` by default, ≥10 entries). Wired into
+  `fmea`/`hara`/`tara`/`safety-case`/`sas` directly (scanning the
+  just-generated document) and into `check` via two new engine rules
+  (`FUSASTUB001`/`FUSASTUB002` in `pyfusa/rules/evidence.py`) that scan any
+  already-committed evidence file.
+- **§1.6.2 attestation:** an artifact may carry a document-level
+  `attestation` object (`status`/`implementationAuthor`/`independentReviewer`/
+  `reviewedAt`/`contentHash`); a non-stale, genuinely-independent `"reviewed"`
+  attestation suppresses `FUSA-STUB002`. `fmea`/`hara`/`tara`/`safety-case`/
+  `sas` gained `--require-attestation` (and `--strict` implies it), escalating
+  an unsuppressed `FUSA-STUB002` to exit 1.
+- **`fmea`/`tara` coverage metrics:** `summary.componentsAnalyzed` /
+  `componentsInProject` / `coveragePct` (`fmea`, same denominator as
+  `trace --func-coverage`) and `summary.assetsAnalyzed` / `assetsInProject` /
+  `coveragePct` / `assetInventoryMethod` (`tara`, a documented file-level
+  proxy — not a formal asset inventory), plus `--min-coverage N` on both.
+
+### Fixed
+
+- `.fusa-hara.json` (this project's own dogfooded file) carried
+  severity/exposure/controllability ratings that, once genuinely re-derived
+  by the corrected ASIL table lookup, computed to a higher ASIL than the
+  ratings this file had always claimed (e.g. S2/E4/C2 computes to ASIL-D, not
+  the claimed ASIL-B) — a latent error the old flat (non-`risk`-nested)
+  schema's validator could never actually check. Corrected the four hazards'
+  ratings to combinations that genuinely derive their stated ASIL.
+
 ## v0.2.8 — 2026-07-27
 
 ### Added

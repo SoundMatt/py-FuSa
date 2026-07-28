@@ -1,40 +1,97 @@
 {
+  "project": "py-FuSa",
+  "standard": "iso26262",
+  "createdAt": "2026-07-28T00:00:00Z",
+  "operationalSituations": [
+    { "id": "OS-001", "description": "pyfusa check/trace/qualify run in CI against a Python project's source tree" },
+    { "id": "OS-002", "description": "pyfusa fmea/tara/hara/safety-case/sas/sci run to generate evidence artifacts consumed by a certification review" }
+  ],
   "hazards": [
     {
       "id": "H-001",
-      "hazard": "False negative — tool fails to detect a safety-critical coding violation",
-      "severity": "S2",
-      "exposure": "E4",
-      "controllability": "C2",
-      "asil": "ASIL-B",
-      "safetyGoal": "The tool shall detect all MUST-check rules listed in the x-FuSa spec §9.1 with no systematic omission"
+      "description": "False negative — the tool fails to detect a safety-critical coding violation it claims to cover",
+      "source": "x-FuSa spec §9.1 MUST-check review",
+      "situations": ["OS-001"],
+      "risk": {
+        "severity": "S2",
+        "exposure": "E2",
+        "controllability": "C2",
+        "asil": "ASIL-B"
+      },
+      "safetyGoals": ["SG-001"]
     },
     {
       "id": "H-002",
-      "hazard": "False positive — tool reports a violation that does not exist",
-      "severity": "S1",
-      "exposure": "E4",
-      "controllability": "C1",
-      "asil": "QM",
-      "safetyGoal": "False positive rate shall not cause users to disable the tool"
+      "description": "False positive — the tool reports a violation that does not actually exist, eroding trust until users disable the tool entirely",
+      "source": "disposition-workflow design review",
+      "situations": ["OS-001"],
+      "risk": {
+        "severity": "S1",
+        "exposure": "E2",
+        "controllability": "C1",
+        "asil": "QM"
+      },
+      "safetyGoals": ["SG-002"]
     },
     {
       "id": "H-003",
-      "hazard": "Non-deterministic fingerprint — same finding produces different fingerprints across runs",
-      "severity": "S2",
-      "exposure": "E3",
-      "controllability": "C2",
-      "asil": "ASIL-A",
-      "safetyGoal": "The fingerprint algorithm shall be deterministic per §4.2"
+      "description": "Non-deterministic fingerprint — the same finding produces different fingerprints across runs, breaking disposition matching and diff",
+      "source": "§4.2 fingerprint algorithm review",
+      "situations": ["OS-001", "OS-002"],
+      "risk": {
+        "severity": "S1",
+        "exposure": "E2",
+        "controllability": "C2",
+        "asil": "ASIL-A"
+      },
+      "safetyGoals": ["SG-003"]
     },
     {
       "id": "H-004",
-      "hazard": "Incorrect exit code — gate failure not reported as exit 1",
-      "severity": "S2",
-      "exposure": "E4",
-      "controllability": "C2",
+      "description": "Incorrect exit code — a gate failure (open ERROR finding) is not reported as exit 1, so a CI pipeline proceeds past a real defect",
+      "source": "§2.3 exit-code conformance review",
+      "situations": ["OS-001", "OS-002"],
+      "risk": {
+        "severity": "S2",
+        "exposure": "E2",
+        "controllability": "C2",
+        "asil": "ASIL-B"
+      },
+      "safetyGoals": ["SG-004"]
+    }
+  ],
+  "safetyGoals": [
+    {
+      "id": "SG-001",
+      "description": "The tool shall detect all MUST-check rules listed in the x-FuSa spec §9.1 with no systematic omission",
+      "hazards": ["H-001"],
       "asil": "ASIL-B",
-      "safetyGoal": "Exit codes shall conform to §2.3 in all circumstances"
+      "safeState": "N/A — analysis-time tool, not a controlling system; the safe state is a complete, versioned rule registry with test coverage per rule",
+      "fssrRefs": ["REQ-ENGINE001"]
+    },
+    {
+      "id": "SG-002",
+      "description": "An unwanted finding shall be dispositionable (accept/defer) rather than requiring the tool to be disabled outright",
+      "hazards": ["H-002"],
+      "asil": "QM",
+      "safeState": "N/A — the disposition mechanism itself is the mitigation",
+      "fssrRefs": ["REQ-EVIDENCE016"]
+    },
+    {
+      "id": "SG-003",
+      "description": "The fingerprint algorithm shall be deterministic per §4.2 for identical (ruleId, file, message) input",
+      "hazards": ["H-003"],
+      "asil": "ASIL-A",
+      "safeState": "N/A — determinism is a pure-function correctness property, verified by test",
+      "fssrRefs": ["REQ-FUSA001"]
+    },
+    {
+      "id": "SG-004",
+      "description": "Exit codes shall conform to §2.3 in all circumstances (0/1/2/3 per the documented semantics)",
+      "hazards": ["H-004"],
+      "asil": "ASIL-B",
+      "safeState": "N/A — exit-code correctness is verified by test across every command",
+      "fssrRefs": ["REQ-CLI001"]
     }
   ]
 }

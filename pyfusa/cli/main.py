@@ -25,11 +25,13 @@ import os
 import sys
 from typing import Optional
 
+import pyfusa
 import pyfusa.auditpack as _auditpack
 import pyfusa.badge as _badge
 import pyfusa.boundary as _boundary
 import pyfusa.comp as _comp
 import pyfusa.config as _config
+import pyfusa.content_quality as _cq
 import pyfusa.coupling_analysis as _coupling
 import pyfusa.coverage as _coverage
 import pyfusa.diff as _diff
@@ -102,6 +104,35 @@ def _load_config(project_root: str) -> _config.Config:
     except ValueError as e:
         print(f"pyfusa: {e}", file=sys.stderr)
         return _config.default(project_name=os.path.basename(project_root))
+
+
+# fusa:req REQ-QUALBASE006
+def _quality_gate(
+    doc: dict,
+    findings: list,
+    project_root: str,
+    require_attestation: bool,
+    stderr,
+) -> bool:
+    """Apply the §1.6/§1.6.1/§1.6.2 content-quality baseline to a just-built
+    evidence document: match dispositions, suppress FUSA-STUB002 on a valid
+    attestation, and report any surviving finding. Returns True on gate
+    failure (an open FUSA-STUB001, or an open FUSA-STUB002 under
+    `--require-attestation`/`--strict`). Diagnostics always go to stderr so
+    stdout stays a clean JSON stream (§2.2)."""
+    if not findings:
+        return False
+    attestation = doc.get("attestation")
+    current_hash = _cq.content_hash(doc)
+    kept, gate_failed = _cq.gate(
+        findings, project_root, attestation, current_hash, require_attestation
+    )
+    for f in kept:
+        if f.disposition in (pyfusa.DISPOSITION_ACCEPTED, pyfusa.DISPOSITION_DEFERRED):
+            continue
+        loc = f.location.file
+        print(f"[{f.severity}] {f.rule_id} {loc}: {f.message}", file=stderr)
+    return gate_failed
 
 
 # ---------------------------------------------------------------------------
@@ -999,6 +1030,9 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         "--format", default="json", dest="fmt", choices=["json", "csv", "text"]
     )
     p.add_argument("--output", default="")
+    p.add_argument("--min-coverage", type=float, default=0.0)
+    p.add_argument("--strict", action="store_true")
+    p.add_argument("--require-attestation", action="store_true")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1007,6 +1041,7 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     entries = _fmea.scan(project_root, cfg)
+    doc = _fmea.to_dict(entries, project_root, cfg)
 
     out_path = ns.output
     w = stdout
@@ -1020,17 +1055,13 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             return EXIT_RUNTIME
     try:
         if ns.fmt == "json":
-            doc = _fmea.to_dict(entries, project_root, cfg)
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
         elif ns.fmt == "csv":
             w.write(_fmea.to_csv(entries))
         else:
             for e in entries:
-                print(
-                    f"{e['component']}.{e['function']}  [{e['severity']}]  {', '.join(e['failure_modes'])}",
-                    file=w,
-                )
+                print(f"{e['item']}  [{e['severity']}]  {e['failureMode']}", file=w)
     finally:
         if f_out:
             f_out.close()
@@ -1040,6 +1071,20 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             f"wrote {os.path.relpath(out_path, project_root) if not ns.output else out_path}",
             file=stdout,
         )
+
+    require_attestation = ns.require_attestation or ns.strict
+    gate_failed = _quality_gate(
+        doc, _fmea.quality_findings(doc), project_root, require_attestation, stderr
+    )
+    if gate_failed:
+        return EXIT_GATE_FAIL
+    if ns.min_coverage > 0 and doc["summary"]["coveragePct"] < ns.min_coverage:
+        print(
+            f"pyfusa fmea: coveragePct {doc['summary']['coveragePct']} < "
+            f"--min-coverage {ns.min_coverage}",
+            file=stdout,
+        )
+        return EXIT_GATE_FAIL
     return EXIT_OK
 
 
@@ -1161,6 +1206,9 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         default="",
         help="path to cyber/check-report.json to derive threats from",
     )
+    p.add_argument("--min-coverage", type=float, default=0.0)
+    p.add_argument("--strict", action="store_true")
+    p.add_argument("--require-attestation", action="store_true")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1175,8 +1223,8 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     if os.path.exists(report_path):
         try:
             with open(report_path, encoding="utf-8") as f:
-                doc = json.load(f)
-            findings = doc.get("findings", [])
+                report_doc = json.load(f)
+            findings = report_doc.get("findings", [])
         except Exception:
             pass
 
@@ -1193,6 +1241,7 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     entries = _tara.build(findings, project_root, cfg)
     module = cfg.project.name or os.path.basename(project_root)
+    doc = _tara.to_dict(entries, project_root, cfg)
 
     out_path = ns.output
     w = stdout
@@ -1206,7 +1255,6 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             return EXIT_RUNTIME
     try:
         if ns.fmt == "json":
-            doc = _tara.to_dict(entries, project_root, cfg)
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
         else:
@@ -1218,6 +1266,20 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if out_path:
         print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
+    require_attestation = ns.require_attestation or ns.strict
+    gate_failed = _quality_gate(
+        doc, _tara.quality_findings(doc), project_root, require_attestation, stderr
+    )
+    if gate_failed:
+        return EXIT_GATE_FAIL
+    if ns.min_coverage > 0 and doc["summary"]["coveragePct"] < ns.min_coverage:
+        print(
+            f"pyfusa tara: coveragePct {doc['summary']['coveragePct']} < "
+            f"--min-coverage {ns.min_coverage}",
+            file=stdout,
+        )
+        return EXIT_GATE_FAIL
     return EXIT_OK
 
 
@@ -1234,6 +1296,10 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     )
     p.add_argument("--dir", default="")
     p.add_argument("--asil", default="")
+    p.add_argument("--format", default="json", dest="fmt", choices=["json", "text"])
+    p.add_argument("--output", default="")
+    p.add_argument("--strict", action="store_true")
+    p.add_argument("--require-attestation", action="store_true")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1250,7 +1316,7 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if _os.path.exists(hara_path):
             print(f"pyfusa hara: {_hara.HARA_FILE} already exists", file=stderr)
             return EXIT_USAGE
-        data = _hara.init_template(module, cfg.standard or "ISO 26262")
+        data = _hara.init_template(module, cfg.standard or "iso26262")
         _hara.save(project_root, data)
         print(f"wrote {_hara.HARA_FILE}", file=stdout)
         return EXIT_OK
@@ -1263,12 +1329,22 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         )
         return EXIT_RUNTIME
 
+    reqs, _req_errors = _config.load_requirements(
+        os.path.join(project_root, _config.REQS_FILE)
+    )
+    req_ids = {r.get("id") for r in reqs}
+    require_attestation = ns.require_attestation or ns.strict
+    quality = _hara.quality_findings(data)
+    quality_gate_failed = _quality_gate(
+        data, quality, project_root, require_attestation, stderr
+    )
+
     if ns.subcommand == "validate":
         asil = ns.asil or cfg.asil or "ASIL-B"
-        errors = _hara.validate(data, asil)
-        if errors:
-            for e in errors:
-                print(e, file=stdout)
+        vfindings = _hara.validate_findings(data, asil, req_ids)
+        for f in vfindings:
+            print(f"[{f.severity}] {f.rule_id}: {f.message}", file=stdout)
+        if vfindings or quality_gate_failed:
             return EXIT_GATE_FAIL
         print(
             f"HARA valid — {len(data.get('hazards', []))} hazards, {len(data.get('safetyGoals', []))} safety goals",
@@ -1277,8 +1353,37 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_OK
 
     # show
-    print(json.dumps(data, indent=2, ensure_ascii=False), file=stdout)
-    return EXIT_OK
+    out_path = ns.output
+    w = stdout
+    f_out = None
+    if out_path:
+        try:
+            f_out = open(out_path, "w", encoding="utf-8")
+            w = f_out
+        except OSError as e:
+            print(f"pyfusa hara: {e}", file=stderr)
+            return EXIT_RUNTIME
+    try:
+        if ns.fmt == "json":
+            report_doc = _hara.to_report_dict(data, project_root, cfg)
+            json.dump(report_doc, w, indent=2, ensure_ascii=False)
+            w.write("\n")
+        else:
+            comp = _hara.completeness(data, req_ids)
+            print(
+                f"HARA — {module}: {comp['totalHazards']} hazards, "
+                f"{comp['safetyGoalsWithFssrRefs']} safety goals with fssrRefs, "
+                f"{comp['danglingReferences']} dangling references",
+                file=w,
+            )
+    finally:
+        if f_out:
+            f_out.close()
+
+    if out_path:
+        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
+    return EXIT_GATE_FAIL if quality_gate_failed else EXIT_OK
 
 
 # ---------------------------------------------------------------------------
@@ -1821,6 +1926,8 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
         "--format", default="json", dest="fmt", choices=["json", "md", "mermaid"]
     )
     p.add_argument("--output", default="")
+    p.add_argument("--strict", action="store_true")
+    p.add_argument("--require-attestation", action="store_true")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1856,7 +1963,18 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 
     if out_path:
         print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
-    return EXIT_OK if not doc.get("gaps") else EXIT_GATE_FAIL
+
+    require_attestation = ns.require_attestation or ns.strict
+    gate_failed = _quality_gate(
+        doc,
+        _safetycase.quality_findings(doc),
+        project_root,
+        require_attestation,
+        stderr,
+    )
+    if gate_failed or doc.get("completeness", {}).get("undeveloped", 0) > 0:
+        return EXIT_GATE_FAIL
+    return EXIT_OK
 
 
 # ---------------------------------------------------------------------------
@@ -1979,6 +2097,8 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--dal", default="DAL-B")
     p.add_argument("--format", default="json", dest="fmt", choices=["json", "text"])
     p.add_argument("--output", default="")
+    p.add_argument("--strict", action="store_true")
+    p.add_argument("--require-attestation", action="store_true")
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -2011,7 +2131,12 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if out_path:
         print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
-    return EXIT_OK
+
+    require_attestation = ns.require_attestation or ns.strict
+    gate_failed = _quality_gate(
+        doc, _sas.quality_findings(doc), project_root, require_attestation, stderr
+    )
+    return EXIT_GATE_FAIL if gate_failed else EXIT_OK
 
 
 # fusa:req REQ-CLI009

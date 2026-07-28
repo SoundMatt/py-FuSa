@@ -156,7 +156,7 @@ def test_fmea_json_schema():
             ["fmea", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
         )
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "fmea"
+        assert doc["kind"] == "fmea-report"
         assert "entries" in doc
         assert code == pyfusa.EXIT_OK
 
@@ -231,8 +231,8 @@ def test_tara_json_schema():
             ["tara", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
         )
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "tara"
-        assert "entries" in doc
+        assert doc["kind"] == "tara-report"
+        assert "threats" in doc
 
 
 # ---------------------------------------------------------------------------
@@ -496,8 +496,9 @@ def test_safety_case_json_schema():
         )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "safety-case"
-        assert "evidence" in doc
-        assert "clauses" in doc
+        assert "nodes" in doc
+        assert "edges" in doc
+        assert "completeness" in doc
 
 
 # ---------------------------------------------------------------------------
@@ -586,7 +587,8 @@ def test_sas_json_schema():
         )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "sas"
-        assert "sections" in doc
+        assert "checklist" in doc
+        assert "summary" in doc
 
 
 # fusa:test REQ-CLI009
@@ -599,7 +601,7 @@ def test_sci_json_schema():
         )
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "sci"
-        assert "items" in doc
+        assert "artifacts" in doc
 
 
 # ---------------------------------------------------------------------------

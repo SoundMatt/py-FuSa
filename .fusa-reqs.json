@@ -3,7 +3,7 @@
     {
       "id": "REQ-FUSA001",
       "title": "Core types and fingerprint algorithm",
-      "text": "The tool shall implement the \u00a74 Finding type and \u00a74.2 fingerprint algorithm exactly as specified in the x-FuSa spec.",
+      "text": "The tool shall implement the §4 Finding type and §4.2 fingerprint algorithm exactly as specified in the x-FuSa spec.",
       "standard": "iso26262",
       "level": "HLR",
       "asil": "ASIL-B"
@@ -99,56 +99,56 @@
     {
       "id": "REQ-CLI001",
       "title": "CLI exit codes",
-      "text": "The tool shall use exit codes 0 (success), 1 (gate failure), 2 (usage error), 3 (runtime error) per x-FuSa spec \u00a72.3.",
+      "text": "The tool shall use exit codes 0 (success), 1 (gate failure), 2 (usage error), 3 (runtime error) per x-FuSa spec §2.3.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI002",
       "title": "Version command",
-      "text": "The tool shall implement the version command per x-FuSa spec \u00a79.1.",
+      "text": "The tool shall implement the version command per x-FuSa spec §9.1.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI003",
       "title": "Capabilities command",
-      "text": "The tool shall implement the capabilities command per x-FuSa spec \u00a79.1.",
+      "text": "The tool shall implement the capabilities command per x-FuSa spec §9.1.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI004",
       "title": "Check command",
-      "text": "The tool shall implement the check command per x-FuSa spec \u00a74.",
+      "text": "The tool shall implement the check command per x-FuSa spec §4.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI005",
       "title": "Trace command",
-      "text": "The tool shall implement the trace command per x-FuSa spec \u00a75.",
+      "text": "The tool shall implement the trace command per x-FuSa spec §5.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI006",
       "title": "Qualify command",
-      "text": "The tool shall implement the qualify command per x-FuSa spec \u00a76.",
+      "text": "The tool shall implement the qualify command per x-FuSa spec §6.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI007",
       "title": "Release command",
-      "text": "The tool shall implement the release command per x-FuSa spec \u00a77.",
+      "text": "The tool shall implement the release command per x-FuSa spec §7.",
       "standard": "iso26262",
       "level": "HLR"
     },
     {
       "id": "REQ-CLI008",
       "title": "Audit-pack command",
-      "text": "The tool shall implement the audit-pack command per x-FuSa spec \u00a78.",
+      "text": "The tool shall implement the audit-pack command per x-FuSa spec §8.",
       "standard": "iso26262",
       "level": "HLR"
     },
@@ -561,7 +561,7 @@
     {
       "id": "REQ-SCI001",
       "title": "Software Configuration Index generation",
-      "text": "The tool shall generate a Software Configuration Index enumerating the presence of source, requirements, hazard analysis, and other evidence artefacts per DO-178C \u00a711.16.",
+      "text": "The tool shall generate a Software Configuration Index enumerating the presence of source, requirements, hazard analysis, and other evidence artefacts per DO-178C §11.16.",
       "standard": "do178c",
       "clause": "11.16"
     },
@@ -652,7 +652,7 @@
     {
       "id": "REQ-COMP001",
       "title": "Cyclomatic complexity threshold engine rule",
-      "text": "The engine shall report a WARNING when a public function's cyclomatic complexity V(G) exceeds the project's ASIL/DAL threshold (COMP001, DO-178C \u00a76.3.4).",
+      "text": "The engine shall report a WARNING when a public function's cyclomatic complexity V(G) exceeds the project's ASIL/DAL threshold (COMP001, DO-178C §6.3.4).",
       "standard": "do178c",
       "clause": "6.3.4"
     },
@@ -682,14 +682,14 @@
       "title": "IEC 62443 Security Level declaration rule",
       "text": "The engine shall report an INFO finding when .fusa-iec62443.json declaring the IEC 62443 Security Level is not present (IEC62443-001).",
       "standard": "iec62443",
-      "clause": "4-1 \u00a78"
+      "clause": "4-1 §8"
     },
     {
       "id": "REQ-ICS002",
       "title": "IEC 62443 target_sl range validation rule",
       "text": "The engine shall report a WARNING when the declared target_sl is not an integer in the range 1-4 (IEC62443-002).",
       "standard": "iec62443",
-      "clause": "4-1 \u00a78"
+      "clause": "4-1 §8"
     },
     {
       "id": "REQ-ICS003",
@@ -717,6 +717,115 @@
       "title": "Standard-specific compliance gap report generation",
       "text": "The tool shall generate a standard-specific compliance gap report (ISO 26262, IEC 61508, DO-178C, ISO 21434, UNECE R.155, SLSA, IEC 62443) summarising which evidence artefacts are present or missing for the requested compliance level.",
       "standard": "iso26262"
+    },
+    {
+      "id": "REQ-QUALBASE001",
+      "title": "Content-quality baseline: placeholder-text detection (rule A)",
+      "text": "The tool shall scan the qualitative fields of fmea/hara/tara/safety-case/sas evidence for bracket-wrapped instructional text or a deny-listed placeholder substring and flag a match as an always-ERROR FUSA-STUB001 finding, per x-FuSa spec section 1.6.1 rule A.",
+      "standard": "iso26262"
+    },
+    {
+      "id": "REQ-QUALBASE002",
+      "title": "Content-quality baseline: blanket-fallback detection (rule B)",
+      "text": "The tool shall compute each qualitative field's distinct-value ratio across an artifact's entries and flag a ratio below 0.1 across at least 10 entries as a WARNING FUSA-STUB002 finding, per x-FuSa spec section 1.6.1 rule B.",
+      "standard": "iso26262"
+    },
+    {
+      "id": "REQ-QUALBASE003",
+      "title": "Content-quality baseline: disposition matching",
+      "text": "The tool shall match FUSA-STUB001/FUSA-STUB002 findings against .fusa-dispositions.json using the same fingerprint/ruleId/file/line matching rules as the check engine, so FUSA-STUB001 remains disposition-suppressible outside of check.",
+      "standard": "iso26262",
+      "clause": "4.1"
+    },
+    {
+      "id": "REQ-QUALBASE004",
+      "title": "Content-quality baseline: combined gate",
+      "text": "The tool shall suppress an open FUSA-STUB002 finding when a non-stale, independent attestation is present, and shall otherwise gate on it only when --require-attestation or --strict is given; FUSA-STUB001 shall always participate in the gate unless individually disposition-accepted or deferred.",
+      "standard": "iso26262"
+    },
+    {
+      "id": "REQ-QUALBASE005",
+      "title": "Per-artifact content-quality scan",
+      "text": "The fmea, tara, hara, safety-case, and sas commands shall each run the x-FuSa spec section 1.6.1 rule A/B scan over their own just-generated document's qualitative fields.",
+      "standard": "iso26262",
+      "parent": "REQ-QUALBASE001"
+    },
+    {
+      "id": "REQ-QUALBASE006",
+      "title": "CLI content-quality gate integration",
+      "text": "The fmea, hara, tara, safety-case, and sas CLI commands shall support --strict and --require-attestation flags and shall exit 1 when the combined content-quality gate fails.",
+      "standard": "iso26262",
+      "parent": "REQ-QUALBASE004"
+    },
+    {
+      "id": "REQ-QUALBASE007",
+      "title": "FUSA-STUB001 check-engine rule",
+      "text": "The check engine shall scan every committed fmea.json/tara.json/.fusa-hara.json/safety-case.json/sas.json for placeholder text and surface FUSA-STUB001 findings alongside the tool's other check findings.",
+      "standard": "iso26262",
+      "parent": "REQ-QUALBASE001"
+    },
+    {
+      "id": "REQ-QUALBASE008",
+      "title": "FUSA-STUB002 check-engine rule",
+      "text": "The check engine shall scan every committed fmea.json/tara.json/.fusa-hara.json/safety-case.json/sas.json for a blanket qualitative fallback and surface an unsuppressed FUSA-STUB002 finding alongside the tool's other check findings.",
+      "standard": "iso26262",
+      "parent": "REQ-QUALBASE002"
+    },
+    {
+      "id": "REQ-ATTEST001",
+      "title": "Attestation content hash",
+      "text": "The tool shall compute a canonical sha256: content hash over an evidence document's substantive content, excluding its header/attestation/generatedAt fields, per x-FuSa spec section 1.6.2.",
+      "standard": "iso26262"
+    },
+    {
+      "id": "REQ-ATTEST002",
+      "title": "Attestation validity",
+      "text": "The tool shall treat an attestation as valid only when status is reviewed, independentReviewer is non-empty and differs from implementationAuthor, and contentHash matches the document's current content hash; any other case shall be treated as heuristic (fail-safe).",
+      "standard": "iso26262",
+      "parent": "REQ-ATTEST001"
+    },
+    {
+      "id": "REQ-ATTEST003",
+      "title": "Attestation passthrough",
+      "text": "The fmea, tara, and safety-case commands shall load the attestation object from a previously-generated evidence file of the same name, if present, and carry it into the newly-generated document verbatim.",
+      "standard": "iso26262",
+      "parent": "REQ-ATTEST001"
+    },
+    {
+      "id": "REQ-DFMEA006",
+      "title": "FMEA coverage metrics and heuristic differentiation",
+      "text": "The fmea command shall report summary.componentsAnalyzed, summary.componentsInProject (the same denominator as trace --func-coverage), and summary.coveragePct, and shall support --min-coverage N; failureMode/effect/cause shall be derived from each function's actual signature/behaviour rather than one fixed string.",
+      "standard": "iso26262",
+      "clause": "7.5",
+      "parent": "REQ-DFMEA001"
+    },
+    {
+      "id": "REQ-TARA006",
+      "title": "TARA SFOP impact and coverage metrics",
+      "text": "The tara command shall rate each threat's impact across the four ISO 21434 Clause 15.7 SFOP axes (safety/financial/operational/privacy) rather than one generic severity, and shall report summary.assetsAnalyzed/assetsInProject/coveragePct/assetInventoryMethod, supporting --min-coverage N.",
+      "standard": "iso21434",
+      "clause": "15"
+    },
+    {
+      "id": "REQ-SC006",
+      "title": "GSN safety-case schema conformance",
+      "text": "The safety-case command shall emit nodes[] typed goal/strategy/solution/context/assumption/justification and edges[] typed supportedBy/inContextOf per the GSN Community Standard v3, with a completeness roll-up of undeveloped goals.",
+      "standard": "iec61508",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-HARA006",
+      "title": "HARA section 1.2.5 validation",
+      "text": "The hara command shall validate .fusa-hara.json referential integrity (hazards[].situations, hazards[].safetyGoals, safetyGoals[].fssrRefs against .fusa-reqs.json) and shall require every safety goal to carry at least one fssrRefs entry, surfacing violations as Findings.",
+      "standard": "iso26262",
+      "clause": "7.4"
+    },
+    {
+      "id": "REQ-HARA009",
+      "title": "HARA completeness roll-up and JSON report",
+      "text": "The hara command's --format json output shall carry the common header, the .fusa-hara.json content verbatim, and a completeness block (totalHazards, hazardsWithAsil, hazardsWithSafetyGoal, safetyGoalsWithFssrRefs, danglingReferences).",
+      "standard": "iso26262",
+      "clause": "7.4"
     }
   ]
 }

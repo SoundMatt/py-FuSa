@@ -1,11 +1,21 @@
-"""HARA — Hazard Analysis and Risk Assessment (ISO 26262 §3)."""
+"""HARA — Hazard Analysis and Risk Assessment, x-FuSa spec §1.2.5 / §9.2 `hara`.
+
+`.fusa-hara.json` is an *input* file (like `.fusa-reqs.json`): a project
+author writes/maintains it, and this module validates and normalises it. The
+`hara` command reports on it, never fabricates it — `init_template` always
+scaffolds **empty** arrays (§1.6 rule 1: an empty section is honestly
+incomplete; placeholder text asserts a false completeness).
+"""
 
 from __future__ import annotations
 
 import json
 import os
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Set
+
+import pyfusa
+from pyfusa import content_quality
 
 HARA_FILE = ".fusa-hara.json"
 
@@ -124,82 +134,235 @@ def save(project_root: str, data: dict) -> None:
 
 
 # fusa:req REQ-CLI009
-def init_template(project_name: str, standard: str = "ISO 26262") -> dict:
+def init_template(project_name: str, standard: str = "iso26262") -> dict:
+    """§1.2.5 / §1.6 rule 1 — scaffold **empty** collections, never dummy rows.
+    A project author fills these in; a placeholder row would assert a false
+    completeness and would itself be flagged by FUSA-STUB001."""
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {
         "project": project_name,
         "standard": standard,
         "createdAt": now,
-        "operationalSituations": [
-            {"id": "OS-001", "description": "Normal operation"},
-            {"id": "OS-002", "description": "Degraded mode"},
-        ],
-        "hazards": [
-            {
-                "id": "H-001",
-                "description": "Example hazard — replace with actual",
-                "source": "",
-                "situations": ["OS-001"],
-                "risk": {
-                    "severity": "S2",
-                    "exposure": "E2",
-                    "controllability": "C2",
-                    "asil": "ASIL-B",
-                },
-                "safetyGoals": ["SG-001"],
-            }
-        ],
-        "safetyGoals": [
-            {
-                "id": "SG-001",
-                "description": "Example safety goal — replace with actual",
-                "hazards": ["H-001"],
-                "asil": "ASIL-B",
-                "safeState": "System enters safe state within 100ms",
-                "fssrRef": "",
-            }
-        ],
+        "operationalSituations": [],
+        "hazards": [],
+        "safetyGoals": [],
     }
 
 
-# fusa:req REQ-CLI009
-def validate(data: dict, project_asil: str) -> List[str]:
-    """Return list of validation error strings."""
-    errors: List[str] = []
+def _finding(rule_id: str, severity: str, message: str, category: str = pyfusa.CATEGORY_SAFETY) -> pyfusa.Finding:
+    return pyfusa.Finding(
+        rule_id=rule_id,
+        severity=severity,
+        message=message,
+        location=pyfusa.Location(file=HARA_FILE),
+        category=category,
+    )
+
+
+# fusa:req REQ-HARA006
+def validate_findings(
+    data: dict, project_asil: str, req_ids: Optional[Set[str]] = None
+) -> List[pyfusa.Finding]:
+    """§1.2.5 referential-integrity + MUST-field validation, as proper
+    `Finding`s (fingerprint/disposition-compatible) rather than bare strings.
+
+    `req_ids`, when given, is the set of ids from `.fusa-reqs.json` (§1.2.2)
+    against which `safetyGoals[].fssrRefs` is checked for dangling
+    references (§1.2.5 MUST)."""
+    findings: List[pyfusa.Finding] = []
+    situation_ids = {s.get("id") for s in data.get("operationalSituations", [])}
     hazards = data.get("hazards", [])
-    safety_goals = {sg["id"] for sg in data.get("safetyGoals", [])}
+    safety_goals = data.get("safetyGoals", [])
+    safety_goal_ids = {sg.get("id") for sg in safety_goals}
     project_rank = _ASIL_RANK.get(project_asil, 2)
 
     for h in hazards:
+        hid = h.get("id", "")
         risk = h.get("risk", {})
-        s = risk.get("severity", "")
-        e = risk.get("exposure", "")
-        c = risk.get("controllability", "")
+        s, e, c = risk.get("severity", ""), risk.get("exposure", ""), risk.get(
+            "controllability", ""
+        )
         if not (s and e and c):
-            errors.append(
-                f"HARA002: hazard {h.get('id', '')} has incomplete risk rating (S/E/C)"
+            findings.append(
+                _finding(
+                    "HARA002",
+                    pyfusa.SEVERITY_ERROR,
+                    f"hazard {hid} has incomplete risk rating (severity/exposure/controllability)",
+                )
             )
         else:
             computed = determine_asil(s, e, c)
             risk["asil"] = computed
             if _ASIL_RANK.get(computed, 0) > project_rank:
-                errors.append(
-                    f"HARA005: hazard {h.get('id', '')} ASIL {computed} exceeds project ASIL {project_asil}"
+                findings.append(
+                    _finding(
+                        "HARA005",
+                        pyfusa.SEVERITY_ERROR,
+                        f"hazard {hid} ASIL {computed} exceeds project ASIL {project_asil}",
+                    )
                 )
 
         if not h.get("safetyGoals"):
-            errors.append(
-                f"HARA003: hazard {h.get('id', '')} has no linked safety goals"
+            findings.append(
+                _finding(
+                    "HARA003",
+                    pyfusa.SEVERITY_ERROR,
+                    f"hazard {hid} has no linked safety goals",
+                    category=pyfusa.CATEGORY_REQUIREMENT,
+                )
             )
         else:
             for sg_id in h.get("safetyGoals", []):
-                if sg_id not in safety_goals:
-                    errors.append(
-                        f"HARA003: hazard {h.get('id', '')} references unknown safety goal {sg_id}"
+                if sg_id not in safety_goal_ids:
+                    findings.append(
+                        _finding(
+                            "HARA003",
+                            pyfusa.SEVERITY_ERROR,
+                            f"hazard {hid} references unknown safety goal {sg_id}",
+                            category=pyfusa.CATEGORY_REQUIREMENT,
+                        )
                     )
 
-    for sg in data.get("safetyGoals", []):
-        if not sg.get("asil"):
-            errors.append(f"HARA004: safety goal {sg.get('id', '')} has no ASIL set")
+        for os_id in h.get("situations", []):
+            if os_id not in situation_ids:
+                findings.append(
+                    _finding(
+                        "HARA008",
+                        pyfusa.SEVERITY_WARNING,
+                        f"hazard {hid} references unknown operational situation {os_id}",
+                        category=pyfusa.CATEGORY_REQUIREMENT,
+                    )
+                )
 
-    return errors
+    for sg in safety_goals:
+        sgid = sg.get("id", "")
+        if not sg.get("asil"):
+            findings.append(
+                _finding(
+                    "HARA004", pyfusa.SEVERITY_ERROR, f"safety goal {sgid} has no ASIL set"
+                )
+            )
+
+        fssr_refs = sg.get("fssrRefs") or []
+        if not fssr_refs:
+            findings.append(
+                _finding(
+                    "HARA006",
+                    pyfusa.SEVERITY_ERROR,
+                    f"safety goal {sgid} has no fssrRefs — a safety goal MUST "
+                    f"decompose into >=1 functional safety requirement (§1.2.5)",
+                    category=pyfusa.CATEGORY_REQUIREMENT,
+                )
+            )
+        elif req_ids is not None:
+            for rid in fssr_refs:
+                if rid not in req_ids:
+                    findings.append(
+                        _finding(
+                            "HARA007",
+                            pyfusa.SEVERITY_WARNING,
+                            f"safety goal {sgid} fssrRefs references unknown "
+                            f"requirement {rid} in .fusa-reqs.json",
+                            category=pyfusa.CATEGORY_REQUIREMENT,
+                        )
+                    )
+
+    return findings
+
+
+# fusa:req REQ-CLI009
+def validate(data: dict, project_asil: str, req_ids: Optional[Set[str]] = None) -> List[str]:
+    """Back-compat string-message wrapper over validate_findings()."""
+    return [
+        f"{f.rule_id}: {f.message}" for f in validate_findings(data, project_asil, req_ids)
+    ]
+
+
+# fusa:req REQ-HARA009
+def completeness(data: dict, req_ids: Optional[Set[str]] = None) -> dict:
+    """§9.2 hara `completeness` block."""
+    hazards = data.get("hazards", [])
+    safety_goals = data.get("safetyGoals", [])
+    situation_ids = {s.get("id") for s in data.get("operationalSituations", [])}
+    safety_goal_ids = {sg.get("id") for sg in safety_goals}
+
+    hazards_with_asil = sum(1 for h in hazards if h.get("risk", {}).get("asil"))
+    hazards_with_sg = sum(1 for h in hazards if h.get("safetyGoals"))
+    sg_with_fssr = sum(1 for sg in safety_goals if sg.get("fssrRefs"))
+
+    dangling = 0
+    for h in hazards:
+        for sid in h.get("situations", []):
+            if sid not in situation_ids:
+                dangling += 1
+        for gid in h.get("safetyGoals", []):
+            if gid not in safety_goal_ids:
+                dangling += 1
+    for sg in safety_goals:
+        for rid in sg.get("fssrRefs", []):
+            if req_ids is not None and rid not in req_ids:
+                dangling += 1
+
+    return {
+        "totalHazards": len(hazards),
+        "hazardsWithAsil": hazards_with_asil,
+        "hazardsWithSafetyGoal": hazards_with_sg,
+        "safetyGoalsWithFssrRefs": sg_with_fssr,
+        "danglingReferences": dangling,
+    }
+
+
+# fusa:req REQ-HARA009
+def to_report_dict(data: dict, project_root: str, cfg) -> dict:
+    """§9.2 hara `--format json` — the §3.1 header plus the `.fusa-hara.json`
+    content verbatim plus a `completeness` roll-up."""
+    from pyfusa.config import load_requirements, REQS_FILE
+
+    now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
+    reqs, _ = load_requirements(os.path.join(project_root, REQS_FILE))
+    req_ids = {r.get("id") for r in reqs}
+
+    doc = {
+        "schemaVersion": pyfusa.SPEC_VERSION,
+        "kind": "hara-report",
+        "tool": pyfusa.TOOL,
+        "toolVersion": pyfusa.VERSION,
+        "language": pyfusa.LANGUAGE,
+        "generatedAt": now,
+        "projectRoot": os.path.abspath(project_root),
+        "project": module,
+        "standard": data.get("standard", cfg.standard),
+        "operationalSituations": data.get("operationalSituations", []),
+        "hazards": data.get("hazards", []),
+        "safetyGoals": data.get("safetyGoals", []),
+        "completeness": completeness(data, req_ids),
+    }
+    if data.get("attestation"):
+        doc["attestation"] = data["attestation"]
+    return doc
+
+
+# fusa:req REQ-QUALBASE005
+def quality_findings(data: dict) -> List[pyfusa.Finding]:
+    """§1.6/§1.6.1 content-quality baseline over hazards[].description and
+    safetyGoals[].description."""
+    findings = content_quality.scan_placeholder(
+        data.get("hazards", []), ["description"], HARA_FILE
+    )
+    findings.extend(
+        content_quality.scan_placeholder(
+            data.get("safetyGoals", []), ["description"], HARA_FILE
+        )
+    )
+    findings.extend(
+        content_quality.scan_blanket_fallback(
+            data.get("hazards", []), ["description"], HARA_FILE
+        )
+    )
+    findings.extend(
+        content_quality.scan_blanket_fallback(
+            data.get("safetyGoals", []), ["description"], HARA_FILE
+        )
+    )
+    return findings
