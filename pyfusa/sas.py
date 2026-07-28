@@ -1,4 +1,4 @@
-"""Software Accomplishment Summary (DO-178C §11.20)."""
+"""Software Accomplishment Summary — x-FuSa spec §9.3 `sas` (DO-178C §11.20)."""
 
 from __future__ import annotations
 
@@ -7,20 +7,23 @@ from datetime import datetime, timezone
 
 import pyfusa
 from pyfusa.config import Config
+from pyfusa import content_quality
 
-_SECTIONS = [
-    ("planning", "Software Planning", ["SAFETY_PLAN.md", ".fusa.json"]),
-    ("standards", "Software Standards", ["CONTRIBUTING.md", ".fusa.json"]),
-    ("development", "Software Development", ["check-report.json"]),
-    (
-        "verification",
-        "Software Verification",
-        ["qualify-report.json", "coverage-report.json"],
-    ),
-    ("configuration", "Configuration Management", [".gitignore", "sci.json"]),
-    ("qa", "Software Quality Assurance", ["qualify-report.json"]),
-    ("sbom", "Software Component List", ["sbom.json"]),
-    ("problems", "Problem Reports", [".fusa-problems.json"]),
+SAS_FILE = "sas.json"
+
+# (item, clause, candidate evidence files) — DO-178C §11 data items relevant
+# to the project's DAL. `clause` is the informal §11.<n> reference; some
+# mappings (sbom/problems) are this tool's own approximation where DO-178C
+# doesn't define an exact equivalent artefact.
+_CHECKLIST = [
+    ("Plan for Software Aspects of Certification (PSAC)", "11.1", ["SAFETY_PLAN.md", ".fusa.json"]),
+    ("Software Code Standards", "11.8", ["CONTRIBUTING.md"]),
+    ("Software Design Description", "11.10", ["check-report.json"]),
+    ("Software Verification Results", "11.14", ["qualify-report.json", "coverage-report.json"]),
+    ("Software Configuration Index", "11.16", ["sci.json"]),
+    ("Software Quality Assurance Records", "11.19", ["qualify-report.json"]),
+    ("Software Component List", "11.11", ["sbom.json"]),
+    ("Problem Reports", "11.17", [".fusa-problems.json"]),
 ]
 
 
@@ -29,50 +32,60 @@ def generate(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
 
-    sections = []
-    for sec_id, title, files in _SECTIONS:
-        present = [f for f in files if os.path.exists(os.path.join(project_root, f))]
-        missing = [
-            f for f in files if not os.path.exists(os.path.join(project_root, f))
-        ]
-        sections.append(
-            {
-                "id": sec_id,
-                "title": title,
-                "status": "complete" if not missing else "incomplete",
-                "present": present,
-                "missing": missing,
-            }
-        )
+    checklist = []
+    for item, clause, files in _CHECKLIST:
+        evidence = ""
+        present = False
+        for f in files:
+            if os.path.exists(os.path.join(project_root, f)):
+                present = True
+                evidence = f
+                break
+        entry = {"item": item, "clause": clause, "present": present}
+        if evidence:
+            entry["evidence"] = evidence
+        checklist.append(entry)
 
-    complete = sum(1 for s in sections if s["status"] == "complete")
+    present_count = sum(1 for c in checklist if c["present"])
 
-    return {
+    doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "sas",
         "tool": pyfusa.TOOL,
         "toolVersion": pyfusa.VERSION,
         "language": pyfusa.LANGUAGE,
         "generatedAt": now,
-        "format": "py-FuSa SAS v1 (DO-178C §11.20)",
-        "module": module,
+        "projectRoot": os.path.abspath(project_root),
+        "project": module,
         "dal": dal,
-        "completeSections": complete,
-        "totalSections": len(sections),
-        "sections": sections,
+        "checklist": checklist,
+        "summary": {"total": len(checklist), "present": present_count},
     }
+    existing = content_quality.load_existing_attestation(project_root, SAS_FILE)
+    if existing:
+        doc["attestation"] = existing
+    return doc
 
 
 # fusa:req REQ-CLI009
 def render_text(doc: dict) -> str:
     lines = [
-        f"SAS — {doc['module']}  DAL={doc['dal']}",
-        f"Sections: {doc['completeSections']}/{doc['totalSections']} complete",
+        f"SAS — {doc['project']}  DAL={doc['dal']}",
+        f"Checklist: {doc['summary']['present']}/{doc['summary']['total']} present",
         "",
     ]
-    for s in doc["sections"]:
-        marker = "✓" if s["status"] == "complete" else "✗"
-        lines.append(f"  {marker} {s['title']}")
-        for f in s.get("missing", []):
-            lines.append(f"      missing: {f}")
+    for c in doc["checklist"]:
+        marker = "✓" if c["present"] else "✗"
+        lines.append(f"  {marker} [{c['clause']}] {c['item']}")
+        if not c["present"]:
+            lines.append("      missing")
     return "\n".join(lines)
+
+
+# fusa:req REQ-QUALBASE005
+def quality_findings(doc: dict) -> list:
+    """§1.6/§1.6.1 content-quality baseline over checklist[].item."""
+    entries = doc.get("checklist", [])
+    findings = content_quality.scan_placeholder(entries, ["item"], SAS_FILE)
+    findings.extend(content_quality.scan_blanket_fallback(entries, ["item"], SAS_FILE))
+    return findings

@@ -151,8 +151,8 @@ def test_tara_to_dict_empty():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="p")
         doc = tara.to_dict([], tmpdir, cfg)
-        assert doc["kind"] == "tara"
-        assert doc["entries"] == []
+        assert doc["kind"] == "tara-report"
+        assert doc["threats"] == []
 
 
 def test_tara_cli_json():
@@ -162,7 +162,7 @@ def test_tara_cli_json():
             ["tara", "--dir", tmpdir, "--format", "json", "--output", ""], stdout=out
         )
         doc = json.loads(out.getvalue())
-        assert doc["kind"] == "tara"
+        assert doc["kind"] == "tara-report"
 
 
 def test_tara_cli_md():
