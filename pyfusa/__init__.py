@@ -10,8 +10,8 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-VERSION = "0.2.9"
-SPEC_VERSION = "1.14.0"
+VERSION = "0.3.0"
+SPEC_VERSION = "1.15.0"
 LANGUAGE = "python"
 TOOL = "py-FuSa"
 BINARY = "pyfusa"

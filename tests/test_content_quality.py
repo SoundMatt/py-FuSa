@@ -196,6 +196,97 @@ def test_load_existing_attestation_malformed_json():
 
 
 # ---------------------------------------------------------------------------
+# §1.6.2 attestation carry-forward across regeneration (MUST, x-FuSa spec
+# v1.15.0 §1.6.2) — an artifact-producing command must not silently wipe a
+# human's prior "reviewed" attestation the next time it rebuilds the
+# artifact from scratch.
+# ---------------------------------------------------------------------------
+
+
+# fusa:test REQ-ATTEST003
+def test_fmea_cli_carries_forward_reviewed_attestation_on_regeneration():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "mod.py"), "w") as f:
+            f.write("def only(x):\n    return x\n")
+        fmea_path = os.path.join(tmpdir, "fmea.json")
+
+        out1 = io.StringIO()
+        run(["fmea", "--dir", tmpdir, "--format", "json", "--output", fmea_path],
+            stdout=out1)
+        with open(fmea_path, encoding="utf-8") as f:
+            doc = json.load(f)
+        current_hash = cq.content_hash(doc)
+        doc["attestation"] = {
+            "status": "reviewed",
+            "implementationAuthor": "auto",
+            "independentReviewer": "Jane Doe <jane@example.com>",
+            "reviewedAt": "2026-07-28T00:00:00Z",
+            "contentHash": current_hash,
+        }
+        with open(fmea_path, "w", encoding="utf-8") as f:
+            json.dump(doc, f)
+
+        # Regenerate against the *unchanged* source — a naive "always
+        # rebuild from scratch" implementation would drop the attestation
+        # here; the fix must carry it forward untouched.
+        out2 = io.StringIO()
+        run(["fmea", "--dir", tmpdir, "--format", "json", "--output", fmea_path],
+            stdout=out2)
+        with open(fmea_path, encoding="utf-8") as f:
+            regenerated = json.load(f)
+        assert regenerated.get("attestation", {}).get("status") == "reviewed"
+        assert regenerated["attestation"]["contentHash"] == current_hash
+        assert cq.attestation_valid(regenerated["attestation"], current_hash)
+
+
+# fusa:test REQ-ATTEST003
+def test_tara_cli_carries_forward_attestation_and_it_goes_stale_on_content_change():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "vuln.py"), "w") as f:
+            f.write(
+                "import subprocess\n"
+                "def run_cmd(user_input):\n"
+                "    subprocess.call(user_input, shell=True)\n"
+            )
+        tara_path = os.path.join(tmpdir, "tara.json")
+        out1 = io.StringIO()
+        run(["tara", "--dir", tmpdir, "--format", "json", "--output", tara_path],
+            stdout=out1)
+        with open(tara_path, encoding="utf-8") as f:
+            doc = json.load(f)
+        current_hash = cq.content_hash(doc)
+        doc["attestation"] = {
+            "status": "reviewed",
+            "implementationAuthor": "auto",
+            "independentReviewer": "Jane Doe <jane@example.com>",
+            "reviewedAt": "2026-07-28T00:00:00Z",
+            "contentHash": current_hash,
+        }
+        with open(tara_path, "w", encoding="utf-8") as f:
+            json.dump(doc, f)
+
+        # Content changes (a second finding appears) — the carried-forward
+        # attestation's contentHash no longer matches, so it must read as
+        # stale (falls back to "heuristic" per §1.6.2), not silently valid.
+        with open(os.path.join(tmpdir, "vuln.py"), "a") as f:
+            f.write(
+                "def run_cmd2(user_input):\n    subprocess.call(user_input, shell=True)\n"
+            )
+        out2 = io.StringIO()
+        run(["tara", "--dir", tmpdir, "--format", "json", "--output", tara_path],
+            stdout=out2)
+        with open(tara_path, encoding="utf-8") as f:
+            regenerated = json.load(f)
+        # attestation object itself is preserved (never erased)...
+        assert regenerated.get("attestation", {}).get("status") == "reviewed"
+        # ...but is now stale against the freshly-generated content.
+        new_hash = cq.content_hash(
+            {k: v for k, v in regenerated.items() if k != "attestation"}
+        )
+        assert not cq.attestation_valid(regenerated["attestation"], new_hash)
+
+
+# ---------------------------------------------------------------------------
 # gate() — dispositions + attestation suppression + --require-attestation
 # ---------------------------------------------------------------------------
 
@@ -327,6 +418,54 @@ def test_fmea_coverage_pct_reflects_uncovered_functions():
         assert doc["summary"]["coveragePct"] == 100.0
 
 
+# fusa:test REQ-DFMEA006
+def test_fmea_excludes_test_tree_from_entries_and_denominator():
+    """x-FuSa spec §9.2 fmea + §1.6 rule 4: a project whose sourceDirs
+    resolve to a directory containing a nested test tree must not have its
+    test functions counted as `entries[]` (componentsAnalyzed) while
+    `componentsInProject` (trace --func-coverage's denominator) excludes
+    that same tree — the mismatch inflates coveragePct past 100%. This is a
+    non-trivial test-source tree fixture (x-FuSa spec §9.2's own note: a
+    fixture with no src/test-equivalent directory cannot exercise the bug)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "main.py"), "w") as f:
+            f.write("def real_function(x):\n    return x + 1\n")
+        tests_dir = os.path.join(tmpdir, "tests")
+        os.makedirs(tests_dir)
+        with open(os.path.join(tests_dir, "test_main.py"), "w") as f:
+            f.write(
+                "def test_something():\n    assert True\n"
+                "def fixture_helper():\n    return 1\n"
+                "def test_a():\n    assert True\n"
+                "def test_b():\n    assert True\n"
+            )
+        out = io.StringIO()
+        run(["fmea", "--dir", tmpdir, "--format", "json"], stdout=out)
+        doc = json.loads(out.getvalue())
+        items = {e["item"] for e in doc["entries"]}
+        assert items == {"real_function"}
+        s = doc["summary"]
+        assert s["componentsAnalyzed"] == 1
+        assert s["componentsInProject"] == 1
+        assert s["coveragePct"] == 100.0
+        assert s["coveragePct"] <= 100.0
+
+
+# fusa:test REQ-DFMEA006
+def test_fmea_coverage_pct_defensive_clamp():
+    """x-FuSa spec §9.2 fmea MUST: coveragePct must never exceed 100 — a
+    defensive backstop distinct from the exclusion-list fix above, covering
+    any other future path that could over-count the numerator."""
+    import pyfusa.fmea as fmea
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "mod.py"), "w") as f:
+            f.write("def only(x):\n    return x\n")
+        cfg = default(project_name="p")
+        summary = fmea._coverage(tmpdir, cfg, analyzed=999)
+        assert summary["coveragePct"] == 100.0
+
+
 # fusa:test REQ-TARA006
 def test_tara_coverage_fields_present():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -360,6 +499,101 @@ def test_tara_impact_is_sfop_object():
     assert entries[0]["attackFeasibility"] in ("low", "medium", "high", "very-low")
     assert entries[0]["risk"] in ("low", "medium", "high", "critical")
     assert entries[0]["treatment"] in ("mitigate", "accept", "transfer", "avoid")
+
+
+# fusa:test REQ-TARA006
+def test_tara_impact_uses_closed_sfop_enum():
+    """x-FuSa spec §9.2 tara closed enums (MUST): impact.{safety,financial,
+    operational,privacy} MUST use critical|major|moderate|negligible — never
+    the high/medium/low vocabulary reserved for attackFeasibility."""
+    import pyfusa.tara as tara
+
+    cfg = default(project_name="p")
+    findings = [
+        {
+            "ruleId": rid,
+            "message": "msg",
+            "location": {"file": "a.py", "line": 1},
+        }
+        for rid in ("CYBER005", "CYBER015", "CYBER011", "CYBER016")
+    ]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        entries = tara.build(findings, tmpdir, cfg)
+    allowed = {"critical", "major", "moderate", "negligible"}
+    for entry in entries:
+        for axis in ("safety", "financial", "operational", "privacy"):
+            assert entry["impact"][axis] in allowed, (entry["id"], axis)
+
+
+# fusa:test REQ-TARA006
+def test_tara_risk_critical_impact_not_downgraded_to_low():
+    """x-FuSa spec §9.2 tara risk combination table (SHOULD): a threat whose
+    worst SFOP axis is "critical" combined with "high" attackFeasibility
+    (e.g. command/SQL injection) must rate "critical" risk, never fall
+    through to the "low" default via a reversed matrix lookup."""
+    import pyfusa.tara as tara
+
+    cfg = default(project_name="p")
+    findings = [
+        {
+            "ruleId": rid,
+            "message": "msg",
+            "location": {"file": "a.py", "line": 1},
+        }
+        for rid in ("CYBER005", "CYBER015")
+    ]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        entries = tara.build(findings, tmpdir, cfg)
+    for entry in entries:
+        assert entry["attackFeasibility"] == "high"
+        assert any(v == "critical" for v in entry["impact"].values())
+        assert entry["risk"] == "critical", entry
+
+
+# fusa:test REQ-TARA006
+def test_tara_compute_risk_matrix_matches_spec_table():
+    """Direct table check against x-FuSa spec §9.2's canonical risk
+    combination table (Highest SFOP impact / attackFeasibility)."""
+    from pyfusa.tara import _compute_risk
+
+    cases = {
+        ("critical", "high"): "critical",
+        ("critical", "medium"): "critical",
+        ("critical", "low"): "high",
+        ("critical", "very-low"): "medium",
+        ("major", "high"): "high",
+        ("major", "medium"): "high",
+        ("major", "low"): "medium",
+        ("major", "very-low"): "medium",
+        ("moderate", "high"): "medium",
+        ("moderate", "medium"): "medium",
+        ("moderate", "low"): "low",
+        ("moderate", "very-low"): "low",
+        ("negligible", "high"): "low",
+        ("negligible", "very-low"): "low",
+    }
+    for (worst, feasibility), want in cases.items():
+        impact = {"safety": worst, "financial": "negligible",
+                   "operational": "negligible", "privacy": "negligible"}
+        assert _compute_risk(impact, feasibility) == want, (worst, feasibility)
+
+
+# fusa:test REQ-TARA006
+def test_tara_coverage_pct_defensive_clamp():
+    """x-FuSa spec §9.2 tara MUST: coveragePct must never exceed 100 — a
+    defensive backstop over `_coverage`'s own computation."""
+    import pyfusa.tara as tara
+
+    cfg = default(project_name="p")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "mod.py"), "w") as f:
+            f.write("def only(x):\n    return x\n")
+        entries = [
+            {"location": {"file": "mod.py", "line": 1}},
+            {"location": {"file": "nonexistent_extra.py", "line": 1}},
+        ]
+        summary = tara._coverage(tmpdir, cfg, entries)
+        assert summary["coveragePct"] == 100.0
 
 
 # fusa:test REQ-QUALBASE005
@@ -480,84 +714,20 @@ def test_fmea_cli_valid_attestation_suppresses_stub002():
 
 
 # ---------------------------------------------------------------------------
-# check-engine FUSA-STUB001/002 rules (defense-in-depth over committed files)
+# `check` does NOT gate on FUSA-STUB001/002 (x-FuSa spec §1.6.1 "Who runs
+# this" — MUST). Detection runs inside each artifact-producing command
+# (fmea/hara/tara/safety-case/sas — see the per-command
+# quality_findings()/quality_gate tests above), gating that command's own
+# exit code. `check` analyzes source/config; it does not read sibling
+# evidence artifacts like fmea.json/tara.json/safety-case.json as part of
+# this section — a stale/stub artifact committed to the repo must not fail
+# an unrelated `check` run.
 # ---------------------------------------------------------------------------
 
 
-# fusa:test REQ-QUALBASE007
-def test_evidence_fusastub001_rule_flags_committed_placeholder():
-    from pyfusa.rules.evidence import FUSASTUB001
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with open(os.path.join(tmpdir, "fmea.json"), "w") as f:
-            json.dump(
-                {
-                    "entries": [
-                        {"id": "FMEA-001", "failureMode": "TBD", "effect": "x"}
-                    ]
-                },
-                f,
-            )
-        cfg = default()
-        findings = FUSASTUB001().run(tmpdir, cfg)
-        assert any(f.rule_id == "FUSA-STUB001" for f in findings)
-
-
-# fusa:test REQ-QUALBASE007
-def test_evidence_fusastub001_rule_no_artifacts_present():
-    from pyfusa.rules.evidence import FUSASTUB001
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cfg = default()
-        assert FUSASTUB001().run(tmpdir, cfg) == []
-
-
-# fusa:test REQ-QUALBASE008
-def test_evidence_fusastub002_rule_flags_committed_blanket_fallback():
-    from pyfusa.rules.evidence import FUSASTUB002
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with open(os.path.join(tmpdir, "tara.json"), "w") as f:
-            json.dump(
-                {
-                    "threats": [
-                        {"id": f"TARA-{i:03d}", "threat": "same threat"}
-                        for i in range(12)
-                    ]
-                },
-                f,
-            )
-        cfg = default()
-        findings = FUSASTUB002().run(tmpdir, cfg)
-        assert any(f.rule_id == "FUSA-STUB002" for f in findings)
-
-
-# fusa:test REQ-QUALBASE008
-def test_evidence_fusastub002_rule_suppressed_by_attestation():
-    from pyfusa.rules.evidence import FUSASTUB002
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        doc = {
-            "threats": [
-                {"id": f"TARA-{i:03d}", "threat": "same threat"} for i in range(12)
-            ]
-        }
-        current_hash = cq.content_hash(doc)
-        doc["attestation"] = {
-            "status": "reviewed",
-            "implementationAuthor": "auto",
-            "independentReviewer": "Jane Doe <jane@example.com>",
-            "contentHash": current_hash,
-        }
-        with open(os.path.join(tmpdir, "tara.json"), "w") as f:
-            json.dump(doc, f)
-        cfg = default()
-        assert FUSASTUB002().run(tmpdir, cfg) == []
-
-
-# fusa:test REQ-QUALBASE007
-# fusa:test REQ-QUALBASE008
-def test_check_command_surfaces_stub_findings():
+# fusa:test REQ-QUALBASE001
+# fusa:test REQ-QUALBASE002
+def test_check_command_does_not_surface_stub_findings():
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa.json"), "w") as f:
             f.write(
@@ -573,4 +743,5 @@ def test_check_command_surfaces_stub_findings():
         run(["check", "--dir", tmpdir, "--format", "json"], stdout=out)
         doc = json.loads(out.getvalue())
         rule_ids = {f["ruleId"] for f in doc["findings"]}
-        assert "FUSA-STUB001" in rule_ids
+        assert "FUSA-STUB001" not in rule_ids
+        assert "FUSA-STUB002" not in rule_ids

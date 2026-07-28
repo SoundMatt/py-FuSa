@@ -28,6 +28,27 @@ KIND_SEC_TEST = "sec-test"
 # able to exclude the test tree from the annotation scan).
 _ALWAYS_SCANNED_TEST_DIRS = ("tests", "test")
 
+# x-FuSa spec §1.6 rule 4 implementer guidance: the canonical "real project
+# component" exclusion set — vcs/venv/build noise plus the test tree, so a
+# scanner never mistakes a test fixture for project code. This is the
+# denominator `compute_func_coverage` below already used; every other
+# scanner that walks source to build fmea/tara-style entries (§1.6.1 rule B)
+# SHOULD reuse it rather than maintain its own, independently-drifting copy
+# — see pyfusa/fmea.py's `_python_files`, which imports this constant.
+EXCLUDED_SOURCE_DIRS = frozenset(
+    {
+        "__pycache__",
+        ".git",
+        ".tox",
+        "venv",
+        ".venv",
+        "dist",
+        "build",
+        "tests",
+        "test",
+    }
+)
+
 # Integrity levels that require HLR/LLR error (vs warn)
 _ERROR_LEVELS = {"DAL-A", "ASIL-D"}
 _WARN_LEVELS = {"DAL-B", "DAL-C", "ASIL-A", "ASIL-B", "ASIL-C"}
@@ -531,23 +552,13 @@ def compute_func_coverage(project_root: str, cfg: Config) -> tuple[int, int]:
     source_dirs = cfg.source_dirs or ["."]
     for src_dir in source_dirs:
         abs_src = os.path.normpath(os.path.join(project_root, src_dir))
-        if os.path.basename(abs_src) in ("tests", "test"):
+        if os.path.basename(abs_src) in EXCLUDED_SOURCE_DIRS:
             continue
         for dirpath, dirnames, filenames in os.walk(abs_src):
             dirnames[:] = [
                 d
                 for d in dirnames
-                if not d.startswith(".")
-                and d
-                not in (
-                    "__pycache__",
-                    "build",
-                    "dist",
-                    "tests",
-                    "test",
-                    "venv",
-                    ".venv",
-                )
+                if not d.startswith(".") and d not in EXCLUDED_SOURCE_DIRS
             ]
             for fname in filenames:
                 if not fname.endswith(".py"):

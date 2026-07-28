@@ -7,9 +7,20 @@ import os
 from typing import List
 
 import pyfusa
-from pyfusa import content_quality
 from pyfusa.config import Config
 from pyfusa.rules import Rule
+
+# NOTE (x-FuSa spec §1.6.1 "Who runs this" — MUST): the §1.6/§1.6.1
+# content-quality baseline (FUSA-STUB001/002, placeholder-text and
+# blanket-qualitative-fallback detection) intentionally has NO rule here.
+# Detection runs *inside* each artifact-producing command (fmea/hara/tara/
+# safety-case/sas — see pyfusa/content_quality.py, wired into each of those
+# modules' own `quality_findings()`), gating that command's own exit code —
+# never `check`'s. `check` analyzes source/config; it does not read sibling
+# evidence artifacts (fmea.json, tara.json, etc.) as part of this section.
+# An earlier revision added FUSASTUB001/002 Rule classes here that scanned
+# those committed sibling files and fed `check`'s own exit code — that
+# contradicted the spec and has been removed.
 
 
 def _presence(
@@ -468,92 +479,6 @@ class HARA005(Rule):
         return findings
 
 
-# ── Content-quality baseline (x-FuSa spec §1.6/§1.6.1) ────────────────────────
-#
-# Any of the five evidence artifacts with free-text qualitative content that
-# has already been committed to the project root is scanned here too, so
-# `check` catches a stale/committed stub artifact even if `fmea`/`tara`/etc.
-# aren't re-run in the same session. This does not duplicate the per-command
-# scan in fmea.py/tara.py/hara.py/safetycase.py/sas.py (which checks the
-# document just generated in-memory) — this one reads whatever is on disk.
-
-# (filename, entries key, placeholder fields, blanket-fallback fields)
-_QUALITY_ARTIFACTS = [
-    ("fmea.json", "entries", ["failureMode", "effect", "cause"], ["failureMode", "effect", "cause"]),
-    (".fusa-hara.json", "hazards", ["description"], ["description"]),
-    (".fusa-hara.json", "safetyGoals", ["description"], ["description"]),
-    ("tara.json", "threats", ["threat", "asset"], ["threat"]),
-    ("safety-case.json", "nodes", ["text"], ["text"]),
-    ("sas.json", "checklist", ["item"], ["item"]),
-]
-
-
-def _load_json(path: str):
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return None
-
-
-# fusa:req REQ-QUALBASE007
-class FUSASTUB001(Rule):
-    rule_id = content_quality.RULE_PLACEHOLDER
-    standard = "iso26262"
-    clause = "7.4"
-    description = (
-        "No committed evidence artifact may ship literal placeholder/template "
-        "text in a qualitative field (x-FuSa spec §1.6.1 rule A)."
-    )
-
-    def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
-        findings: List[pyfusa.Finding] = []
-        for filename, key, fields, _blanket_fields in _QUALITY_ARTIFACTS:
-            path = os.path.join(project_root, filename)
-            if not os.path.exists(path):
-                continue
-            doc = _load_json(path)
-            if doc is None:
-                continue
-            findings.extend(
-                content_quality.scan_placeholder(doc.get(key, []), fields, filename)
-            )
-        return findings
-
-
-# fusa:req REQ-QUALBASE008
-class FUSASTUB002(Rule):
-    rule_id = content_quality.RULE_BLANKET_FALLBACK
-    standard = "iso26262"
-    clause = "7.4"
-    description = (
-        "A committed evidence artifact's qualitative field should vary with "
-        "the item it describes, not repeat one hardcoded string across "
-        "every entry (x-FuSa spec §1.6.1 rule B); suppressed by a valid "
-        "§1.6.2 attestation."
-    )
-
-    def run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
-        findings: List[pyfusa.Finding] = []
-        for filename, key, _fields, blanket_fields in _QUALITY_ARTIFACTS:
-            path = os.path.join(project_root, filename)
-            if not os.path.exists(path):
-                continue
-            doc = _load_json(path)
-            if doc is None:
-                continue
-            candidate = content_quality.scan_blanket_fallback(
-                doc.get(key, []), blanket_fields, filename
-            )
-            if not candidate:
-                continue
-            current_hash = content_quality.content_hash(doc)
-            if content_quality.attestation_valid(doc.get("attestation"), current_hash):
-                continue
-            findings.extend(candidate)
-        return findings
-
-
 # ── Disposition rule ──────────────────────────────────────────────────────────
 
 
@@ -650,6 +575,4 @@ ALL = [
     HARA004(),
     HARA005(),
     DISP001(),
-    FUSASTUB001(),
-    FUSASTUB002(),
 ]

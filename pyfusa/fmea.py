@@ -38,15 +38,29 @@ def _python_files(root: str, cfg: Config) -> List[str]:
     files) — sorting here keeps entries[] order, and therefore the §1.6.2
     content hash, stable across repeated runs on the same unchanged source,
     regardless of OS/filesystem.
+
+    Excludes the test tree via `trace.EXCLUDED_SOURCE_DIRS` — the same
+    exclusion `compute_func_coverage` uses for the componentsInProject
+    denominator (§1.6 rule 4 implementer guidance, §9.2 fmea). Using a
+    narrower, independently-maintained skip set here would let a test
+    fixture be counted as `entries[]` (the numerator) while it is excluded
+    from `componentsInProject` (the denominator), inflating
+    `summary.coveragePct` past 100 — see x-FuSa spec §9.2's MUST that
+    `coveragePct` never exceed 100.
     """
+    from pyfusa.trace import EXCLUDED_SOURCE_DIRS
+
     source_dirs = cfg.source_dirs or ["."]
     paths: List[str] = []
-    skip = {"__pycache__", ".git", ".tox", "venv", ".venv", "dist", "build"}
     for sdir in source_dirs:
         base = os.path.join(root, sdir)
+        if os.path.basename(os.path.normpath(base)) in EXCLUDED_SOURCE_DIRS:
+            continue
         for dirpath, dirnames, filenames in os.walk(base):
             dirnames[:] = sorted(
-                d for d in dirnames if d not in skip and not d.startswith(".")
+                d
+                for d in dirnames
+                if d not in EXCLUDED_SOURCE_DIRS and not d.startswith(".")
             )
             for fn in sorted(filenames):
                 if fn.endswith(".py"):
@@ -261,6 +275,11 @@ def _coverage(project_root: str, cfg: Config, analyzed: int) -> dict:
 
     _tagged, total_public = _trace.compute_func_coverage(project_root, cfg)
     pct = round(100.0 * analyzed / total_public, 1) if total_public else 100.0
+    # x-FuSa spec §9.2 fmea MUST: coveragePct must never exceed 100. The
+    # numerator/denominator now share one exclusion definition (see
+    # `_python_files` above), which is what actually prevents this — this
+    # clamp is a defensive backstop, not the fix itself.
+    pct = min(pct, 100.0)
     return {
         "componentsAnalyzed": analyzed,
         "componentsInProject": total_public,
