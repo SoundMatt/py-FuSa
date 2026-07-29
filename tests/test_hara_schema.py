@@ -217,3 +217,49 @@ def test_hara_cli_show_json_format():
         doc = json.loads(out.getvalue())
         assert doc["kind"] == "hara-report"
         assert code == pyfusa.EXIT_OK
+
+
+# ---------------------------------------------------------------------------
+# Issue #33 — ASIL determination table (ISO 26262-3:2018 Table 4)
+# ---------------------------------------------------------------------------
+
+
+# fusa:test REQ-CLI009
+def test_determine_asil_known_values_match_iso26262_table4():
+    """Spot-check a representative sample of ISO 26262-3:2018 Table 4 cells
+    that were previously wrong by exactly one ASIL step (issue #33) —
+    S2/E2/C2 is the exact cell the issue's real-world-impact example uses."""
+    cases = [
+        ("S1", "E1", "C3", "QM"),
+        ("S1", "E2", "C2", "QM"),
+        ("S1", "E2", "C3", "QM"),
+        ("S1", "E3", "C3", "ASIL-A"),
+        ("S1", "E4", "C3", "ASIL-B"),
+        ("S2", "E1", "C2", "QM"),
+        ("S2", "E2", "C2", "ASIL-A"),  # the issue's headline example
+        ("S2", "E2", "C3", "ASIL-B"),
+        ("S2", "E3", "C3", "ASIL-C"),
+        ("S2", "E4", "C2", "ASIL-C"),
+        ("S3", "E1", "C3", "ASIL-C"),
+        ("S3", "E4", "C3", "ASIL-D"),
+        # ISO 26262-3 Table 4: E0 (incredible exposure) is always QM,
+        # regardless of severity/controllability.
+        ("S3", "E0", "C3", "QM"),
+    ]
+    for s, e, c, expected in cases:
+        assert hara.determine_asil(s, e, c) == expected, (s, e, c)
+
+
+# fusa:test REQ-HARA006
+def test_validate_findings_writes_back_corrected_asil():
+    """Issue #33 real-world impact: validate_findings() overwrites
+    risk['asil'] with the *derived* value — for S2/E2/C2 that MUST now be
+    ASIL-A, not the previously-computed ASIL-B."""
+    data = _base_data()
+    data["hazards"][0]["risk"] = {
+        "severity": "S2",
+        "exposure": "E2",
+        "controllability": "C2",
+    }
+    hara.validate_findings(data, "ASIL-C")
+    assert data["hazards"][0]["risk"]["asil"] == "ASIL-A"
