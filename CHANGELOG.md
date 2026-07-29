@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.2 — 2026-07-28
+
+Adopts x-FuSa spec **v1.15.2** (`1.15.0` → `1.15.1` → `1.15.2`). Both intervening
+bumps are pure documentation clarifications (schemaVersion/specVersion format
+and an explicit Rule A false-positive example) with no required behavior or
+wire-format change — a version-pin bump only.
+
 ## v0.3.1 — 2026-07-28
 
 Fixes four defects found by a fresh deep-audit pass that built py-FuSa for
