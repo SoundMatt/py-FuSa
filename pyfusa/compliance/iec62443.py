@@ -113,7 +113,7 @@ def run(project_root: str, cfg: Config, sl: str = "SL-2") -> dict:
         "generatedAt": now,
         "projectRoot": os.path.abspath(project_root),
         "project": module,
-        "standard": "iec62443",
+        "standard": "iec62443-4-1",
         "sl": sl,
         "summary": {
             "total": len(objectives),

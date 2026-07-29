@@ -283,7 +283,13 @@ def test_safetycase_assemble_empty():
         solutions = [n for n in doc["nodes"] if n["type"] == "solution"]
         assert solutions
         assert all("evidence" not in n for n in solutions)
-        assert doc["completeness"]["undeveloped"] > 0
+        # x-FuSa spec §9.2: `undeveloped` counts goals with no supporting
+        # strategy/solution chain at all — G1 always gets one (every clause
+        # attaches a strategy unconditionally), so it is never "undeveloped"
+        # just because the cited evidence files don't exist on disk yet.
+        assert doc["completeness"]["undeveloped"] == 0
+        assert doc["completeness"]["totalGoals"] == 1
+        assert doc["completeness"]["goalsWithEvidence"] == 0
 
 
 def test_safetycase_assemble_with_files():
@@ -351,6 +357,55 @@ def test_safetycase_cli_md():
         )
         assert code in (pyfusa.EXIT_OK, pyfusa.EXIT_GATE_FAIL)
         assert "Safety Case" in out.getvalue()
+
+
+# fusa:test REQ-SC006
+def test_safetycase_cli_undeveloped_does_not_gate_by_default():
+    """Issue #36: a fresh project (no coupling-report.json/boundary.json
+    etc. generated yet) must not fail `pyfusa safety-case`'s exit code —
+    incompleteness of cited evidence is not a GSN argument-structure defect,
+    and gating on it is opt-in (--require-complete), mirroring
+    --min-coverage/--strict/--require-attestation elsewhere in the spec."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out = io.StringIO()
+        code = run(
+            ["safety-case", "--dir", tmpdir, "--format", "json", "--output", ""],
+            stdout=out,
+        )
+        doc = json.loads(out.getvalue())
+        assert doc["completeness"]["undeveloped"] == 0
+        assert code == pyfusa.EXIT_OK
+
+
+# fusa:test REQ-SC006
+def test_safetycase_cli_require_complete_gates_when_undeveloped():
+    """--require-complete is the opt-in escape hatch: force `undeveloped`
+    above zero via a monkeypatched clause list and confirm the flag gates."""
+    import pyfusa.safetycase as sc
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        original_clauses = sc._CLAUSES
+        try:
+            sc._CLAUSES = []  # no strategies at all -> G1 is undeveloped
+            out = io.StringIO()
+            code = run(
+                [
+                    "safety-case",
+                    "--dir",
+                    tmpdir,
+                    "--format",
+                    "json",
+                    "--output",
+                    "",
+                    "--require-complete",
+                ],
+                stdout=out,
+            )
+            doc = json.loads(out.getvalue())
+            assert doc["completeness"]["undeveloped"] == 1
+            assert code == pyfusa.EXIT_GATE_FAIL
+        finally:
+            sc._CLAUSES = original_clauses
 
 
 # ---------------------------------------------------------------------------

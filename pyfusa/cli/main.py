@@ -248,7 +248,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "iso21434",
             "do178c",
             "unece-r155",
-            "iec62443",
+            "iec62443-4-1",
             "slsa",
         ],
         "ruleCount": 47,
@@ -1928,6 +1928,13 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
     p.add_argument("--output", default="")
     p.add_argument("--strict", action="store_true")
     p.add_argument("--require-attestation", action="store_true")
+    p.add_argument(
+        "--require-complete",
+        action="store_true",
+        help="exit 1 if any GSN goal has no supporting strategy/solution chain "
+        "(completeness.undeveloped > 0); off by default, like --min-coverage 0 "
+        "on fmea/tara",
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1972,7 +1979,9 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
         require_attestation,
         stderr,
     )
-    if gate_failed or doc.get("completeness", {}).get("undeveloped", 0) > 0:
+    if gate_failed:
+        return EXIT_GATE_FAIL
+    if ns.require_complete and doc.get("completeness", {}).get("undeveloped", 0) > 0:
         return EXIT_GATE_FAIL
     return EXIT_OK
 

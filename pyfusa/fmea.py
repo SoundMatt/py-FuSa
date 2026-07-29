@@ -119,9 +119,19 @@ def _returns_none(node) -> bool:
     return False
 
 
-def _has_args(node) -> bool:
+def _has_args(node, is_method: bool = False) -> bool:
     args = node.args
-    return bool(args.args or args.kwonlyargs or args.vararg or args.kwarg)
+    posonly = list(args.posonlyargs)
+    positional = list(args.args)
+    if is_method and (posonly or positional):
+        # Drop the implicit `self`/`cls` — it is not a real parameter the
+        # caller supplies, so it must not count toward "this function takes
+        # an argument that could be invalid/out-of-range" (§1.6.1 rule B).
+        if posonly:
+            posonly = posonly[1:]
+        else:
+            positional = positional[1:]
+    return bool(posonly or positional or args.kwonlyargs or args.vararg or args.kwarg)
 
 
 def _req_ids_from_comments(lines: List[str], start: int, end: int) -> List[str]:
@@ -243,7 +253,7 @@ def scan(project_root: str, cfg: Config) -> List[dict]:
             returns_none = _returns_none(node)
             has_thread = _has_thread(node)
             has_raise = _has_raise(node)
-            has_args = _has_args(node)
+            has_args = _has_args(node, is_method=_is_method)
 
             mode, effect, cause, severity, mitigations = _derive_analysis(
                 returns_none, has_thread, has_raise, has_args, req_ids

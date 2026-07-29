@@ -497,6 +497,19 @@ def test_capabilities_json():
     assert "check" in doc["commands"]
 
 
+# fusa:test REQ-CLI003
+def test_capabilities_standards_use_canonical_ids():
+    """Issue #35: x-FuSa spec §2.4.1 — `standard` is a canonical lowercase
+    id, defined for IEC 62443 only as `iec62443-4-1`/`iec62443-4-2`; the bare
+    `"iec62443"` (a command name, not a standard id) must never appear in
+    `capabilities.standards[]`."""
+    out = io.StringIO()
+    run(["capabilities", "--format", "json"], stdout=out)
+    doc = json.loads(out.getvalue())
+    assert "iec62443" not in doc["standards"]
+    assert "iec62443-4-1" in doc["standards"] or "iec62443-4-2" in doc["standards"]
+
+
 def test_init_creates_config():
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()

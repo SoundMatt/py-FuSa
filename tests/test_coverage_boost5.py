@@ -274,6 +274,71 @@ class TestFmea:
         func = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)][0]
         assert fmea._has_args(func) is False
 
+    def test_has_args_method_self_only_is_false(self):
+        """Issue #34: a method taking only `self` has no *real* argument —
+        `self` is not a caller-supplied value that could be invalid/
+        out-of-range, so `_has_args` must be False when `is_method=True`."""
+        import ast
+
+        import pyfusa.fmea as fmea
+
+        tree = ast.parse("class C:\n    def to_dict(self):\n        return {}\n")
+        func = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)][0]
+        assert fmea._has_args(func, is_method=True) is False
+        # Without the is_method flag (module-level-style call), `self` still
+        # looks like an argument — this documents the pre-fix behaviour the
+        # scan() call site now avoids by passing is_method=True.
+        assert fmea._has_args(func, is_method=False) is True
+
+    def test_has_args_method_cls_only_is_false(self):
+        """Same as above for `cls` on a classmethod."""
+        import ast
+
+        import pyfusa.fmea as fmea
+
+        tree = ast.parse(
+            "class C:\n"
+            "    @classmethod\n"
+            "    def create(cls):\n"
+            "        return C()\n"
+        )
+        func = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)][0]
+        assert fmea._has_args(func, is_method=True) is False
+
+    def test_has_args_method_with_real_arg_is_true(self):
+        """A method with a real parameter beyond self is still True."""
+        import ast
+
+        import pyfusa.fmea as fmea
+
+        tree = ast.parse("class C:\n    def set(self, value):\n        self.v = value\n")
+        func = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)][0]
+        assert fmea._has_args(func, is_method=True) is True
+
+    def test_scan_method_self_only_does_not_get_argument_failure_mode(self):
+        """Issue #34 end-to-end: pyfusa fmea scan() must not claim a
+        zero-argument accessor method 'accepts an invalid/out-of-range
+        argument without validation' — that failureMode is factually false
+        for a method whose only parameter is `self`."""
+        import tempfile
+
+        import pyfusa.fmea as fmea
+        from pyfusa.config import default
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = (
+                "class Tag:\n"
+                "    def to_dict(self):\n"
+                "        return {}\n"
+            )
+            with open(os.path.join(tmpdir, "mod.py"), "w") as f:
+                f.write(src)
+            cfg = default(project_name="proj")
+            entries = fmea.scan(tmpdir, cfg)
+            assert len(entries) == 1
+            entry = entries[0]
+            assert "invalid/out-of-range argument" not in entry["failureMode"]
+
     def test_req_ids_from_comments(self):
         """_req_ids_from_comments extracts IDs from #fusa:req comments."""
         import pyfusa.fmea as fmea

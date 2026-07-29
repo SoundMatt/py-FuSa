@@ -24,7 +24,7 @@ def test_iec62443_run_empty_dir():
         cfg = default(project_name="proj")
         doc = iec_run(tmpdir, cfg)
         assert doc["kind"] == "gap-report"
-        assert doc["standard"] == "iec62443"
+        assert doc["standard"] == "iec62443-4-1"
         assert doc["sl"] == "SL-2"
         assert doc["summary"]["total"] == 12
         assert doc["summary"]["gaps"] > 0
@@ -196,6 +196,25 @@ def test_iec62443_cli_json():
     assert code in (0, 1, 3)
     doc = json.loads(out.getvalue())
     assert doc["kind"] == "gap-report"
+
+
+def test_iec62443_cli_json_standard_id_is_canonical():
+    """Issue #35: the `iec62443` gap-report's `standard` field must be one
+    of the x-FuSa spec §2.4.1 defined ids (`iec62443-4-1`/`iec62443-4-2`),
+    not the bare command name `"iec62443"` — and it must match what
+    `capabilities.standards[]` advertises (§2.4.1: "used identically ...
+    everywhere")."""
+    out = io.StringIO()
+    caps_out = io.StringIO()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        code = run(
+            ["iec62443", "--dir", tmpdir, "--format", "json"], stdout=out
+        )
+    run(["capabilities", "--format", "json"], stdout=caps_out)
+    doc = json.loads(out.getvalue())
+    caps = json.loads(caps_out.getvalue())
+    assert doc["standard"] in ("iec62443-4-1", "iec62443-4-2")
+    assert doc["standard"] in caps["standards"]
 
 
 def test_iec62443_cli_sl_flag():

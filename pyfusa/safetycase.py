@@ -80,7 +80,11 @@ def assemble(project_root: str, cfg: Config) -> dict:
             node["evidence"] = filename
         nodes.append(node)
 
-    undeveloped = 0
+    # Per-strategy evidence presence: whether at least one of a strategy's
+    # cited solutions has real evidence on disk. This is *not* what §9.2's
+    # `completeness.undeveloped` measures (that's goal argument structure,
+    # below) — it only feeds `goalsWithEvidence`.
+    strategies_without_evidence = 0
     for idx, (std_display, clause, title, ev_ids) in enumerate(_CLAUSES, start=1):
         strat_id = f"St{idx}"
         nodes.append(
@@ -100,9 +104,28 @@ def assemble(project_root: str, cfg: Config) -> dict:
             if present.get(ev_id):
                 strategy_has_evidence = True
         if not strategy_has_evidence:
-            undeveloped += 1
+            strategies_without_evidence += 1
 
-    goals_with_evidence = 1 if undeveloped < len(_CLAUSES) else 0
+    # x-FuSa spec §9.2 safety-case: `completeness.totalGoals`/`undeveloped`
+    # describe the GSN argument *structure* — a goal with no supporting
+    # strategy/solution chain at all is "undeveloped" (§9.2: "A goal with no
+    # supporting strategy/solution chain ... is a silent gap"). This is
+    # independent of whether the strategies it does have are backed by
+    # evidence that happens to exist on disk yet (that's
+    # `strategies_without_evidence`, folded into `goalsWithEvidence` below).
+    goal_ids = [n["id"] for n in nodes if n["type"] == "goal"]
+    supported_goal_ids = {
+        e["from"]
+        for e in edges
+        if e["type"] == "supportedBy" and e["from"] in goal_ids
+    }
+    undeveloped = sum(1 for gid in goal_ids if gid not in supported_goal_ids)
+    goals_with_evidence = sum(
+        1
+        for gid in goal_ids
+        if gid in supported_goal_ids
+        and strategies_without_evidence < len(_CLAUSES)
+    )
 
     doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
@@ -117,7 +140,7 @@ def assemble(project_root: str, cfg: Config) -> dict:
         "nodes": nodes,
         "edges": edges,
         "completeness": {
-            "totalGoals": 1,
+            "totalGoals": len(goal_ids),
             "goalsWithEvidence": goals_with_evidence,
             "undeveloped": undeveloped,
         },

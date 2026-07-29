@@ -37,7 +37,7 @@ def _load_config(project_root: str) -> Optional[dict]:
 # fusa:req REQ-ICS001
 class IEC62443_001(Rule):
     rule_id = "IEC62443-001"
-    standard = "iec62443"
+    standard = "iec62443-4-1"
     clause = "4-1 §8"
     description = "IEC 62443 Security Level must be declared in .fusa-iec62443.json."
 
@@ -59,7 +59,7 @@ class IEC62443_001(Rule):
 # fusa:req REQ-ICS002
 class IEC62443_002(Rule):
     rule_id = "IEC62443-002"
-    standard = "iec62443"
+    standard = "iec62443-4-1"
     clause = "4-1 §8"
     description = "IEC 62443 target_sl must be an integer in the range 1–4."
 
@@ -85,7 +85,7 @@ class IEC62443_002(Rule):
 # fusa:req REQ-ICS003
 class IEC62443_003(Rule):
     rule_id = "IEC62443-003"
-    standard = "iec62443"
+    standard = "iec62443-4-2"
     clause = "4-2 CR 6.2"
     description = (
         "A security policy document (SECURITY.md) is required by IEC 62443-4-2 CR 6.2."
@@ -110,7 +110,7 @@ class IEC62443_003(Rule):
 # fusa:req REQ-ICS004
 class IEC62443_004(Rule):
     rule_id = "IEC62443-004"
-    standard = "iec62443"
+    standard = "iec62443-4-2"
     clause = "4-2 CR 6.2.1"
     description = (
         "A cyber incident response plan is required by IEC 62443-4-2 CR 6.2.1."
