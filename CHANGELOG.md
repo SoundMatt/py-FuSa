@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.3.1 — 2026-07-28
+
+Fixes four defects found by a fresh deep-audit pass that built py-FuSa for
+real, ran every command against its own codebase, and diffed the real output
+against the x-FuSa spec (`SoundMatt/py-FuSa` #33–#36).
+
+### Fixed
+
+- **`hara`: ASIL determination table wrong for 22/48 tabulated S×E×C cells
+  (#33).** `_ASIL_TABLE` diverged from ISO 26262-3:2018 Table 4 by exactly
+  one ASIL step across 22 of the 48 S1–S3 × E1–E4 × C0–C3 cells (plus one
+  further E0 cell), inflating every affected hazard's derived ASIL. Since
+  `validate_findings()` overwrites `risk["asil"]` unconditionally, this repo's
+  own checked-in `.fusa-hara.json` (H-001/H-004 at S2/E2/C2) was affected —
+  corrected to `ASIL-A`. The table is now cross-checked against FuSaOps'
+  tested `hara.DetermineASIL` reference implementation.
+- **`fmea`: `_has_args` counted `self`/`cls` as a real argument (#34).**
+  Every class method with only `self`/`cls` counted as taking an argument,
+  so `_derive_analysis()` emitted the fixed "invalid/out-of-range argument
+  accepted without validation" triple for 96% of this repo's own fmea
+  entries — exactly the blanket-fallback pattern the tool's own
+  `FUSA-STUB002` content-quality check exists to catch. `_has_args` now
+  drops the implicit `self`/`cls` parameter for methods.
+- **`iec62443`: capabilities and gap-report emitted the non-canonical
+  standard id `"iec62443"` (#35).** x-FuSa spec §2.4.1 defines
+  `iec62443-4-1`/`iec62443-4-2` as the canonical ids; `"iec62443"` is a
+  command name, never an id. `capabilities.standards[]`, the `iec62443`
+  gap-report's `standard` field, and the four `IEC62443-*` check rules now
+  emit `iec62443-4-1`/`iec62443-4-2` per their own clause.
+- **`safety-case`: `completeness.undeveloped` measured per-strategy evidence
+  presence, not GSN goal argument structure, and unconditionally gated the
+  exit code (#36).** §9.2 defines `undeveloped` as goals with no supporting
+  strategy/solution chain — not strategies whose cited evidence files are
+  absent from disk. `totalGoals`/`undeveloped` are now derived from
+  `nodes[]`/`edges[]`; the previous per-strategy signal survives as
+  `goalsWithEvidence`. The exit-code gate on incompleteness is now opt-in
+  via `--require-complete`, mirroring `--min-coverage`/`--strict` elsewhere.
+
 ## v0.3.0 — 2026-07-28
 
 Adopts x-FuSa spec v1.15.0 and fixes five defects found by a deep-audit pass
