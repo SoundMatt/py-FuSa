@@ -19,94 +19,33 @@ from pyfusa import content_quality
 
 HARA_FILE = ".fusa-hara.json"
 
-# ISO 26262-3:2018 Table 4 ASIL determination
+# ISO 26262-3:2018 Table 4 ASIL determination — additive S+E+C point model.
+#   S1..S3 = 1..3, E1..E4 = 1..4, C1..C3 = 1..3
+#   points <= 6 -> QM, 7 -> ASIL-A, 8 -> ASIL-B, 9 -> ASIL-C, 10 -> ASIL-D
+# ASIL-D is reached only by S3+E4+C3 (= 10). S0, and the out-of-table E0/C0
+# classes, are outside Table 4 and always map to QM.
+_S_POINTS = {"S1": 1, "S2": 2, "S3": 3}
+_E_POINTS = {"E1": 1, "E2": 2, "E3": 3, "E4": 4}
+_C_POINTS = {"C1": 1, "C2": 2, "C3": 3}
+_POINT_ASIL = {7: "ASIL-A", 8: "ASIL-B", 9: "ASIL-C", 10: "ASIL-D"}
+
+
+def _build_asil_table() -> dict:
+    table: dict = {}
+    for s in ("S0", "S1", "S2", "S3"):
+        for e in ("E0", "E1", "E2", "E3", "E4"):
+            for c in ("C0", "C1", "C2", "C3"):
+                if s in _S_POINTS and e in _E_POINTS and c in _C_POINTS:
+                    points = _S_POINTS[s] + _E_POINTS[e] + _C_POINTS[c]
+                    table[(s, e, c)] = _POINT_ASIL.get(points, "QM")
+                else:
+                    table[(s, e, c)] = "QM"
+    return table
+
+
 # Key: (severity S, exposure E, controllability C)
-_ASIL_TABLE: dict = {
-    # S0 → always QM
-    ("S0", "E0", "C0"): "QM",
-    ("S0", "E0", "C1"): "QM",
-    ("S0", "E0", "C2"): "QM",
-    ("S0", "E0", "C3"): "QM",
-    ("S0", "E1", "C0"): "QM",
-    ("S0", "E1", "C1"): "QM",
-    ("S0", "E1", "C2"): "QM",
-    ("S0", "E1", "C3"): "QM",
-    ("S0", "E2", "C0"): "QM",
-    ("S0", "E2", "C1"): "QM",
-    ("S0", "E2", "C2"): "QM",
-    ("S0", "E2", "C3"): "QM",
-    ("S0", "E3", "C0"): "QM",
-    ("S0", "E3", "C1"): "QM",
-    ("S0", "E3", "C2"): "QM",
-    ("S0", "E3", "C3"): "QM",
-    ("S0", "E4", "C0"): "QM",
-    ("S0", "E4", "C1"): "QM",
-    ("S0", "E4", "C2"): "QM",
-    ("S0", "E4", "C3"): "QM",
-    # S1
-    ("S1", "E0", "C0"): "QM",
-    ("S1", "E0", "C1"): "QM",
-    ("S1", "E0", "C2"): "QM",
-    ("S1", "E0", "C3"): "QM",
-    ("S1", "E1", "C0"): "QM",
-    ("S1", "E1", "C1"): "QM",
-    ("S1", "E1", "C2"): "QM",
-    ("S1", "E1", "C3"): "QM",
-    ("S1", "E2", "C0"): "QM",
-    ("S1", "E2", "C1"): "QM",
-    ("S1", "E2", "C2"): "QM",
-    ("S1", "E2", "C3"): "QM",
-    ("S1", "E3", "C0"): "QM",
-    ("S1", "E3", "C1"): "QM",
-    ("S1", "E3", "C2"): "QM",
-    ("S1", "E3", "C3"): "ASIL-A",
-    ("S1", "E4", "C0"): "QM",
-    ("S1", "E4", "C1"): "QM",
-    ("S1", "E4", "C2"): "ASIL-A",
-    ("S1", "E4", "C3"): "ASIL-B",
-    # S2
-    ("S2", "E0", "C0"): "QM",
-    ("S2", "E0", "C1"): "QM",
-    ("S2", "E0", "C2"): "QM",
-    ("S2", "E0", "C3"): "QM",
-    ("S2", "E1", "C0"): "QM",
-    ("S2", "E1", "C1"): "QM",
-    ("S2", "E1", "C2"): "QM",
-    ("S2", "E1", "C3"): "QM",
-    ("S2", "E2", "C0"): "QM",
-    ("S2", "E2", "C1"): "QM",
-    ("S2", "E2", "C2"): "ASIL-A",
-    ("S2", "E2", "C3"): "ASIL-B",
-    ("S2", "E3", "C0"): "QM",
-    ("S2", "E3", "C1"): "ASIL-A",
-    ("S2", "E3", "C2"): "ASIL-B",
-    ("S2", "E3", "C3"): "ASIL-C",
-    ("S2", "E4", "C0"): "ASIL-A",
-    ("S2", "E4", "C1"): "ASIL-B",
-    ("S2", "E4", "C2"): "ASIL-C",
-    ("S2", "E4", "C3"): "ASIL-D",
-    # S3
-    ("S3", "E0", "C0"): "QM",
-    ("S3", "E0", "C1"): "QM",
-    ("S3", "E0", "C2"): "QM",
-    ("S3", "E0", "C3"): "QM",
-    ("S3", "E1", "C0"): "QM",
-    ("S3", "E1", "C1"): "ASIL-A",
-    ("S3", "E1", "C2"): "ASIL-B",
-    ("S3", "E1", "C3"): "ASIL-C",
-    ("S3", "E2", "C0"): "ASIL-A",
-    ("S3", "E2", "C1"): "ASIL-B",
-    ("S3", "E2", "C2"): "ASIL-C",
-    ("S3", "E2", "C3"): "ASIL-D",
-    ("S3", "E3", "C0"): "ASIL-B",
-    ("S3", "E3", "C1"): "ASIL-C",
-    ("S3", "E3", "C2"): "ASIL-D",
-    ("S3", "E3", "C3"): "ASIL-D",
-    ("S3", "E4", "C0"): "ASIL-C",
-    ("S3", "E4", "C1"): "ASIL-D",
-    ("S3", "E4", "C2"): "ASIL-D",
-    ("S3", "E4", "C3"): "ASIL-D",
-}
+_ASIL_TABLE: dict = _build_asil_table()
+
 
 _ASIL_RANK = {"QM": 0, "ASIL-A": 1, "ASIL-B": 2, "ASIL-C": 3, "ASIL-D": 4}
 
@@ -186,8 +125,23 @@ def validate_findings(
             findings.append(
                 _finding(
                     "HARA002",
-                    pyfusa.SEVERITY_ERROR,
+                    pyfusa.SEVERITY_WARNING,
                     f"hazard {hid} has incomplete risk rating (severity/exposure/controllability)",
+                )
+            )
+        elif not (
+            s in {"S0", "S1", "S2", "S3"}
+            and e in {"E0", "E1", "E2", "E3", "E4"}
+            and c in {"C0", "C1", "C2", "C3"}
+        ):
+            # §1.2.5 — a present-but-unrecognised S/E/C token must be flagged,
+            # not silently defaulted to QM (the lowest rating).
+            findings.append(
+                _finding(
+                    "HARA002",
+                    pyfusa.SEVERITY_WARNING,
+                    f"hazard {hid} has invalid risk rating token(s) "
+                    f"(severity={s!r} exposure={e!r} controllability={c!r})",
                 )
             )
         else:
@@ -197,7 +151,7 @@ def validate_findings(
                 findings.append(
                     _finding(
                         "HARA005",
-                        pyfusa.SEVERITY_ERROR,
+                        pyfusa.SEVERITY_WARNING,
                         f"hazard {hid} ASIL {computed} exceeds project ASIL {project_asil}",
                     )
                 )
@@ -206,7 +160,7 @@ def validate_findings(
             findings.append(
                 _finding(
                     "HARA003",
-                    pyfusa.SEVERITY_ERROR,
+                    pyfusa.SEVERITY_WARNING,
                     f"hazard {hid} has no linked safety goals",
                     category=pyfusa.CATEGORY_REQUIREMENT,
                 )
@@ -217,7 +171,7 @@ def validate_findings(
                     findings.append(
                         _finding(
                             "HARA003",
-                            pyfusa.SEVERITY_ERROR,
+                            pyfusa.SEVERITY_WARNING,
                             f"hazard {hid} references unknown safety goal {sg_id}",
                             category=pyfusa.CATEGORY_REQUIREMENT,
                         )
@@ -239,7 +193,7 @@ def validate_findings(
         if not sg.get("asil"):
             findings.append(
                 _finding(
-                    "HARA004", pyfusa.SEVERITY_ERROR, f"safety goal {sgid} has no ASIL set"
+                    "HARA004", pyfusa.SEVERITY_WARNING, f"safety goal {sgid} has no ASIL set"
                 )
             )
 
@@ -248,7 +202,7 @@ def validate_findings(
             findings.append(
                 _finding(
                     "HARA006",
-                    pyfusa.SEVERITY_ERROR,
+                    pyfusa.SEVERITY_WARNING,
                     f"safety goal {sgid} has no fssrRefs — a safety goal MUST "
                     f"decompose into >=1 functional safety requirement (§1.2.5)",
                     category=pyfusa.CATEGORY_REQUIREMENT,

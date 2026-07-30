@@ -113,13 +113,16 @@ def test_validate_findings_safety_goal_no_asil():
 
 
 # fusa:test REQ-HARA006
-def test_validate_findings_missing_fssr_refs_is_error():
+def test_validate_findings_missing_fssr_refs_is_warning():
+    """HARA006 is a WARNING like every other hara validate finding (README
+    §evidence-presence table; hara validate gates on presence of any
+    finding, not on severity) — it must not silently regress to ERROR."""
     data = _base_data()
     data["safetyGoals"][0]["fssrRefs"] = []
     findings = hara.validate_findings(data, "ASIL-C")
     hara006 = [f for f in findings if f.rule_id == "HARA006"]
     assert hara006
-    assert hara006[0].severity == pyfusa.SEVERITY_ERROR
+    assert hara006[0].severity == pyfusa.SEVERITY_WARNING
     assert hara006[0].category == pyfusa.CATEGORY_REQUIREMENT
 
 
@@ -226,9 +229,9 @@ def test_hara_cli_show_json_format():
 
 # fusa:test REQ-CLI009
 def test_determine_asil_known_values_match_iso26262_table4():
-    """Spot-check a representative sample of ISO 26262-3:2018 Table 4 cells
-    that were previously wrong by exactly one ASIL step (issue #33) —
-    S2/E2/C2 is the exact cell the issue's real-world-impact example uses."""
+    """Known-answer cells from ISO 26262-3:2018 Table 4, derived from the
+    additive S+E+C point model (S1..3=1..3, E1..4=1..4, C1..3=1..3;
+    <=6 QM, 7 ASIL-A, 8 ASIL-B, 9 ASIL-C, 10 ASIL-D)."""
     cases = [
         ("S1", "E1", "C3", "QM"),
         ("S1", "E2", "C2", "QM"),
@@ -236,11 +239,11 @@ def test_determine_asil_known_values_match_iso26262_table4():
         ("S1", "E3", "C3", "ASIL-A"),
         ("S1", "E4", "C3", "ASIL-B"),
         ("S2", "E1", "C2", "QM"),
-        ("S2", "E2", "C2", "ASIL-A"),  # the issue's headline example
-        ("S2", "E2", "C3", "ASIL-B"),
-        ("S2", "E3", "C3", "ASIL-C"),
-        ("S2", "E4", "C2", "ASIL-C"),
-        ("S3", "E1", "C3", "ASIL-C"),
+        ("S2", "E2", "C2", "QM"),
+        ("S2", "E2", "C3", "ASIL-A"),
+        ("S2", "E3", "C3", "ASIL-B"),
+        ("S2", "E4", "C2", "ASIL-B"),
+        ("S3", "E1", "C3", "ASIL-A"),
         ("S3", "E4", "C3", "ASIL-D"),
         # ISO 26262-3 Table 4: E0 (incredible exposure) is always QM,
         # regardless of severity/controllability.
@@ -250,11 +253,27 @@ def test_determine_asil_known_values_match_iso26262_table4():
         assert hara.determine_asil(s, e, c) == expected, (s, e, c)
 
 
+# fusa:test REQ-CLI009
+def test_determine_asil_full_36_cell_truth_table():
+    """Exhaustive S x E x C sweep against the additive point model, plus the
+    invariant that ASIL-D is produced ONLY by S3/E4/C3."""
+    s_pts = {"S1": 1, "S2": 2, "S3": 3}
+    e_pts = {"E1": 1, "E2": 2, "E3": 3, "E4": 4}
+    c_pts = {"C1": 1, "C2": 2, "C3": 3}
+    band = {7: "ASIL-A", 8: "ASIL-B", 9: "ASIL-C", 10: "ASIL-D"}
+    for s in s_pts:
+        for e in e_pts:
+            for c in c_pts:
+                expected = band.get(s_pts[s] + e_pts[e] + c_pts[c], "QM")
+                got = hara.determine_asil(s, e, c)
+                assert got == expected, (s, e, c, got, expected)
+                assert (got == "ASIL-D") == ((s, e, c) == ("S3", "E4", "C3"))
+
+
 # fusa:test REQ-HARA006
 def test_validate_findings_writes_back_corrected_asil():
-    """Issue #33 real-world impact: validate_findings() overwrites
-    risk['asil'] with the *derived* value — for S2/E2/C2 that MUST now be
-    ASIL-A, not the previously-computed ASIL-B."""
+    """validate_findings() overwrites risk['asil'] with the *derived* value —
+    for S2/E2/C2 (point sum 6) that MUST be QM per Table 4."""
     data = _base_data()
     data["hazards"][0]["risk"] = {
         "severity": "S2",
@@ -262,4 +281,4 @@ def test_validate_findings_writes_back_corrected_asil():
         "controllability": "C2",
     }
     hara.validate_findings(data, "ASIL-C")
-    assert data["hazards"][0]["risk"]["asil"] == "ASIL-A"
+    assert data["hazards"][0]["risk"]["asil"] == "QM"

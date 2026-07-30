@@ -38,7 +38,6 @@ jobs:
       - name: Coverage gate (≥ 80 %)
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         run: python -m pytest tests/ --cov=pyfusa --cov-report=term-missing --cov-fail-under=80
-        continue-on-error: true
 
       - name: Upload coverage artifact
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'

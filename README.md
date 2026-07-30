@@ -1,4 +1,4 @@
-# py-FuSa — v0.3.2
+# py-FuSa — v0.3.3
 
 A functional safety enablement toolkit for Python projects. py-FuSa provides static checks,
 coding rules, traceability helpers, CI evidence bundles, and tool qualification support to help
@@ -168,7 +168,16 @@ pyfusa comp --format json            # JSON report
 | HARA003 | WARNING | Hazard not linked to a safety goal |
 | HARA004 | WARNING | Safety goal has no ASIL assigned |
 | HARA005 | WARNING | Safety goal ASIL exceeds project ASIL ceiling |
+| HARA006 | WARNING | Safety goal has no `fssrRefs` (§1.2.5 MUST: every safety goal decomposes into ≥1 functional safety requirement) — `hara validate` only |
+| HARA007 | WARNING | Safety goal `fssrRefs` references a requirement id not present in `.fusa-reqs.json` — `hara validate` only |
+| HARA008 | WARNING | Hazard `situations` references an operational situation id not present in `operationalSituations` — `hara validate` only |
 | DISP001 | WARNING | ERROR finding in `check-report.json` has no disposition entry |
+
+HARA002–HARA008 above are all emitted at WARNING by `pyfusa hara validate`
+(`pyfusa/hara.py:validate_findings`) — `hara validate` gates on *any* finding
+being present regardless of severity, so the severity label is informational,
+not the gate. HARA006–HARA008 are undocumented in prior releases; this table
+now lists all eight rules `hara validate` can emit.
 
 ### Supply-chain integrity (SLSA-series)
 
@@ -241,7 +250,11 @@ Every finding carries the §4.2 canonical SHA-256 fingerprint for stable cross-t
 ## x-FuSa spec conformance
 
 py-FuSa implements x-FuSa spec **v1.15.2**. All §9.1 required commands are implemented:
-`version`, `capabilities`, `init`, `check`, `report`, `trace`, `verify`, `qualify`, `release`, `audit-pack`.
+`version`, `capabilities`, `init`, `check`, `report`, `trace`, `qualify`, `release`, `audit-pack`
+(`verify` is a §9.2 recommended command, also implemented).
+
+This is a self-assessed conformance table for a `3 - Alpha` tool; treat it as a
+maturity roadmap rather than an independent qualification claim.
 
 | Item | Status |
 |---|---|
@@ -281,6 +294,13 @@ py-FuSa implements x-FuSa spec **v1.15.2**. All §9.1 required commands are impl
 ## Standards
 
 py-FuSa is itself developed as an ISO 26262 ASIL-B tool. See `.fusa.json` and `.fusa-hara.json`.
+
+See [`docs/tool-safety-manual.md`](docs/tool-safety-manual.md) for py-FuSa's
+own tool classification and known limitations. py-FuSa is a `3 - Alpha` tool:
+a full qualification package (`docs/qualification.md`, `ROADMAP.md`, an
+independent tool-qualification report) is **not yet written** — the
+safety-manual stub above tracks that gap explicitly rather than implying it
+is closed.
 
 ## License
 

@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -33,7 +34,7 @@ def _run_pytest_cov(project_root: str, source: str) -> Optional[float]:
     try:
         result = subprocess.run(
             [
-                "python3",
+                sys.executable,
                 "-m",
                 "pytest",
                 "--cov=" + source,

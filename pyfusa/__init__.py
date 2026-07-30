@@ -10,7 +10,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-VERSION = "0.3.2"
+VERSION = "0.3.3"
 SPEC_VERSION = "1.15.2"
 LANGUAGE = "python"
 TOOL = "py-FuSa"

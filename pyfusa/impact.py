@@ -16,10 +16,16 @@ def _git_changed_files(
     project_root: str, from_ref: str = "HEAD", to_ref: str = ""
 ) -> List[dict]:
     try:
+        # Reject refs that could be mistaken for options and terminate the
+        # revision list with "--" so a crafted ref cannot inject git options
+        # or be interpreted as a pathspec (argument injection).
+        for ref in (from_ref, to_ref):
+            if ref.startswith("-"):
+                raise ValueError(f"invalid git ref: {ref!r}")
         if to_ref:
-            cmd = ["git", "diff", "--name-status", from_ref, to_ref]
+            cmd = ["git", "diff", "--name-status", from_ref, to_ref, "--"]
         else:
-            cmd = ["git", "diff", "--name-status", from_ref]
+            cmd = ["git", "diff", "--name-status", from_ref, "--"]
         out = subprocess.check_output(
             cmd, cwd=project_root, stderr=subprocess.DEVNULL, text=True
         )
@@ -31,7 +37,7 @@ def _git_changed_files(
             if len(parts) == 2:
                 files.append({"status": parts[0], "path": parts[1]})
         return files
-    except (subprocess.CalledProcessError, OSError):
+    except (subprocess.CalledProcessError, OSError, ValueError):
         return []
 
 

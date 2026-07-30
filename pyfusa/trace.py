@@ -17,6 +17,9 @@ from pyfusa.config import Config
 _REQ_RE = re.compile(r"#\s*fusa:req\s+(\S+)")
 _TEST_RE = re.compile(r"#\s*fusa:test\s+(\S+)")
 _SEC_TEST_RE = re.compile(r"#\s*fusa:sec-test\s+(\S+)")
+# A second requirement-id-shaped token (e.g. REQ-CLI009) after the first id
+# indicates a malformed multi-id annotation; ordinary trailing prose does not.
+_REQID_SHAPE = re.compile(r"[A-Z][A-Z0-9]*-[A-Z0-9]+")
 
 # Tag kinds
 KIND_IMPL = "impl"
@@ -182,9 +185,10 @@ def _scan_annotations(
                     ):
                         for m in pattern.finditer(line):
                             req_id = m.group(1)
-                            # §1.4 — malformed annotation if multiple tokens after tag keyword
+                            # §1.4 — malformed only if a *second* requirement-id-shaped
+                            # token follows; trailing prose/comment is legitimate.
                             rest = line[m.end() :].strip()
-                            if rest and not rest.startswith("#"):
+                            if rest and _REQID_SHAPE.search(rest):
                                 findings.append(
                                     pyfusa.Finding(
                                         rule_id="REQ002",
@@ -221,7 +225,8 @@ def _validate_hlr_llr(requirements: list[dict]) -> list[HLRViolation]:
         level = req.get("level", "").upper()
         rid = req.get("id", "")
         if level == "LLR":
-            parent = req.get("parent_id", "")
+            # §1.2.2 canonical key is "parent"; accept legacy "parent_id" alias.
+            parent = req.get("parent") or req.get("parent_id", "")
             if not parent:
                 violations.append(
                     HLRViolation(
@@ -265,14 +270,11 @@ def build(
 
     # Load requirements
     reqs_path = os.path.join(project_root, ".fusa-reqs.json")
-    requirements: list[dict] = []
-    if os.path.exists(reqs_path):
-        try:
-            with open(reqs_path, encoding="utf-8") as f:
-                data = json.load(f)
-            requirements = data.get("requirements", [])
-        except (json.JSONDecodeError, OSError):
-            pass
+    # §1.2.2 — route through the shared loader so `trace` performs the same
+    # duplicate-id validation as `check`, instead of silently accepting dupes.
+    from pyfusa import config as _config
+
+    requirements, dup_findings = _config.load_requirements(reqs_path)
 
     # Scan annotations — §1.4.1 MUST always include the test tree, regardless
     # of sourceDirs, so `tested` counts are never silently zero.
@@ -323,7 +325,7 @@ def build(
     llr_count = sum(1 for r in requirements if r.get("level", "").upper() == "LLR")
     # Count HLRs that have at least one LLR child
     llr_parents = {
-        r.get("parent_id", "")
+        r.get("parent") or r.get("parent_id", "")
         for r in requirements
         if r.get("level", "").upper() == "LLR"
     }
@@ -373,7 +375,7 @@ def build(
         requirements=requirements,
         tags=tags,
         coverage=cov,
-        findings=ann_findings + dangling_findings + hlr_findings,
+        findings=dup_findings + ann_findings + dangling_findings + hlr_findings,
         hlr_violations=violations,
     )
 
@@ -450,7 +452,7 @@ def render_text(matrix: Matrix, gaps_only: bool = False) -> str:
     standalone: list[dict] = []
     for req in reqs:
         level = req.get("level", "").upper()
-        parent = req.get("parent_id", "")
+        parent = req.get("parent") or req.get("parent_id", "")
         if level == "LLR" and parent in hlr_ids:
             llrs_by_parent.setdefault(parent, []).append(req)
         elif level != "LLR" or not parent:
