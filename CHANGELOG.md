@@ -1,5 +1,92 @@
 # Changelog
 
+## v0.3.3 — 2026-07-30
+
+Fixes an independently re-verified, third-party audit finding that the ASIL
+determination table was **still wrong** after the v0.3.1 "fix" — plus seven
+other defects from the same audit pass.
+
+### Fixed
+
+- **`hara`: `_ASIL_TABLE` inflated ASIL for S2 and S3 hazards (Critical).**
+  The v0.3.1 changelog claimed the table had been "corrected" and
+  "cross-checked against FuSaOps' tested reference" — both claims were
+  false. FuSaOps carried the identical defect at the time, so that
+  cross-check was circular, and the resulting table still inflated every S2
+  cell by a uniform +1 ASIL rank across 9 of 12 S2 combinations, and
+  inflated S3 by an effective +2 ranks in most cells (partially masked near
+  the ASIL-D ceiling, where there is no higher rank left to reveal the full
+  magnitude). `_ASIL_TABLE` is now derived directly and only from ISO
+  26262-3:2018 Table 4's additive point model — `points = S + E + C`, with
+  `S1=1/S2=2/S3=3`, `E1..E4=1..4`, `C1..C3=1..3`, and `points <= 6 -> QM`,
+  `7 -> ASIL-A`, `8 -> ASIL-B`, `9 -> ASIL-C`, `10 -> ASIL-D` (reached only
+  by S3+E4+C3). This derivation is standalone against the standard text; it
+  makes **no claim of cross-validation against any other x-FuSa tool**,
+  fixed or not — that claim is exactly what went wrong last time.
+  `validate_findings()` still overwrites `risk["asil"]` unconditionally, but
+  now with the correct value. `tests/test_hara_schema.py` replaces the
+  wrong "known-good" vectors (including the literal S2/E2/C2 → ASIL-A
+  assertion from the original bug report, which is actually QM) with values
+  re-derived from the corrected table, and adds an exhaustive 36-cell test
+  over every valid S×E×C combination so no future regression can hide in an
+  untested cell. This repo's own `.fusa-hara.json` hazard ratings were
+  re-derived and corrected to QM.
+- **`hara`: HARA002–HARA006 emitted `SEVERITY_ERROR` while the README
+  documented WARNING (Medium).** `pyfusa/hara.py:validate_findings` (used
+  by `hara validate`) disagreed with both the README and with the
+  equivalent `HARA002`–`HARA005` rules in `pyfusa/rules/evidence.py` (used
+  by `check`), which were already WARNING. WARNING is correct — `hara
+  validate` gates on the *presence* of any finding, not on its severity
+  label, so ERROR bought no additional gating and only misrepresented these
+  as blocking defects. All eight `HARA002`–`HARA008` findings emitted by
+  `validate_findings` are now WARNING, and the README's evidence-presence
+  table now documents all eight rules (`HARA006`/`HARA007`/`HARA008` were
+  previously undocumented).
+- **`trace`: `build()` bypassed the §1.2.2 duplicate-requirement-id check
+  (Medium).** `build()` read `.fusa-reqs.json` directly instead of going
+  through `config.load_requirements`, so `trace` silently accepted
+  duplicate ids that `check` correctly flags. `build()` now loads
+  requirements through the shared loader and folds its duplicate-id
+  findings into the trace matrix.
+- **`trace`: read `parent_id` instead of the spec's canonical `parent` key
+  (Medium).** All three sites in `trace.py` that resolve an LLR's parent HLR
+  now read `parent` first, falling back to the legacy `parent_id` alias, so
+  a `.fusa-reqs.json` written to the x-FuSa spec's own `§1.2.2` schema no
+  longer has every LLR misreported as orphaned/standalone.
+- **`trace`: REQ002 flagged legitimate trailing prose as a malformed
+  annotation (Medium/Low).** `_scan_annotations` treated any non-comment
+  text after a valid requirement id as a second, malformed id. It now only
+  flags a genuine second requirement-id-shaped token (e.g. a stray
+  `REQ-CLI009`), not ordinary trailing comment prose.
+- **CI: the 80% coverage gate was `continue-on-error: true` (Medium).** The
+  gate ran but could never fail the build. `continue-on-error` is removed
+  from `.github/workflows/ci.yml`'s coverage step so a real coverage
+  shortfall now blocks CI, as the README has always implied it does.
+- **`capabilities`: `ruleCount` was hardcoded to `47` (Low).** It now
+  derives from `len(_engine.Default.rules)`, so it can't silently drift
+  from the actual registered rule count again.
+- **`impact`: `git diff` built its argument list without a `--` separator
+  (Low, argument-injection hardening).** `_git_changed_files` used
+  `subprocess.run([...], shell=False)`, which blocks shell-metacharacter
+  injection but not argv-level injection into `git` itself — a ref
+  beginning with `-` would still be parsed by `git` as an option. Refs
+  starting with `-` are now rejected, and a `--` separator now terminates
+  the revision list before the (implicit) pathspec.
+- **`coverage`: hardcoded the literal `python3` instead of `sys.executable`
+  (Low).** Non-`python3` interpreter names and virtualenv-relative
+  invocations now work.
+
+### Added
+
+- **`docs/tool-safety-manual.md`.** A minimal, honest stub covering py-FuSa's
+  tool classification and known limitations, following the structure used
+  by the more mature x-FuSa tools. It explicitly tracks what is *not* yet
+  written (`docs/qualification.md`, `ROADMAP.md`, an independent
+  qualification report) rather than implying that gap is closed. The
+  README now links to it and states the same gap directly.
+- `.gitignore` now ignores the generated `qualify-report.json`; the
+  previously checked-in copy has been removed from the repository.
+
 ## v0.3.2 — 2026-07-28
 
 Adopts x-FuSa spec **v1.15.2** (`1.15.0` → `1.15.1` → `1.15.2`). Both intervening
@@ -15,14 +102,16 @@ against the x-FuSa spec (`SoundMatt/py-FuSa` #33–#36).
 
 ### Fixed
 
-- **`hara`: ASIL determination table wrong for 22/48 tabulated S×E×C cells
-  (#33).** `_ASIL_TABLE` diverged from ISO 26262-3:2018 Table 4 by exactly
-  one ASIL step across 22 of the 48 S1–S3 × E1–E4 × C0–C3 cells (plus one
-  further E0 cell), inflating every affected hazard's derived ASIL. Since
-  `validate_findings()` overwrites `risk["asil"]` unconditionally, this repo's
-  own checked-in `.fusa-hara.json` (H-001/H-004 at S2/E2/C2) was affected —
-  corrected to `ASIL-A`. The table is now cross-checked against FuSaOps'
-  tested `hara.DetermineASIL` reference implementation.
+- **`hara`: ASIL determination table still diverged from ISO 26262-3:2018
+  Table 4 (#33, reopened).** The earlier "fix" was itself wrong: it left
+  every S2/S3 cell inflated by one ASIL step (e.g. it "corrected" S2/E2/C2 to
+  `ASIL-A` when Table 4 gives **QM**), and cross-checked the table against
+  FuSaOps' reference implementation which encodes the *same* defect. `_ASIL_TABLE`
+  is now regenerated from the authoritative additive S+E+C point model
+  (S1..3=1..3, E1..4=1..4, C1..3=1..3; ≤6 QM, 7 A, 8 B, 9 C, 10 D), verified
+  directly against ISO 26262-3 Table 4 rather than against another tool. ASIL-D
+  is now produced only by S3/E4/C3. This repo's own `.fusa-hara.json` ratings
+  (H-001/H-003/H-004) were re-derived and are now QM.
 - **`fmea`: `_has_args` counted `self`/`cls` as a real argument (#34).**
   Every class method with only `self`/`cls` counted as taking an argument,
   so `_derive_analysis()` emitted the fixed "invalid/out-of-range argument
@@ -157,12 +246,11 @@ metrics for `fmea`/`tara` (`SoundMatt/py-FuSa` #24).
 ### Fixed
 
 - `.fusa-hara.json` (this project's own dogfooded file) carried
-  severity/exposure/controllability ratings that, once genuinely re-derived
-  by the corrected ASIL table lookup, computed to a higher ASIL than the
-  ratings this file had always claimed (e.g. S2/E4/C2 computes to ASIL-D, not
-  the claimed ASIL-B) — a latent error the old flat (non-`risk`-nested)
-  schema's validator could never actually check. Corrected the four hazards'
-  ratings to combinations that genuinely derive their stated ASIL.
+  severity/exposure/controllability ratings whose declared ASIL disagreed with
+  the value derived from ISO 26262-3 Table 4 (the additive S+E+C point model;
+  e.g. S2/E4/C2 = ASIL-B at point sum 8, and the shipped S2/E2/C2 hazards = QM
+  at point sum 6). Corrected the four hazards' declared ASILs to the values that
+  genuinely derive from their S/E/C ratings.
 
 ## v0.2.8 — 2026-07-27
 

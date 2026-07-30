@@ -251,7 +251,7 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "iec62443-4-1",
             "slsa",
         ],
-        "ruleCount": 47,
+        "ruleCount": len(_engine.Default.rules),
     }
 
     if ns.format == "json":
@@ -423,7 +423,11 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
                 "language": LANGUAGE,
                 "generatedAt": now,
                 "projectRoot": project_root,
+                "project": cfg.project.name or os.path.basename(os.path.abspath(project_root)),
+                "standard": cfg.standard,
                 "error": {"code": "internal", "message": str(e)},
+                "findings": [],
+                "summary": {"total": 0, "errors": 0, "warnings": 0, "infos": 0},
             }
             w = stdout
             f_out = None

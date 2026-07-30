@@ -16,7 +16,7 @@
         "severity": "S2",
         "exposure": "E2",
         "controllability": "C2",
-        "asil": "ASIL-A"
+        "asil": "QM"
       },
       "safetyGoals": ["SG-001"]
     },
@@ -42,7 +42,7 @@
         "severity": "S1",
         "exposure": "E2",
         "controllability": "C2",
-        "asil": "ASIL-A"
+        "asil": "QM"
       },
       "safetyGoals": ["SG-003"]
     },
@@ -55,7 +55,7 @@
         "severity": "S2",
         "exposure": "E2",
         "controllability": "C2",
-        "asil": "ASIL-A"
+        "asil": "QM"
       },
       "safetyGoals": ["SG-004"]
     }
@@ -65,7 +65,7 @@
       "id": "SG-001",
       "description": "The tool shall detect all MUST-check rules listed in the x-FuSa spec §9.1 with no systematic omission",
       "hazards": ["H-001"],
-      "asil": "ASIL-A",
+      "asil": "QM",
       "safeState": "N/A — analysis-time tool, not a controlling system; the safe state is a complete, versioned rule registry with test coverage per rule",
       "fssrRefs": ["REQ-ENGINE001"]
     },
@@ -81,7 +81,7 @@
       "id": "SG-003",
       "description": "The fingerprint algorithm shall be deterministic per §4.2 for identical (ruleId, file, message) input",
       "hazards": ["H-003"],
-      "asil": "ASIL-A",
+      "asil": "QM",
       "safeState": "N/A — determinism is a pure-function correctness property, verified by test",
       "fssrRefs": ["REQ-FUSA001"]
     },
@@ -89,7 +89,7 @@
       "id": "SG-004",
       "description": "Exit codes shall conform to §2.3 in all circumstances (0/1/2/3 per the documented semantics)",
       "hazards": ["H-004"],
-      "asil": "ASIL-A",
+      "asil": "QM",
       "safeState": "N/A — exit-code correctness is verified by test across every command",
       "fssrRefs": ["REQ-CLI001"]
     }
