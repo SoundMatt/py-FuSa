@@ -2365,6 +2365,10 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--dir", default="")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
     p.add_argument("--output", default="")
+    p.add_argument("--threshold", type=int, default=None)
+    p.add_argument(
+        "--dal", default="", choices=["DAL-A", "DAL-B", "DAL-C", "DAL-D"]
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -2372,28 +2376,53 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
-    doc = _comp.run(project_root, cfg)
+    # §9.2: "--dal overrides --threshold".
+    threshold_override = _comp.DAL_THRESHOLD.get(ns.dal) if ns.dal else ns.threshold
+    doc = _comp.run(project_root, cfg, threshold_override=threshold_override, dal=ns.dal)
 
-    out_path = ns.output or os.path.join(project_root, _comp.COMP_REPORT)
-    try:
-        with open(out_path, "w", encoding="utf-8") as f:
-            if ns.fmt == "json":
-                json.dump(doc, f, indent=2, ensure_ascii=False)
-                f.write("\n")
-            else:
+    if ns.output:
+        try:
+            with open(ns.output, "w", encoding="utf-8") as f:
+                if ns.fmt == "json":
+                    json.dump(doc, f, indent=2, ensure_ascii=False)
+                    f.write("\n")
+                else:
+                    f.write(_comp.render_text(doc))
+                    f.write("\n")
+        except OSError as e:
+            print(f"pyfusa comp: {e}", file=stderr)
+            return EXIT_RUNTIME
+        print(
+            f"Complexity: {doc['totalFunctions']} functions, "
+            f"{doc['violations']} over threshold={doc['threshold']}",
+            file=stdout,
+        )
+        print(f"wrote {os.path.relpath(ns.output, project_root)}", file=stdout)
+    elif ns.fmt == "json":
+        # §2.2: no --output means the report goes to stdout as a clean
+        # stream — this is the invocation FuSaOps's Comp()/comp adapter
+        # decodes directly (no file is ever read for this case).
+        json.dump(doc, stdout, indent=2, ensure_ascii=False)
+        stdout.write("\n")
+    else:
+        # No --output and text format: preserve the documented convenience
+        # default of writing comp-report.json at the project root.
+        out_path = os.path.join(project_root, _comp.COMP_REPORT)
+        try:
+            with open(out_path, "w", encoding="utf-8") as f:
                 f.write(_comp.render_text(doc))
                 f.write("\n")
-    except OSError as e:
-        print(f"pyfusa comp: {e}", file=stderr)
-        return EXIT_RUNTIME
+        except OSError as e:
+            print(f"pyfusa comp: {e}", file=stderr)
+            return EXIT_RUNTIME
+        print(
+            f"Complexity: {doc['totalFunctions']} functions, "
+            f"{doc['violations']} over threshold={doc['threshold']}",
+            file=stdout,
+        )
+        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
 
-    s = doc["summary"]
-    print(
-        f"Complexity: {s['total']} functions, {s['fail']} over threshold={doc['threshold']}",
-        file=stdout,
-    )
-    print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
-    return EXIT_GATE_FAIL if s["fail"] > 0 else EXIT_OK
+    return EXIT_GATE_FAIL if doc["violations"] > 0 else EXIT_OK
 
 
 # ---------------------------------------------------------------------------
