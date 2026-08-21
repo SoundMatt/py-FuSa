@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime, timezone
 
 import pyfusa
+from pyfusa.compliance._evidence import evidence_present
 from pyfusa.config import Config
 from pyfusa import content_quality
 
@@ -28,6 +30,25 @@ _CHECKLIST = [
 ]
 
 
+def _qualify_report_passed(project_root: str) -> bool | None:
+    """True if qualify-report.json's own self-tests all passed, False if it
+    shows a failure, None if the file is absent/unreadable (caller falls
+    back to presence-only). Used so "Software Verification Results" isn't
+    marked present off a qualify-report.json full of failures -- a
+    *result* implies pass/fail meaning, not just that the artifact exists.
+    """
+    path = os.path.join(project_root, "qualify-report.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    total, passed = doc.get("total"), doc.get("passed")
+    if not isinstance(total, int) or not isinstance(passed, int):
+        return None
+    return passed == total
+
+
 # fusa:req REQ-CLI009
 def generate(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -38,10 +59,20 @@ def generate(project_root: str, cfg: Config, dal: str = "DAL-B") -> dict:
         evidence = ""
         present = False
         for f in files:
-            if os.path.exists(os.path.join(project_root, f)):
-                present = True
-                evidence = f
-                break
+            # evidence_present() (same shared check the compliance
+            # gap-reports use) requires real, parseable content -- a
+            # zero-byte or garbage-content file no longer counts as
+            # "present" here either.
+            if not evidence_present(project_root, f):
+                continue
+            if f == "qualify-report.json" and _qualify_report_passed(project_root) is False:
+                # Exists and parses, but shows failures -- not credit-
+                # worthy evidence for "Software Verification Results"; try
+                # the next candidate file instead of accepting it.
+                continue
+            present = True
+            evidence = f
+            break
         entry = {"item": item, "clause": clause, "present": present}
         if evidence:
             entry["evidence"] = evidence
