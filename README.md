@@ -114,6 +114,36 @@ pyfusa version
 | SEC008 | ERROR | CWE-377 | `tempfile.mktemp()` TOCTOU race condition |
 | SEC009 | WARNING | CWE-330 | `random` module used for security values |
 
+### Cybersecurity (CYBER-series, CWE-mapped, ISO 21434)
+
+SEC-series above runs as part of `pyfusa check`. CYBER-series is a separate,
+larger rule family run on demand with `pyfusa cyber` (CYBER001–CYBER020) —
+broader ISO 21434 / CWE coverage for network, crypto, filesystem, and
+injection risks.
+
+| Rule | Severity | CWE | Description |
+|---|---|---|---|
+| CYBER001 | ERROR | CWE-327 | Weak cryptographic hash function (MD5/SHA-1) |
+| CYBER002 | ERROR | CWE-327 | Weak symmetric cipher (DES/RC4) |
+| CYBER003 | ERROR | CWE-330 | Insecure random source (`random` module) used for security |
+| CYBER004 | WARNING | CWE-242 | Unsafe memory access via `ctypes`/`cffi` |
+| CYBER005 | ERROR | CWE-78 | Command injection risk: `subprocess` with non-literal command |
+| CYBER006 | ERROR | CWE-798 | Hardcoded credential in variable/constant |
+| CYBER007 | ERROR | CWE-295 | TLS certificate verification disabled |
+| CYBER008 | WARNING | CWE-400 | HTTP server created without request timeout |
+| CYBER009 | WARNING | CWE-190 | Explicit integer narrowing conversion |
+| CYBER010 | ERROR | CWE-89 / CWE-22 | String concatenation in SQL or path API call |
+| CYBER011 | WARNING | CWE-918 | Server-Side Request Forgery: URL from variable in HTTP client |
+| CYBER012 | ERROR | CWE-215 | Debug mode or profiling endpoint exposed in production |
+| CYBER013 | ERROR | CWE-23 | Unsafe archive extraction — zip slip path traversal |
+| CYBER014 | ERROR | CWE-326 | TLS minimum version too low (SSLv2/SSLv3/TLSv1.0/TLSv1.1) |
+| CYBER015 | ERROR | CWE-89 | SQL injection via f-string or `%` format in query |
+| CYBER016 | WARNING | CWE-732 | Directory created with permissive mode (`0o777`) |
+| CYBER017 | WARNING | CWE-732 | File created with permissive mode (`0o666`/`0o777`) |
+| CYBER018 | ERROR | CWE-22 | File path derived from user-controlled input — path traversal |
+| CYBER019 | WARNING | CWE-362 | TOCTOU race condition: existence check before file open |
+| CYBER020 | ERROR | CWE-377 | Insecure temporary file creation |
+
 ### Concurrency (CONC-series)
 
 | Rule | Severity | Description |
@@ -130,11 +160,11 @@ pyfusa version
 | ANA002 | WARNING | Thread/task spawned inside a loop without concurrency bound |
 | ANA003 | WARNING | `time.sleep()` inside thread worker cannot be interrupted |
 | ANA004 | WARNING | `except`/`finally` block that may raise swallows original exception |
-| ANA005 | WARNING | Mutable global mutated without a lock |
-| ANA006 | WARNING | Potential `None` dereference without null-guard |
-| ANA007 | WARNING | `asyncio.create_task` called without storing or awaiting the result |
-| ANA008 | WARNING | `__del__` finaliser contains I/O that may fail at shutdown |
-| ANA009 | WARNING | Class defines `__eq__` without `__hash__` (implicit unhashable) |
+| ANA005 | WARNING | Redundant global/config lookup inside a function that already receives it as a parameter |
+| ANA006 | WARNING | Return value of a call (e.g. `subprocess.run`, `os.rename`) discarded without inspection |
+| ANA007 | WARNING | Potential `None` dereference: attribute access on a value that may be `None` |
+| ANA008 | WARNING | Mutable variable from an enclosing scope modified inside a thread worker |
+| ANA009 | WARNING | Unreachable code detected after `return`/`raise`/`break`/`continue` |
 
 ### Complexity (COMP-series, DO-178C §6.3.4)
 
