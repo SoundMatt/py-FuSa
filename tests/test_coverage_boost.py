@@ -98,9 +98,13 @@ def test_verify_parse_pytest_output_summary_only():
 def test_verify_parse_pytest_output_errors():
     from pyfusa.verify import _parse_pytest_output
 
-    output = "ERROR tests/test_foo.py::test_bad\n"
+    # Real pytest output always carries a summary line ("1 error in
+    # 0.1s") -- aggregate counts are derived from it, not from the
+    # per-test list, so a synthetic fixture needs one too to be realistic.
+    output = "ERROR tests/test_foo.py::test_bad - RuntimeError: boom\n1 error in 0.1s"
     result = _parse_pytest_output(output, 2)
     assert result["summary"]["errored"] >= 1
+    assert any(r["status"] == "error" for r in result["results"])
 
 
 def test_verify_run_no_tests():
