@@ -462,6 +462,68 @@ def test_disposition_add_and_list():
         assert "LINT001" in out.getvalue()
 
 
+# fusa:test REQ-CLI009
+# fusa:test REQ-ENGINE001
+def test_disposition_add_suppresses_the_gate():
+    """An accepted disposition MUST suppress the gate on a matching finding
+    (§4.1) — regression test for the three-way schema mismatch between
+    disposition_mgmt.add(), config.load_dispositions(), and DISP001, where
+    entries written by `disposition add` were invisible to the gate."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # FUSA001/FUSA002 must be satisfied so only SEC001 gates the run.
+        with open(os.path.join(tmpdir, ".fusa.json"), "w") as f:
+            json.dump({"project": {"name": "t"}, "sourceDirs": ["."]}, f)
+        with open(os.path.join(tmpdir, "pyproject.toml"), "w") as f:
+            f.write("[project]\nname = 't'\n")
+        with open(os.path.join(tmpdir, "mod.py"), "w") as f:
+            f.write("def risky():\n    try:\n        pass\n    except:\n        pass\n")
+
+        report_path = os.path.join(tmpdir, "check-report.json")
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "json", "--output", report_path],
+            stdout=io.StringIO(),
+        )
+        assert code == pyfusa.EXIT_GATE_FAIL
+        with open(report_path) as f:
+            doc = json.load(f)
+        sec001 = next(f for f in doc["findings"] if f["ruleId"] == "SEC001")
+        fingerprint = sec001["fingerprint"]
+        assert fingerprint
+
+        code = run(
+            [
+                "disposition",
+                "add",
+                "--dir",
+                tmpdir,
+                "--rule",
+                "SEC001",
+                "--rationale",
+                "reviewed — acceptable for this legacy handler",
+                "--action",
+                "accept",
+                "--fingerprint",
+                fingerprint,
+            ],
+            stdout=io.StringIO(),
+        )
+        assert code == pyfusa.EXIT_OK
+
+        with open(os.path.join(tmpdir, ".fusa-dispositions.json")) as f:
+            disp_doc = json.load(f)
+        assert disp_doc["dispositions"][0]["status"] == "accepted"
+
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "json", "--output", report_path],
+            stdout=io.StringIO(),
+        )
+        assert code == pyfusa.EXIT_OK
+        with open(report_path) as f:
+            doc = json.load(f)
+        sec001 = next(f for f in doc["findings"] if f["ruleId"] == "SEC001")
+        assert sec001["disposition"] == "accepted"
+
+
 # ---------------------------------------------------------------------------
 # metrics
 # ---------------------------------------------------------------------------
