@@ -1917,7 +1917,11 @@ def cmd_explain(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             "Run 'pyfusa explain --list' to see every registered rule id.",
             file=stderr,
         )
-        return EXIT_GATE_FAIL
+        # A rule id that doesn't exist is a bad argument value, not a gate
+        # failure (no analysis actually ran) -- EXIT_USAGE (2), matching
+        # every other command's convention for an invalid input, not
+        # EXIT_GATE_FAIL (1).
+        return EXIT_USAGE
 
     print(_explain.render_text(rule), file=stdout)
     return EXIT_OK

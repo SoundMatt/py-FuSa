@@ -583,7 +583,7 @@ def test_explain_list_groups_by_family():
 def test_explain_unknown_rule():
     err = io.StringIO()
     code = run(["explain", "NOSUCH999"], stdout=io.StringIO(), stderr=err)
-    assert code == pyfusa.EXIT_GATE_FAIL
+    assert code == pyfusa.EXIT_USAGE
     assert "unknown rule" in err.getvalue()
     assert "--list" in err.getvalue()
 
