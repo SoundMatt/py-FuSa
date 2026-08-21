@@ -633,9 +633,6 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     if ns.strict_hlr_llr and matrix.hlr_violations:
         for v in matrix.hlr_violations:
             print(f"pyfusa trace: HLR/LLR violation: {v.detail}", file=stderr)
-        if ns.fmt != "json":
-            # also flush output first
-            pass
 
     w = stdout
     f_out = None
@@ -808,9 +805,6 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     finally:
         if f_out:
             f_out.close()
-
-    if output_path and ns.fmt != "json":
-        pass
 
     return EXIT_OK if report.failed == 0 else EXIT_GATE_FAIL
 
