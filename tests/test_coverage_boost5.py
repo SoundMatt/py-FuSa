@@ -802,17 +802,23 @@ class TestCouplingAnalysis:
             assert isinstance(doc["dataCoupling"], list)
             assert isinstance(doc["controlCoupling"], list)
 
-    def test_run_rules_exception_swallowed(self):
-        """_run_rules swallows exceptions from individual rules."""
+    def test_run_rules_exception_surfaced_as_error(self):
+        """_run_rules catches an exception from an individual rule (so one
+        broken rule doesn't block the others) but surfaces it as an error
+        rather than silently discarding it -- a crash must never be
+        indistinguishable from 'this project has zero coupling issues'."""
         import pyfusa.coupling_analysis as ca
 
         class BrokenRule:
+            rule_id = "BROKEN001"
+
             def run(self, root, cfg):
                 raise RuntimeError("broken")
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = ca._run_rules([BrokenRule()], tmpdir, _cfg(tmpdir))
-            assert result == []
+            findings, errors = ca._run_rules([BrokenRule()], tmpdir, _cfg(tmpdir))
+            assert findings == []
+            assert any("BROKEN001" in e and "broken" in e for e in errors)
 
     # fusa:test REQ-COUP001
     def test_coup001_findings_go_to_data_coupling(self):
