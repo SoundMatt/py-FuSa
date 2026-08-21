@@ -14,7 +14,7 @@ from pyfusa.rules.comp import (
     _DAL_THRESHOLD,
     _DEFAULT_THRESHOLD,
     _SKIP_DIRS,
-    _complexity,
+    cyclomatic_complexity,
 )
 
 COMP_REPORT = "comp-report.json"
@@ -64,7 +64,7 @@ def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], i
                         continue
                     if node.name.startswith("_"):
                         continue
-                    cc = _complexity(node)
+                    cc = cyclomatic_complexity(node)
                     results.append(
                         FunctionComplexity(
                             file=rel,

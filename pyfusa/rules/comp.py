@@ -26,12 +26,39 @@ _SKIP_DIRS = {
 }
 
 
-def _complexity(tree: ast.FunctionDef) -> int:
-    """V(G) = 1 + decision points."""
+def cyclomatic_complexity(tree: ast.FunctionDef) -> int:
+    """V(G) = 1 + decision points.
+
+    The single, canonical McCabe complexity walk -- shared by COMP001
+    (this module), the standalone `pyfusa comp` command (pyfusa/comp.py),
+    and LINT004 (rules/lint.py). These three previously carried two
+    independent, slightly different implementations (this one, and a
+    near-identical one in rules/lint.py) that had quietly drifted apart:
+    this one additionally counted ast.Assert and ast.match_case (Python
+    3.10+ pattern matching) and gave each comprehension `if` clause its
+    own decision point; the lint.py copy additionally counted
+    ast.AsyncFor/ast.AsyncWith and ast.IfExp, which this one was missing.
+    Both gaps are real decision points for McCabe's definition, so this
+    merged version is the union of both, not a pick of one over the
+    other -- LINT004 and COMP001 may now report a (more accurate) higher
+    complexity for code using async loops/context managers, ternary
+    expressions, assertions, or match statements than either did alone.
+    """
     count = 1
     for node in ast.walk(tree):
         if isinstance(
-            node, (ast.If, ast.While, ast.For, ast.ExceptHandler, ast.With, ast.Assert)
+            node,
+            (
+                ast.If,
+                ast.While,
+                ast.For,
+                ast.AsyncFor,
+                ast.ExceptHandler,
+                ast.With,
+                ast.AsyncWith,
+                ast.Assert,
+                ast.IfExp,
+            ),
         ):
             count += 1
         elif isinstance(node, ast.BoolOp):
@@ -89,7 +116,7 @@ class COMP001(Rule):
                             continue
                         if node.name.startswith("_"):
                             continue
-                        cc = _complexity(node)
+                        cc = cyclomatic_complexity(node)
                         if cc > threshold:
                             rel = os.path.relpath(fpath, project_root)
                             findings.append(

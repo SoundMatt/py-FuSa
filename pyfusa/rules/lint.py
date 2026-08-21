@@ -9,6 +9,7 @@ import os
 import pyfusa
 from pyfusa.config import Config
 from pyfusa.rules import Rule
+from pyfusa.rules.comp import cyclomatic_complexity
 
 _MAX_FUNC_LINES = 60
 _MAX_FILE_LINES = 500
@@ -63,35 +64,6 @@ def _parse_file(abs_path: str) -> tuple[ast.Module | None, str]:
         return tree, source
     except (SyntaxError, OSError):
         return None, ""
-
-
-def _cyclomatic_complexity(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
-    """Approximate cyclomatic complexity for a function."""
-    complexity = 1
-    for child in ast.walk(node):
-        if isinstance(
-            child,
-            (
-                ast.If,
-                ast.While,
-                ast.For,
-                ast.AsyncFor,
-                ast.ExceptHandler,
-                ast.With,
-                ast.AsyncWith,
-            ),
-        ):
-            complexity += 1
-        elif (
-            isinstance(child, ast.BoolOp)
-            and isinstance(child.op, ast.And)
-            or isinstance(child, ast.BoolOp)
-            and isinstance(child.op, ast.Or)
-        ):
-            complexity += len(child.values) - 1
-        elif isinstance(child, ast.comprehension) or isinstance(child, ast.IfExp):
-            complexity += 1
-    return complexity
 
 
 def _max_nesting(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
@@ -242,7 +214,7 @@ class RuleCyclomaticComplexity(Rule):
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
-                cc = _cyclomatic_complexity(node)
+                cc = cyclomatic_complexity(node)
                 if cc > _MAX_COMPLEXITY:
                     findings.append(
                         pyfusa.Finding(
