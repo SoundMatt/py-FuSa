@@ -1,6 +1,6 @@
 # py-FuSa Tool Safety Manual
 
-**Version:** 0.3.3
+**Version:** 0.4.0
 **Binary:** `pyfusa`
 **Repository:** `github.com/SoundMatt/py-FuSa`
 **License:** Mozilla Public License 2.0
