@@ -1,5 +1,82 @@
 # Changelog
 
+## v0.4.0 — 2026-08-21
+
+Two audit passes merged as 19 PRs (#41–#59): a cross-tool conformance audit
+against the x-FuSa spec, c-FuSa, and FuSaOps, followed by a self-authenticity
+audit checking that every py-FuSa feature does what it claims and every
+detection rule is real rather than gameable.
+
+### Added
+
+- **`baseline` and `explain` commands (#45).** `pyfusa baseline` snapshots
+  the current finding set so future `check` runs can suppress
+  already-known findings via a new `disposition_source` field on `Finding`;
+  `pyfusa explain <rule-id>` prints a rule's rationale, remediation, and
+  standard clause without running a full scan.
+
+### Fixed
+
+- **`.fusa-dispositions.json` schema was incompatible across three call
+  sites (Critical, #42).** `disposition_mgmt.py`, `config.py`, and
+  `rules/evidence.py` each read/wrote a different shape for the same file,
+  so dispositions recorded by one path were silently invisible to another.
+  Unified on one schema.
+- **`comp` command's output didn't match the spec-canonical schema, and
+  FuSaOps' stdout integration broke on it (#43).** Rebuilt to conform.
+- **`release --full`, `audit-pack`, and `--format` gaps against x-FuSa
+  spec MUSTs (#44).** `release --full` now fans out to every sub-command;
+  `audit-pack` includes `comp-report.json`; an invalid `--format` now
+  exits with the correct usage-error code.
+- **`coupling_analysis.py` silently swallowed exceptions from crashing
+  rules (#46).**
+- **Six compliance modules (`do178`/`iso26262`/`iec61508`/`iec62443`/
+  `iso21434`/`unece`) treated a zero-byte or garbage-content evidence file
+  identically to real evidence (#47, #58).** A new
+  `pyfusa.compliance._evidence.evidence_present()` requires parseable,
+  non-empty content; `rank_status()` further consolidates the
+  near-duplicate rank-comparison logic four of these six modules had each
+  reimplemented separately.
+- **Detection bugs in `analyze`/`cyber` rules (#48, #49, #54).** ANA001
+  attributed a "stop" signal found *anywhere in the file* to every thread
+  in it, not just ones in its own scope; ANA005/ANA007 had similar
+  scope-blindness; ANA008 only ever detected a `target=lambda: ...` thread
+  worker, never the realistic `target=worker_function` pattern; CYBER002
+  flagged a weak-cipher *import* alone, not just constructing one;
+  CYBER004/CYBER017/CYBER018 had related false-positive/false-negative
+  gaps. Six pieces of dead detection code (unused visitor classes, an
+  unused rule factory) were also removed.
+- **`tara`'s mitigations check and `sas`'s content verification accepted
+  placeholder content (#53).**
+- **`coverage.py` parsed XML coverage reports with regex instead of a
+  real XML parser (#56).**
+- **`verify` under/over-counted per-test results (#57).** Aggregate counts
+  now always derive from pytest's own summary line.
+- **Five CLI commands (`req`, `badge`, `impact`, `pr`, `verify`) had
+  inconsistent or missing error handling around file I/O (#50).**
+- **`qualify`'s qualification badge logic and `safety-case`'s GSN argument
+  text (#51).** The badge could report "independently-qualified" from
+  qualifier identity alone, without an independent reviewer; safety-case
+  strategy nodes carried a fixed template string identical for every
+  project regardless of its actual hazards/findings/coverage — a §9.2
+  MUST violation ("`nodes[].text` MUST be specific to this tool's actual
+  claims"). Strategy text now cites a real fact pulled from the project's
+  own evidence files.
+
+### Changed
+
+- **Cyclomatic-complexity calculation, previously duplicated across rule
+  modules, is now one shared `pyfusa.rules.comp.cyclomatic_complexity()`
+  (#55).**
+- **~20 duplicated "open --output, write, print confirmation" CLI call
+  sites consolidated into one shared `_write_output()` helper (#59).**
+  `check`/`report`/`qualify`/`trace`/`audit-pack` — the five commands
+  §2.2 of the spec governs — remain verified byte-for-byte silent on
+  stdout when `--output` is given.
+- **README rule tables reconciled against actual rule implementations**
+  (CYBER-series, COUP-series, ANA005-009, LINT001) and the fingerprint
+  algorithm's deliberate line-number exclusion documented (#41, #52).
+
 ## v0.3.3 — 2026-07-30
 
 Fixes an independently re-verified, third-party audit finding that the ASIL
