@@ -93,6 +93,19 @@ def test_auditpack_packs_fusa_json():
 
 
 # fusa:test REQ-FUSA001
+def test_auditpack_packs_comp_report():
+    """§1.3/§8: comp-report.json is a generated evidence file audit-pack MUST
+    include when present. A prior revision's _GENERATED_FILES list included
+    every other §1.3 generated file except this one."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "comp-report.json"), "w") as f:
+            f.write('{"kind":"comp-report"}')
+        pack_path = auditpack.create(tmpdir)
+        with zipfile.ZipFile(pack_path) as zf:
+            assert "comp-report.json" in zf.namelist()
+
+
+# fusa:test REQ-FUSA001
 def test_auditpack_sha256_in_manifest():
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, ".fusa.json"), "w") as f:

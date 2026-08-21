@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timezone
 
 import pyfusa
+from pyfusa.compliance._evidence import evidence_present
 from pyfusa.config import Config
 
 CAL_LEVELS = ["CAL-1", "CAL-2", "CAL-3", "CAL-4"]
@@ -69,7 +70,7 @@ def run(project_root: str, cfg: Config, cal: str = "CAL-2") -> dict:
         req_rank = _CAL_RANK.get(cal_min, 1)
         if cal_rank < req_rank:
             status, evidence = "partial", []
-        elif os.path.exists(os.path.join(project_root, evidence_file)):
+        elif evidence_present(project_root, evidence_file):
             status, evidence = "satisfied", [evidence_file]
         else:
             status, evidence = "gap", []

@@ -1041,6 +1041,34 @@ def test_disp001_no_unresolved():
         assert DISP001().run(tmpdir, default()) == []
 
 
+# fusa:test REQ-EVIDENCE016
+def test_disp001_reads_canonical_dispositions_shape_without_crashing():
+    """Regression: DISP001 used to `json.load()` .fusa-dispositions.json raw
+    and iterate it as if it were a bare list. A real §1.2.3 file is an object
+    ({"dispositions": [...]}), so every real-world run raised
+    AttributeError: 'str' object has no attribute 'get' — swallowed silently
+    by engine.py's per-rule try/except, so it never surfaced as a test
+    failure or a visible error to the user."""
+    from pyfusa.rules.evidence import DISP001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "check-report.json"), "w") as f:
+            json.dump(
+                {"findings": [{"severity": "ERROR", "ruleId": "SEC001"}]}, f
+            )
+        with open(os.path.join(tmpdir, ".fusa-dispositions.json"), "w") as f:
+            json.dump(
+                {
+                    "dispositions": [
+                        {"ruleId": "SEC001", "status": "accepted"},
+                    ]
+                },
+                f,
+            )
+        # Must not raise, and the disposed rule must be suppressed.
+        assert DISP001().run(tmpdir, default()) == []
+
+
 # ---------------------------------------------------------------------------
 # rules/slsa.py  and  rules/iec62443.py
 # ---------------------------------------------------------------------------

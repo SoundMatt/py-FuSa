@@ -28,6 +28,7 @@ from typing import Optional
 import pyfusa
 import pyfusa.auditpack as _auditpack
 import pyfusa.badge as _badge
+import pyfusa.baseline as _baseline
 import pyfusa.boundary as _boundary
 import pyfusa.comp as _comp
 import pyfusa.config as _config
@@ -37,6 +38,7 @@ import pyfusa.coverage as _coverage
 import pyfusa.diff as _diff
 import pyfusa.disposition_mgmt as _disp_mgmt
 import pyfusa.engine as _engine
+import pyfusa.explain as _explain
 import pyfusa.fmea as _fmea
 import pyfusa.hara as _hara
 import pyfusa.impact as _impact
@@ -223,6 +225,8 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "sign",
             "vuln",
             "disposition",
+            "baseline",
+            "explain",
             "pr",
             "impact",
             "metrics",
@@ -397,6 +401,19 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     except SystemExit:
         return EXIT_USAGE
 
+    # §2.3: an unrecognized --format is a usage error (exit 2), not a
+    # silent fallback to text — every other reporting command already
+    # enforces this via argparse `choices=`; check/report used an empty-
+    # string default (to defer to .fusa.json's configured format) that
+    # bypassed that check, so validate explicitly here instead.
+    if ns.fmt and ns.fmt.lower() not in _report.VALID_FORMATS:
+        print(
+            f"pyfusa check: argument --format: invalid choice: '{ns.fmt}' "
+            f"(choose from {', '.join(sorted(_report.VALID_FORMATS))})",
+            file=stderr,
+        )
+        return EXIT_USAGE
+
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
 
@@ -498,6 +515,16 @@ def cmd_report(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if ns.strict:
         print("pyfusa report: --strict is not valid for report", file=stderr)
+        return EXIT_USAGE
+
+    # §2.3: an unrecognized --format is a usage error (exit 2) — see the
+    # matching comment in cmd_check.
+    if ns.fmt and ns.fmt.lower() not in _report.VALID_FORMATS:
+        print(
+            f"pyfusa report: argument --format: invalid choice: '{ns.fmt}' "
+            f"(choose from {', '.join(sorted(_report.VALID_FORMATS))})",
+            file=stderr,
+        )
         return EXIT_USAGE
 
     project_root = _resolve_dir(ns.dir)
@@ -821,6 +848,44 @@ def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_RUNTIME
 
     if ns.full:
+        # §7: a --full run MUST emit the output of each of fmea.json,
+        # fmea.csv, boundary.dot, boundary.mermaid, and vuln.json that the
+        # tool implements (py-FuSa implements all five), SHOULD attempt all
+        # of them, and audit-pack.zip MUST run last since it bundles them.
+        for filename, generator in (
+            ("fmea.json", lambda: json.dumps(
+                _fmea.to_dict(_fmea.scan(project_root, cfg), project_root, cfg),
+                indent=2,
+                ensure_ascii=False,
+            )),
+            ("fmea.csv", lambda: _fmea.to_csv(_fmea.scan(project_root, cfg))),
+            ("boundary.dot", lambda: _boundary.to_dot(
+                _boundary.scan(project_root, cfg),
+                cfg.project.name or os.path.basename(project_root),
+            )),
+            ("boundary.mermaid", lambda: _boundary.to_mermaid(
+                _boundary.scan(project_root, cfg),
+                cfg.project.name or os.path.basename(project_root),
+            )),
+            ("vuln.json", lambda: json.dumps(
+                _vuln.scan(project_root, cfg), indent=2, ensure_ascii=False
+            )),
+        ):
+            try:
+                content = generator()
+            except Exception as e:
+                print(f"pyfusa release: skipping {filename}: {e}", file=stderr)
+                continue
+            out_path = os.path.join(output_dir, filename)
+            try:
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                    f.write("\n")
+            except OSError as e:
+                print(f"pyfusa release: skipping {filename}: {e}", file=stderr)
+                continue
+            print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
         try:
             pack_path = _auditpack.create(
                 project_root, os.path.join(project_root, "audit-pack.zip")
@@ -1164,6 +1229,8 @@ def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     report = _coupling.run(project_root, cfg)
+    for err in report.get("errors", []):
+        print(f"pyfusa coupling: warning: {err}", file=stderr)
 
     out_path = ns.output
     w = stdout
@@ -1828,6 +1895,102 @@ def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 
 
 # ---------------------------------------------------------------------------
+# baseline
+# ---------------------------------------------------------------------------
+
+
+# fusa:req REQ-BASELINE001 REQ-BASELINE002
+def cmd_baseline(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa baseline", add_help=True)
+    p.add_argument("--dir", default="")
+    p.epilog = (
+        "Snapshots every current finding's fingerprint into "
+        ".fusa-baseline.json. pyfusa check/lint then exclude baselined "
+        "findings from the exit-code gate -- they stay visible in output, "
+        "just don't fail the build. New findings introduced after the "
+        "snapshot still fail the gate as normal.\n\n"
+        "Re-running this command OVERWRITES the file with a fresh snapshot "
+        "of whatever findings exist right now. Use 'pyfusa disposition "
+        "add' instead for a durable, reviewed exception to one specific "
+        "finding."
+    )
+    p.formatter_class = argparse.RawDescriptionHelpFormatter
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    project_root = _resolve_dir(ns.dir)
+    cfg = _load_config(project_root)
+    doc, skipped = _baseline.build(project_root, cfg)
+
+    out_path = os.path.join(project_root, _config.BASELINE_FILE)
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(doc, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    except OSError as e:
+        print(f"pyfusa baseline: {e}", file=stderr)
+        return EXIT_RUNTIME
+
+    print(
+        _baseline.render_summary(
+            doc, skipped, os.path.relpath(out_path, project_root)
+        ),
+        file=stdout,
+    )
+    return EXIT_OK
+
+
+# ---------------------------------------------------------------------------
+# explain
+# ---------------------------------------------------------------------------
+
+
+# fusa:req REQ-EXPLAIN001 REQ-EXPLAIN002 REQ-EXPLAIN003
+def cmd_explain(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa explain", add_help=True)
+    p.add_argument("rule_id", nargs="?", default="")
+    p.add_argument(
+        "--list", dest="list_all", action="store_true", help="list every registered rule id"
+    )
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    rules = _engine.Default.rules
+
+    if ns.list_all:
+        print(_explain.render_list_text(rules), file=stdout)
+        return EXIT_OK
+
+    if not ns.rule_id:
+        print("pyfusa explain: missing RULE-ID", file=stderr)
+        print(
+            "Usage: pyfusa explain <RULE-ID>   (or: pyfusa explain --list)",
+            file=stderr,
+        )
+        return EXIT_USAGE
+
+    rule = _explain.find_rule(rules, ns.rule_id)
+    if rule is None:
+        print(f"pyfusa explain: unknown rule '{ns.rule_id}'", file=stderr)
+        print(
+            "Run 'pyfusa explain --list' to see every registered rule id.",
+            file=stderr,
+        )
+        # A rule id that doesn't exist is a bad argument value, not a gate
+        # failure (no analysis actually ran) -- EXIT_USAGE (2), matching
+        # every other command's convention for an invalid input, not
+        # EXIT_GATE_FAIL (1).
+        return EXIT_USAGE
+
+    print(_explain.render_text(rule), file=stdout)
+    return EXIT_OK
+
+
+# ---------------------------------------------------------------------------
 # impact
 # ---------------------------------------------------------------------------
 
@@ -2365,6 +2528,10 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--dir", default="")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
     p.add_argument("--output", default="")
+    p.add_argument("--threshold", type=int, default=None)
+    p.add_argument(
+        "--dal", default="", choices=["DAL-A", "DAL-B", "DAL-C", "DAL-D"]
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -2372,28 +2539,53 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
-    doc = _comp.run(project_root, cfg)
+    # §9.2: "--dal overrides --threshold".
+    threshold_override = _comp.DAL_THRESHOLD.get(ns.dal) if ns.dal else ns.threshold
+    doc = _comp.run(project_root, cfg, threshold_override=threshold_override, dal=ns.dal)
 
-    out_path = ns.output or os.path.join(project_root, _comp.COMP_REPORT)
-    try:
-        with open(out_path, "w", encoding="utf-8") as f:
-            if ns.fmt == "json":
-                json.dump(doc, f, indent=2, ensure_ascii=False)
-                f.write("\n")
-            else:
+    if ns.output:
+        try:
+            with open(ns.output, "w", encoding="utf-8") as f:
+                if ns.fmt == "json":
+                    json.dump(doc, f, indent=2, ensure_ascii=False)
+                    f.write("\n")
+                else:
+                    f.write(_comp.render_text(doc))
+                    f.write("\n")
+        except OSError as e:
+            print(f"pyfusa comp: {e}", file=stderr)
+            return EXIT_RUNTIME
+        print(
+            f"Complexity: {doc['totalFunctions']} functions, "
+            f"{doc['violations']} over threshold={doc['threshold']}",
+            file=stdout,
+        )
+        print(f"wrote {os.path.relpath(ns.output, project_root)}", file=stdout)
+    elif ns.fmt == "json":
+        # §2.2: no --output means the report goes to stdout as a clean
+        # stream — this is the invocation FuSaOps's Comp()/comp adapter
+        # decodes directly (no file is ever read for this case).
+        json.dump(doc, stdout, indent=2, ensure_ascii=False)
+        stdout.write("\n")
+    else:
+        # No --output and text format: preserve the documented convenience
+        # default of writing comp-report.json at the project root.
+        out_path = os.path.join(project_root, _comp.COMP_REPORT)
+        try:
+            with open(out_path, "w", encoding="utf-8") as f:
                 f.write(_comp.render_text(doc))
                 f.write("\n")
-    except OSError as e:
-        print(f"pyfusa comp: {e}", file=stderr)
-        return EXIT_RUNTIME
+        except OSError as e:
+            print(f"pyfusa comp: {e}", file=stderr)
+            return EXIT_RUNTIME
+        print(
+            f"Complexity: {doc['totalFunctions']} functions, "
+            f"{doc['violations']} over threshold={doc['threshold']}",
+            file=stdout,
+        )
+        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
 
-    s = doc["summary"]
-    print(
-        f"Complexity: {s['total']} functions, {s['fail']} over threshold={doc['threshold']}",
-        file=stdout,
-    )
-    print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
-    return EXIT_GATE_FAIL if s["fail"] > 0 else EXIT_OK
+    return EXIT_GATE_FAIL if doc["violations"] > 0 else EXIT_OK
 
 
 # ---------------------------------------------------------------------------
@@ -2504,6 +2696,8 @@ _COMMANDS = {
     "vuln": cmd_vuln,
     "pr": cmd_pr,
     "disposition": cmd_disposition,
+    "baseline": cmd_baseline,
+    "explain": cmd_explain,
     "impact": cmd_impact,
     "metrics": cmd_metrics,
     "safety-case": cmd_safety_case,
@@ -2596,6 +2790,11 @@ def _usage(w=sys.stdout) -> None:
         file=w,
     )
     print("  disposition   Manage finding disposition entries", file=w)
+    print(
+        "  baseline      Snapshot current findings so only new ones gate the build",
+        file=w,
+    )
+    print("  explain       Show a rule's description, standard, and clause", file=w)
     print("  pr            Manage software problem reports (DO-178C §11.17)", file=w)
     print("  impact        Analyse change impact on requirements", file=w)
     print("  metrics       Track safety metrics over time", file=w)

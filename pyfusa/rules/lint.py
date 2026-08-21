@@ -124,7 +124,7 @@ class RuleFunctionLength(Rule):
     rule_id = "LINT001"
     standard = "do178c"
     clause = "6.3.4"
-    description = f"Functions must not exceed {_MAX_FUNC_LINES} lines (excluding blank lines and comments)."
+    description = f"Functions must not exceed {_MAX_FUNC_LINES} physical lines (span from `def` to the last line of the body, blank lines and comments included)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
