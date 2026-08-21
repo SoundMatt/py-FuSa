@@ -35,6 +35,7 @@ _GENERATED_FILES = [
     "vuln.json",
     "boundary.dot",
     "boundary.mermaid",
+    "comp-report.json",
 ]
 
 _INPUT_FILES = [

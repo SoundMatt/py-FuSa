@@ -480,3 +480,47 @@ def test_exit3_json_error_envelope():
         assert "injected failure" in doc["error"]["message"]
     finally:
         eng.Default.run = orig
+
+
+# ---------------------------------------------------------------------------
+# §2.3 — an unrecognized --format is a usage error (exit 2), on every command
+# ---------------------------------------------------------------------------
+
+
+def test_check_invalid_format_is_usage_error():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir)
+        err = io.StringIO()
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "bogus"],
+            stdout=io.StringIO(),
+            stderr=err,
+        )
+        assert code == pyfusa.EXIT_USAGE
+        assert "bogus" in err.getvalue()
+
+
+def test_report_invalid_format_is_usage_error():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir)
+        err = io.StringIO()
+        code = run(
+            ["report", "--dir", tmpdir, "--format", "bogus"],
+            stdout=io.StringIO(),
+            stderr=err,
+        )
+        assert code == pyfusa.EXIT_USAGE
+        assert "bogus" in err.getvalue()
+
+
+def test_check_format_is_case_insensitive():
+    """A valid format in a different case is still accepted (only an
+    unrecognized value is a usage error)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir)
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "JSON"],
+            stdout=io.StringIO(),
+            stderr=io.StringIO(),
+        )
+        assert code != pyfusa.EXIT_USAGE

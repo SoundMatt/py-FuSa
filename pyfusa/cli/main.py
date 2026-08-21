@@ -397,6 +397,19 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     except SystemExit:
         return EXIT_USAGE
 
+    # §2.3: an unrecognized --format is a usage error (exit 2), not a
+    # silent fallback to text — every other reporting command already
+    # enforces this via argparse `choices=`; check/report used an empty-
+    # string default (to defer to .fusa.json's configured format) that
+    # bypassed that check, so validate explicitly here instead.
+    if ns.fmt and ns.fmt.lower() not in _report.VALID_FORMATS:
+        print(
+            f"pyfusa check: argument --format: invalid choice: '{ns.fmt}' "
+            f"(choose from {', '.join(sorted(_report.VALID_FORMATS))})",
+            file=stderr,
+        )
+        return EXIT_USAGE
+
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
 
@@ -498,6 +511,16 @@ def cmd_report(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if ns.strict:
         print("pyfusa report: --strict is not valid for report", file=stderr)
+        return EXIT_USAGE
+
+    # §2.3: an unrecognized --format is a usage error (exit 2) — see the
+    # matching comment in cmd_check.
+    if ns.fmt and ns.fmt.lower() not in _report.VALID_FORMATS:
+        print(
+            f"pyfusa report: argument --format: invalid choice: '{ns.fmt}' "
+            f"(choose from {', '.join(sorted(_report.VALID_FORMATS))})",
+            file=stderr,
+        )
         return EXIT_USAGE
 
     project_root = _resolve_dir(ns.dir)
@@ -821,6 +844,44 @@ def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_RUNTIME
 
     if ns.full:
+        # §7: a --full run MUST emit the output of each of fmea.json,
+        # fmea.csv, boundary.dot, boundary.mermaid, and vuln.json that the
+        # tool implements (py-FuSa implements all five), SHOULD attempt all
+        # of them, and audit-pack.zip MUST run last since it bundles them.
+        for filename, generator in (
+            ("fmea.json", lambda: json.dumps(
+                _fmea.to_dict(_fmea.scan(project_root, cfg), project_root, cfg),
+                indent=2,
+                ensure_ascii=False,
+            )),
+            ("fmea.csv", lambda: _fmea.to_csv(_fmea.scan(project_root, cfg))),
+            ("boundary.dot", lambda: _boundary.to_dot(
+                _boundary.scan(project_root, cfg),
+                cfg.project.name or os.path.basename(project_root),
+            )),
+            ("boundary.mermaid", lambda: _boundary.to_mermaid(
+                _boundary.scan(project_root, cfg),
+                cfg.project.name or os.path.basename(project_root),
+            )),
+            ("vuln.json", lambda: json.dumps(
+                _vuln.scan(project_root, cfg), indent=2, ensure_ascii=False
+            )),
+        ):
+            try:
+                content = generator()
+            except Exception as e:
+                print(f"pyfusa release: skipping {filename}: {e}", file=stderr)
+                continue
+            out_path = os.path.join(output_dir, filename)
+            try:
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                    f.write("\n")
+            except OSError as e:
+                print(f"pyfusa release: skipping {filename}: {e}", file=stderr)
+                continue
+            print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
         try:
             pack_path = _auditpack.create(
                 project_root, os.path.join(project_root, "audit-pack.zip")
