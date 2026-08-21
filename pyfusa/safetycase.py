@@ -151,13 +151,6 @@ def assemble(project_root: str, cfg: Config) -> dict:
     return doc
 
 
-def _node(doc: dict, node_id: str) -> dict:
-    for n in doc["nodes"]:
-        if n["id"] == node_id:
-            return n
-    return {"id": node_id, "text": ""}
-
-
 # fusa:req REQ-SC006
 def to_markdown(doc: dict) -> str:
     lines = [

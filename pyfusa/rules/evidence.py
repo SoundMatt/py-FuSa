@@ -23,40 +23,6 @@ from pyfusa.rules import Rule
 # contradicted the spec and has been removed.
 
 
-def _presence(
-    rule_id: str,
-    filename: str,
-    message: str,
-    remediation: str,
-    severity: str = pyfusa.SEVERITY_INFO,
-) -> type:
-    """Factory that creates a presence-check Rule class."""
-
-    class _Rule(Rule):
-        pass
-
-    _Rule.rule_id = rule_id
-    _Rule.__name__ = f"Rule{rule_id}"
-
-    def _run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
-        path = os.path.join(project_root, filename)
-        if os.path.exists(path):
-            return []
-        return [
-            pyfusa.Finding(
-                rule_id=self.rule_id,
-                severity=severity,
-                message=message,
-                location=pyfusa.Location(file=filename),
-                category=pyfusa.CATEGORY_CONFIG,
-                remediation=remediation,
-            )
-        ]
-
-    _Rule.run = _run
-    return _Rule
-
-
 # ── Release artefacts ─────────────────────────────────────────────────────────
 
 
