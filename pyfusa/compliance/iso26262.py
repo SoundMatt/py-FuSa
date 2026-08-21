@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timezone
 
 import pyfusa
+from pyfusa.compliance._evidence import rank_status
 from pyfusa.config import Config
 
 ASIL_LEVELS = ["QM", "ASIL-A", "ASIL-B", "ASIL-C", "ASIL-D"]
@@ -108,12 +109,7 @@ def _status(
 ) -> tuple:
     proj_rank = _ASIL_RANK.get(project_asil, 2)
     req_rank = _ASIL_RANK.get(asil_min, 0)
-    if proj_rank < req_rank:
-        return "partial", []
-    path = os.path.join(project_root, evidence_file)
-    if os.path.exists(path):
-        return "satisfied", [evidence_file]
-    return "gap", []
+    return rank_status(proj_rank, req_rank, project_root, evidence_file)
 
 
 # fusa:req REQ-COMPLY001

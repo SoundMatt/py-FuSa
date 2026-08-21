@@ -11,6 +11,26 @@ from pyfusa.cli.main import run
 import io
 
 
+def _write_evidence(tmpdir: str, name: str) -> None:
+    """Write minimally-real content for a compliance evidence file --
+    evidence_present() (pyfusa/compliance/_evidence.py) now requires actual
+    parseable, non-empty content, not just the right filename on a
+    zero-byte file."""
+    path = os.path.join(tmpdir, name)
+    os.makedirs(os.path.dirname(path) or tmpdir, exist_ok=True)
+    if name.endswith(".json"):
+        with open(path, "w") as f:
+            json.dump({"kind": "test-evidence", "generated": True}, f)
+    elif name.endswith(".zip"):
+        import zipfile
+
+        with zipfile.ZipFile(path, "w") as zf:
+            zf.writestr("manifest.json", "{}")
+    else:
+        with open(path, "w") as f:
+            f.write("real content, not a placeholder\n")
+
+
 # ---------------------------------------------------------------------------
 # compliance/iec62443.py
 # ---------------------------------------------------------------------------
@@ -67,7 +87,7 @@ def test_iec62443_run_with_evidence():
             "SECURITY.md",
             "check-report.json",
         ]:
-            open(os.path.join(tmpdir, name), "w").close()
+            _write_evidence(tmpdir, name)
         doc = iec_run(tmpdir, cfg)
         satisfied = [o for o in doc["objectives"] if o["status"] == "satisfied"]
         assert len(satisfied) >= 3
@@ -92,7 +112,7 @@ def test_iec62443_run_full_evidence():
             "qualify-report.json",
             "audit-pack.zip",
         ]:
-            open(os.path.join(tmpdir, name), "w").close()
+            _write_evidence(tmpdir, name)
         doc = iec_run(tmpdir, cfg)
         satisfied = [o for o in doc["objectives"] if o["status"] == "satisfied"]
         # SL-3 objectives (62443-11, 62443-12) are "partial" at SL-2 regardless of evidence
@@ -130,7 +150,7 @@ def test_iec62443_render_text_satisfied_marker():
     with tempfile.TemporaryDirectory() as tmpdir:
         cfg = default(project_name="proj")
         for name in [".fusa.json", ".fusa-reqs.json", "SECURITY.md"]:
-            open(os.path.join(tmpdir, name), "w").close()
+            _write_evidence(tmpdir, name)
         doc = iec_run(tmpdir, cfg)
         text = render_text(doc)
         assert "✓" in text
