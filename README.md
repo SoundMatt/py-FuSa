@@ -166,6 +166,16 @@ injection risks.
 | ANA008 | WARNING | Mutable variable from an enclosing scope modified inside a thread worker |
 | ANA009 | WARNING | Unreachable code detected after `return`/`raise`/`break`/`continue` |
 
+### Coupling analysis (COUP-series, DO-178C §6.4.4.3)
+
+| Rule | Severity | Description |
+|---|---|---|
+| COUP001 | INFO | Module-level mutable variable creates data coupling |
+| COUP002 | INFO | Public function accepts a callable parameter — control coupling |
+| COUP003 | WARNING | Coupling analysis report (`coupling-report.json`) not found |
+
+Use `pyfusa coupling` to generate the full data/control coupling report without running all checks.
+
 ### Complexity (COMP-series, DO-178C §6.3.4)
 
 | Rule | Severity | Description |
@@ -307,6 +317,14 @@ Every finding carries the §4.2 canonical SHA-256 fingerprint for stable cross-t
   "fingerprint": "sha256:a1b2c3..."
 }
 ```
+
+The fingerprint is computed from `ruleId` + `location.file` + a digit-normalised
+`message` — deliberately **not** `location.line`. Two findings that differ only
+in line number (e.g. after an unrelated edit shifts the same finding a few
+lines down) keep the same fingerprint, so a disposition waiver or baseline
+entry survives ordinary refactoring instead of silently going stale. If you
+need to distinguish findings at the same file+message on different lines,
+match on `location.line` as a secondary key.
 
 ## x-FuSa spec conformance
 
