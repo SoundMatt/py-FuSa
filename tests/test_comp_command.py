@@ -161,16 +161,19 @@ def test_run_returns_correct_schema():
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="tp")
         doc = comp.run(tmpdir, cfg)
+        # §9.2/§13 canonical shape — this is what FuSaOps's comp.Report
+        # decodes directly off stdout; field names/types must match exactly.
         assert doc["kind"] == "comp-report"
-        assert doc["standard"] == "DO-178C §6.3.4"
         assert "schemaVersion" in doc
         assert "tool" in doc
         assert "toolVersion" in doc
         assert "generatedAt" in doc
         assert "projectRoot" in doc
         assert "threshold" in doc
-        assert "summary" in doc
-        assert "functions" in doc
+        assert "totalFunctions" in doc
+        assert "violations" in doc
+        assert "results" in doc
+        assert "dal" not in doc  # MAY, omitted when no --dal was given
 
 
 def test_run_summary_counts():
@@ -180,9 +183,10 @@ def test_run_summary_counts():
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="tp")
         doc = comp.run(tmpdir, cfg)
-        s = doc["summary"]
-        assert s["total"] == s["pass"] + s["fail"]
-        assert s["total"] == len(doc["functions"])
+        assert doc["totalFunctions"] == len(doc["results"])
+        assert doc["violations"] == sum(
+            1 for r in doc["results"] if r["exceedsThreshold"]
+        )
 
 
 def test_run_function_fields():
@@ -192,12 +196,12 @@ def test_run_function_fields():
         _make_project(tmpdir, _SIMPLE_PY)
         cfg = default(project_name="tp")
         doc = comp.run(tmpdir, cfg)
-        for fn in doc["functions"]:
+        for fn in doc["results"]:
             assert "file" in fn
-            assert "function" in fn
+            assert "name" in fn
             assert "complexity" in fn
             assert "line" in fn
-            assert fn["status"] in ("PASS", "FAIL")
+            assert isinstance(fn["exceedsThreshold"], bool)
 
 
 def test_run_fail_status_for_complex():
@@ -208,9 +212,32 @@ def test_run_fail_status_for_complex():
         cfg = default(project_name="tp")
         cfg.asil = "ASIL-D"  # threshold=4
         doc = comp.run(tmpdir, cfg)
-        fails = [f for f in doc["functions"] if f["status"] == "FAIL"]
+        fails = [f for f in doc["results"] if f["exceedsThreshold"]]
         assert len(fails) >= 1
-        assert any(f["function"] == "very_complex" for f in fails)
+        assert any(f["name"] == "very_complex" for f in fails)
+
+
+def test_run_threshold_override():
+    import pyfusa.comp as comp
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir, _COMPLEX_PY)
+        cfg = default(project_name="tp")
+        cfg.asil = "ASIL-B"  # would normally give threshold=15
+        doc = comp.run(tmpdir, cfg, threshold_override=2)
+        assert doc["threshold"] == 2
+        assert doc["violations"] > 0
+
+
+def test_run_dal_field_included_when_given():
+    import pyfusa.comp as comp
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir, _SIMPLE_PY)
+        cfg = default(project_name="tp")
+        doc = comp.run(tmpdir, cfg, threshold_override=15, dal="DAL-C")
+        assert doc["dal"] == "DAL-C"
+        assert doc["threshold"] == 15
 
 
 def test_render_text_no_fails():
@@ -269,7 +296,11 @@ def test_comp_cli_writes_file():
         assert "wrote comp-report.json" in out.getvalue()
 
 
-def test_comp_cli_json_format():
+def test_comp_cli_json_format_goes_to_stdout():
+    # §9.2/§10: `comp --format json` with no --output is the exact
+    # invocation FuSaOps's Comp() runs — it decodes the report from stdout
+    # and never reads a file, so this must print clean JSON to stdout and
+    # must NOT write comp-report.json as a side effect.
     with tempfile.TemporaryDirectory() as tmpdir:
         _make_project(tmpdir, _SIMPLE_PY)
         out = io.StringIO()
@@ -278,10 +309,9 @@ def test_comp_cli_json_format():
             ["comp", "--dir", tmpdir, "--format", "json"], stdout=out, stderr=err
         )
         assert code in (0, 1, 3)
-        report_path = os.path.join(tmpdir, "comp-report.json")
-        with open(report_path) as f:
-            doc = json.load(f)
+        doc = json.loads(out.getvalue())
         assert doc["kind"] == "comp-report"
+        assert not os.path.exists(os.path.join(tmpdir, "comp-report.json"))
 
 
 def test_comp_cli_custom_output():

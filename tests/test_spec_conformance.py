@@ -148,6 +148,71 @@ def test_comp_output_no_stdout_suppresses_json_to_file():
         with open(out_file) as f:
             doc = json.load(f)
         assert doc["kind"] == "comp-report"
+        # §9.2/§13 canonical shape — the fields FuSaOps's comp.Report decodes.
+        # A prior revision emitted summary:{total,pass,fail}/functions[] with
+        # {function,status} instead; this only checking `kind` let that ship.
+        assert "totalFunctions" in doc
+        assert "violations" in doc
+        assert isinstance(doc["results"], list)
+        if doc["results"]:
+            fn = doc["results"][0]
+            assert {"file", "line", "name", "complexity", "exceedsThreshold"} <= set(
+                fn
+            )
+
+
+# fusa:test §9.2/§13 — FuSaOps's Comp() calls `comp --format json` with no
+# --output and decodes the report straight off stdout (adapter/capabilities.go).
+def test_comp_json_no_output_goes_to_stdout():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir)
+        open(os.path.join(tmpdir, "mod.py"), "w").write(
+            "def simple(x):\n    return x\n"
+        )
+        out = io.StringIO()
+        code = run(["comp", "--dir", tmpdir, "--format", "json"], stdout=out)
+        assert code in (pyfusa.EXIT_OK, pyfusa.EXIT_GATE_FAIL)
+        doc = json.loads(out.getvalue())
+        assert doc["kind"] == "comp-report"
+        assert "totalFunctions" in doc
+        assert "violations" in doc
+        # This invocation must NOT also write comp-report.json to disk —
+        # that was the previous (broken) behavior FuSaOps never saw.
+        assert not os.path.exists(os.path.join(tmpdir, "comp-report.json"))
+
+
+# fusa:test §9.2 — --dal overrides --threshold and both are real CLI flags.
+def test_comp_dal_and_threshold_flags():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _make_project(tmpdir)
+        open(os.path.join(tmpdir, "mod.py"), "w").write(
+            "def simple(x):\n    return x\n"
+        )
+        out = io.StringIO()
+        run(
+            ["comp", "--dir", tmpdir, "--format", "json", "--threshold", "2"],
+            stdout=out,
+        )
+        assert json.loads(out.getvalue())["threshold"] == 2
+
+        out = io.StringIO()
+        run(
+            [
+                "comp",
+                "--dir",
+                tmpdir,
+                "--format",
+                "json",
+                "--threshold",
+                "2",
+                "--dal",
+                "DAL-C",
+            ],
+            stdout=out,
+        )
+        doc = json.loads(out.getvalue())
+        assert doc["threshold"] == 15  # DAL-C overrides the --threshold 2
+        assert doc["dal"] == "DAL-C"
 
 
 # ---------------------------------------------------------------------------
