@@ -228,20 +228,31 @@ class CYBER004(Rule):
             if tree is None:
                 continue
             rel = _rel(path, project_root)
-            imports = _import_names(tree)
-            for imp in imports:
-                if any(u in imp for u in UNSAFE):
-                    findings.append(
-                        Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_WARNING,
-                            message=f"unsafe memory access via '{imp}' — must be reviewed and justified",
-                            location=Location(file=rel, line=1),
-                            standard="iso26262",
-                            clause="CWE-242",
-                            remediation="document rationale; add #fusa:accept with reviewer and justification",
+            # Walk the actual import nodes (not _import_names()'s flat,
+            # line-less name set) so the finding points at the real import
+            # statement instead of a hardcoded line 1 for every hit in the
+            # file.
+            for node in ast.walk(tree):
+                names = []
+                if isinstance(node, ast.Import):
+                    names = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    names = [node.module]
+                for imp in names:
+                    if any(u in imp for u in UNSAFE):
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_WARNING,
+                                message=f"unsafe memory access via '{imp}' — must be reviewed and justified",
+                                location=Location(
+                                    file=rel, line=getattr(node, "lineno", 0)
+                                ),
+                                standard="iso26262",
+                                clause="CWE-242",
+                                remediation="document rationale; add #fusa:accept with reviewer and justification",
+                            )
                         )
-                    )
         return findings
 
 
@@ -891,7 +902,12 @@ class CYBER017(Rule):
                     name = _call_name(node)
                     if name in ("open", "os.open", "io.open"):
                         for kw in node.keywords:
-                            if kw.arg in ("mode", "opener") and isinstance(
+                            # "opener" is a callable factory (e.g.
+                            # os.open) -- never an int permission-bits
+                            # value, so checking it here was dead weight:
+                            # code that actually ran would never pass an
+                            # int for opener= in the first place.
+                            if kw.arg == "mode" and isinstance(
                                 kw.value, ast.Constant
                             ):
                                 if isinstance(
