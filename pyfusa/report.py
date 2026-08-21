@@ -12,7 +12,10 @@ import pyfusa
 from pyfusa.config import Config
 from pyfusa.engine import RunResult
 
-_VALID_FORMATS = {"text", "json", "html", "sarif", "md"}
+# Public so callers (e.g. cli/main.py's cmd_check/cmd_report) can validate a
+# --format value up front and reject an unrecognized one as a usage error
+# (§2.3: exit 2) instead of silently falling back to "text" below.
+VALID_FORMATS = {"text", "json", "html", "sarif", "md"}
 
 
 def _now_iso() -> str:
@@ -209,7 +212,7 @@ def render(
 ) -> None:
     """Write formatted report to w."""
     fmt = (fmt or "text").lower()
-    if fmt not in _VALID_FORMATS:
+    if fmt not in VALID_FORMATS:
         fmt = "text"
 
     if fmt == "text":
