@@ -8,14 +8,30 @@ inContextOf, and a `completeness` roll-up of undeveloped goals.
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime, timezone
 
 import pyfusa
-from pyfusa.config import Config
 from pyfusa import content_quality
+from pyfusa.config import Config
 
 SAFETY_CASE_FILE = "safety-case.json"
+
+# ev_id -> (json key holding the countable list/dict, fact template).
+# Used by _evidence_fact() below to make each strategy's argument text cite
+# a real number pulled from the project's own evidence, rather than a
+# fixed string identical for every project regardless of its actual
+# hazards/findings/coverage -- see _evidence_fact()'s docstring.
+_FACT_SPEC = {
+    "check": ("check-report.json", "findings", "{n} static-analysis finding(s)"),
+    "reqs": (".fusa-reqs.json", "requirements", "{n} requirement(s) traced"),
+    "sbom": ("sbom.json", "components", "{n} SBOM component(s)"),
+    "hara": (".fusa-hara.json", "hazards", "{n} hazard(s) identified"),
+    "tara": ("tara.json", "threats", "{n} threat scenario(s) analysed"),
+    "fmea": ("fmea.json", "entries", "{n} failure mode(s) analysed"),
+    "boundary": ("boundary.json", "edges", "{n} component boundary edge(s)"),
+}
 
 # (evidence id, filename, description) — the artefacts this argument cites as
 # solutions. Kept as data so the GSN graph and its markdown/mermaid renderers
@@ -45,6 +61,67 @@ _CLAUSES = [
     ("DO-178C", "§11.1", "Software accomplishment summary", ["qualify", "check"]),
     ("IEC 61508", "7.4", "Software architecture", ["boundary", "coupling", "fmea"]),
 ]
+
+
+def _load_json_or_none(path: str):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _coupling_fact(doc: dict) -> str:
+    n = len(doc.get("dataCoupling", [])) + len(doc.get("controlCoupling", []))
+    return f"{n} coupling issue(s) analysed"
+
+
+def _qualify_fact(doc: dict) -> str:
+    return f"{doc.get('passed', 0)}/{doc.get('total', 0)} qualification test(s) passed"
+
+
+# ev_id -> (filename, doc -> fact string). Two evidence types need a
+# bespoke fact rather than a simple "count this list" template.
+_SPECIAL_FACTS = {
+    "coupling": ("coupling-report.json", _coupling_fact),
+    "qualify": ("qualify-report.json", _qualify_fact),
+}
+
+
+def _evidence_fact(project_root: str, ev_id: str) -> str:
+    """A short, real fact pulled from one evidence file's actual content --
+    e.g. "12 requirement(s) traced" -- or "" if the file is absent,
+    unparseable, or (for "provenance"/"audit-pack") not the kind of
+    evidence a single count summarizes well.
+
+    x-FuSa spec §9.2 requires `nodes[].text` to be "specific to this
+    tool's actual claims (§1.6.1 rule B)" -- "a generic goal ... with no
+    tool-specific detail does not satisfy this." A prior version's
+    strategy text was a fixed string per standard/clause, identical for
+    every project regardless of whether it actually had any hazards,
+    findings, or coverage -- verified: node text was identical between a
+    project with real evidence files and one with none, except for the
+    module-name substitution in the top-level goal. This closes that gap
+    for the strategies where a real evidence file is present, without
+    inventing a claim for evidence that doesn't exist yet (an absent file
+    still contributes no fact, same as before).
+    """
+    if ev_id in _SPECIAL_FACTS:
+        filename, fact_fn = _SPECIAL_FACTS[ev_id]
+        doc = _load_json_or_none(os.path.join(project_root, filename))
+        return fact_fn(doc) if doc is not None else ""
+
+    spec = _FACT_SPEC.get(ev_id)
+    if not spec:
+        return ""
+    filename, key, template = spec
+    doc = _load_json_or_none(os.path.join(project_root, filename))
+    if doc is None:
+        return ""
+    value = doc.get(key)
+    if not isinstance(value, list):
+        return ""
+    return template.format(n=len(value))
 
 
 # fusa:req REQ-SC006
@@ -87,13 +164,16 @@ def assemble(project_root: str, cfg: Config) -> dict:
     strategies_without_evidence = 0
     for idx, (std_display, clause, title, ev_ids) in enumerate(_CLAUSES, start=1):
         strat_id = f"St{idx}"
-        nodes.append(
-            {
-                "id": strat_id,
-                "type": "strategy",
-                "text": f"Argue via {title} ({std_display} {clause})",
-            }
+        # Cite a real fact from the first cited evidence file that has one
+        # (findings/hazards/requirements actually counted, not just
+        # "the file exists") -- see _evidence_fact()'s docstring.
+        fact = next(
+            (f for f in (_evidence_fact(project_root, e) for e in ev_ids) if f), ""
         )
+        text = f"Argue via {title} ({std_display} {clause})"
+        if fact:
+            text += f" — {fact}"
+        nodes.append({"id": strat_id, "type": "strategy", "text": text})
         edges.append({"from": "G1", "to": strat_id, "type": "supportedBy"})
         strategy_has_evidence = False
         for ev_id in ev_ids:
