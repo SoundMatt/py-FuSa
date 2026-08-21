@@ -18,10 +18,20 @@ EVIDENCE_FILE = ".fusa-evidence.json"
 
 
 def _run_pytest(project_root: str, timeout: int = 120) -> Optional[dict]:
-    """Run pytest --tb=no -q and parse output into test results."""
+    """Run pytest --tb=no -q -rA and parse output into test results.
+
+    -rA ("report all") forces pytest to print a one-line summary entry
+    for every test regardless of outcome. Plain -q's "short test summary
+    info" section only ever lists failures/errors -- verified: a mixed
+    pass/fail run under -q alone produced zero PASSED lines, so the
+    per-test loop below only ever saw the FAILED entry and (since
+    `results` was then non-empty) the summary-line fallback that would
+    have corrected the count was skipped too, silently reporting
+    summary.passed=0 for a run that actually had a passing test.
+    """
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "--tb=no", "-q", "--no-header"],
+            [sys.executable, "-m", "pytest", "--tb=no", "-q", "--no-header", "-rA"],
             cwd=project_root,
             capture_output=True,
             text=True,
@@ -33,54 +43,52 @@ def _run_pytest(project_root: str, timeout: int = 120) -> Optional[dict]:
         return None
 
 
+# PASSED/FAILED/ERROR lines: "PASSED tests/test_foo.py::test_bar", possibly
+# followed by " - <reason>" for FAILED/ERROR.
+_RESULT_LINE_RE = re.compile(r"^(PASSED|FAILED|ERROR)\s+(\S+)(?:\s+-\s+.*)?$")
+# SKIPPED lines carry no dotted test-node-id, only a file:line: "SKIPPED
+# [1] tests/test_foo.py:12: reason".
+_SKIPPED_LINE_RE = re.compile(r"^SKIPPED\s+\[\d+\]\s+(\S+):.*$")
+_STATUS_MAP = {"PASSED": "pass", "FAILED": "fail", "ERROR": "error"}
+
+
+def _extract_count(output: str, word: str) -> int:
+    m = re.search(rf"(\d+) {word}\b", output)
+    return int(m.group(1)) if m else 0
+
+
 def _parse_pytest_output(output: str, returncode: int) -> dict:
-    """Parse pytest -q output into a results structure."""
+    """Parse pytest -q -rA output (see _run_pytest) into a results
+    structure."""
     results = []
-    # Lines like: PASSED tests/test_foo.py::test_bar
-    # Or summary line: 5 passed, 1 failed, 2 errors in 0.12s
     for line in output.splitlines():
         line = line.strip()
-        if line.startswith("PASSED"):
-            name = line.split(" ", 1)[1].strip() if " " in line else line
-            results.append({"name": name, "status": "pass"})
-        elif line.startswith("FAILED"):
-            name = line.split(" ", 1)[1].strip() if " " in line else line
-            results.append({"name": name, "status": "fail"})
-        elif line.startswith("ERROR"):
-            name = line.split(" ", 1)[1].strip() if " " in line else line
-            results.append({"name": name, "status": "error"})
+        m = _RESULT_LINE_RE.match(line)
+        if m:
+            results.append({"name": m.group(2), "status": _STATUS_MAP[m.group(1)]})
+            continue
+        m = _SKIPPED_LINE_RE.match(line)
+        if m:
+            results.append({"name": m.group(1), "status": "skip"})
 
-    # If no per-test lines, try verbose format: test_name PASSED/FAILED
-    if not results:
-        for line in output.splitlines():
-            m = re.match(r"^(tests/\S+)\s+(PASSED|FAILED|ERROR|SKIPPED)", line)
-            if m:
-                status_map = {
-                    "PASSED": "pass",
-                    "FAILED": "fail",
-                    "ERROR": "error",
-                    "SKIPPED": "skip",
-                }
-                results.append({"name": m.group(1), "status": status_map[m.group(2)]})
-
-    passed = sum(1 for r in results if r["status"] == "pass")
-    failed = sum(1 for r in results if r["status"] == "fail")
-    errored = sum(1 for r in results if r["status"] == "error")
-    skipped = sum(1 for r in results if r["status"] == "skip")
-
-    # Parse summary line for counts when per-test lines aren't available
-    summary_match = re.search(
-        r"(\d+) passed(?:,\s*(\d+) failed)?(?:,\s*(\d+) error)?", output
-    )
-    if summary_match and not results:
-        passed = int(summary_match.group(1) or 0)
-        failed = int(summary_match.group(2) or 0)
-        errored = int(summary_match.group(3) or 0)
+    # Aggregate counts always come from pytest's own summary line
+    # ("3 passed, 1 failed, ..."), each category searched independently --
+    # not by fixed position (pytest doesn't print categories in a
+    # consistent order; "1 failed, 1 passed" is just as common as "1
+    # passed, 1 failed") and never derived from len(results): an
+    # unexpected pytest output format could make the per-test loop above
+    # miss a line without the summary line also being wrong, so the
+    # authoritative counts stay correct even when the detailed list isn't
+    # complete.
+    passed = _extract_count(output, "passed")
+    failed = _extract_count(output, "failed")
+    errored = _extract_count(output, "errors?")
+    skipped = _extract_count(output, "skipped")
 
     return {
         "results": results,
         "summary": {
-            "total": len(results) if results else (passed + failed + errored + skipped),
+            "total": passed + failed + errored + skipped,
             "passed": passed,
             "failed": failed,
             "errored": errored,
