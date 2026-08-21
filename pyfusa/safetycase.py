@@ -63,6 +63,31 @@ _CLAUSES = [
 ]
 
 
+def _load_json_or_none(path: str):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _coupling_fact(doc: dict) -> str:
+    n = len(doc.get("dataCoupling", [])) + len(doc.get("controlCoupling", []))
+    return f"{n} coupling issue(s) analysed"
+
+
+def _qualify_fact(doc: dict) -> str:
+    return f"{doc.get('passed', 0)}/{doc.get('total', 0)} qualification test(s) passed"
+
+
+# ev_id -> (filename, doc -> fact string). Two evidence types need a
+# bespoke fact rather than a simple "count this list" template.
+_SPECIAL_FACTS = {
+    "coupling": ("coupling-report.json", _coupling_fact),
+    "qualify": ("qualify-report.json", _qualify_fact),
+}
+
+
 def _evidence_fact(project_root: str, ev_id: str) -> str:
     """A short, real fact pulled from one evidence file's actual content --
     e.g. "12 requirement(s) traced" -- or "" if the file is absent,
@@ -81,32 +106,17 @@ def _evidence_fact(project_root: str, ev_id: str) -> str:
     inventing a claim for evidence that doesn't exist yet (an absent file
     still contributes no fact, same as before).
     """
-    if ev_id == "coupling":
-        path = os.path.join(project_root, "coupling-report.json")
-        try:
-            with open(path, encoding="utf-8") as f:
-                doc = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            return ""
-        n = len(doc.get("dataCoupling", [])) + len(doc.get("controlCoupling", []))
-        return f"{n} coupling issue(s) analysed"
-    if ev_id == "qualify":
-        path = os.path.join(project_root, "qualify-report.json")
-        try:
-            with open(path, encoding="utf-8") as f:
-                doc = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            return ""
-        return f"{doc.get('passed', 0)}/{doc.get('total', 0)} qualification test(s) passed"
+    if ev_id in _SPECIAL_FACTS:
+        filename, fact_fn = _SPECIAL_FACTS[ev_id]
+        doc = _load_json_or_none(os.path.join(project_root, filename))
+        return fact_fn(doc) if doc is not None else ""
+
     spec = _FACT_SPEC.get(ev_id)
     if not spec:
         return ""
     filename, key, template = spec
-    path = os.path.join(project_root, filename)
-    try:
-        with open(path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, json.JSONDecodeError):
+    doc = _load_json_or_none(os.path.join(project_root, filename))
+    if doc is None:
         return ""
     value = doc.get(key)
     if not isinstance(value, list):

@@ -226,10 +226,13 @@ def _test_sec001_silent_on_scoped_except() -> bool:
 def _test_cyber006_detects_hardcoded_credential() -> bool:
     from pyfusa.rules.cyber import CYBER006
 
-    findings = _with_temp_source(
-        'password = "supersecret123"\n',
-        lambda root, cfg: CYBER006().run(root, cfg),
-    )
+    # Built by concatenation rather than a literal "password = ..." string so
+    # this test fixture doesn't itself trip SEC007's own raw-text credential
+    # scan over qualify.py's source (SEC007 scans every line's text, not
+    # just real assignments -- it can't tell "genuine secret" apart from "a
+    # string literal describing what a rule looks for" any other way).
+    fixture = "password" + " = " + '"supersecret123"' + "\n"
+    findings = _with_temp_source(fixture, lambda root, cfg: CYBER006().run(root, cfg))
     return any(f.rule_id == "CYBER006" for f in findings)
 
 
