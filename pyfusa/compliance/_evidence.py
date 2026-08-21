@@ -57,3 +57,32 @@ def evidence_present(project_root: str, filename: str) -> bool:
         return os.path.getsize(path) > 0
     except OSError:
         return False
+
+
+# fusa:req REQ-COMPLY003
+def rank_status(
+    proj_rank: int, req_rank: int, project_root: str, evidence_file: str
+) -> tuple:
+    """Shared status logic for a level-gated compliance objective:
+    "partial" when the project's own level doesn't reach the objective's
+    minimum, else "satisfied"/"gap" based on evidence_present() above.
+
+    Used by iso26262/iec61508/iec62443/iso21434 -- these four previously
+    carried near-identical rank-comparison logic (three near-identical
+    module-local `_status()` functions plus two more copies inlined
+    directly in their `run()` loops) that could silently drift out of
+    sync with each other, the same duplication class evidence_present()
+    itself was extracted to close for the content-check half of this
+    logic.
+
+    do178.py is deliberately NOT one of these four: its DAL applicability
+    is a per-objective list of applicable DALs (`dal not in dals_apply`),
+    not a single minimum-rank threshold, so it has a genuinely different
+    shape and keeps its own `_status()`. unece.py has no level dimension
+    at all.
+    """
+    if proj_rank < req_rank:
+        return "partial", []
+    if evidence_present(project_root, evidence_file):
+        return "satisfied", [evidence_file]
+    return "gap", []

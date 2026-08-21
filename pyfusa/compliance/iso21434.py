@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timezone
 
 import pyfusa
-from pyfusa.compliance._evidence import evidence_present
+from pyfusa.compliance._evidence import rank_status
 from pyfusa.config import Config
 
 CAL_LEVELS = ["CAL-1", "CAL-2", "CAL-3", "CAL-4"]
@@ -68,12 +68,7 @@ def run(project_root: str, cfg: Config, cal: str = "CAL-2") -> dict:
     counts = {"satisfied": 0, "gap": 0, "partial": 0}
     for obj_id, clause, title, cal_min, evidence_file in _OBJECTIVES:
         req_rank = _CAL_RANK.get(cal_min, 1)
-        if cal_rank < req_rank:
-            status, evidence = "partial", []
-        elif evidence_present(project_root, evidence_file):
-            status, evidence = "satisfied", [evidence_file]
-        else:
-            status, evidence = "gap", []
+        status, evidence = rank_status(cal_rank, req_rank, project_root, evidence_file)
         counts[status] = counts.get(status, 0) + 1
         obj = {
             "id": obj_id,

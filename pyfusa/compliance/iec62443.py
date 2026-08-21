@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timezone
 
 import pyfusa
-from pyfusa.compliance._evidence import evidence_present
+from pyfusa.compliance._evidence import rank_status
 from pyfusa.config import Config
 
 SL_LEVELS = ["SL-1", "SL-2", "SL-3", "SL-4"]
@@ -86,12 +86,7 @@ def run(project_root: str, cfg: Config, sl: str = "SL-2") -> dict:
     counts: dict[str, int] = {"satisfied": 0, "gap": 0, "partial": 0}
     for obj_id, clause, title, sl_min, evidence_file in _OBJECTIVES:
         req_rank = _SL_RANK.get(sl_min, 1)
-        if sl_rank < req_rank:
-            status, evidence = "partial", []
-        elif evidence_present(project_root, evidence_file):
-            status, evidence = "satisfied", [evidence_file]
-        else:
-            status, evidence = "gap", []
+        status, evidence = rank_status(sl_rank, req_rank, project_root, evidence_file)
         counts[status] = counts.get(status, 0) + 1
         obj = {
             "id": obj_id,
