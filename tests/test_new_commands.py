@@ -217,6 +217,35 @@ def test_coupling_json_schema():
         assert "controlCoupling" in doc
 
 
+# fusa:test REQ-COUPLING001
+def test_coupling_rule_crash_is_surfaced_not_swallowed():
+    """A rule that raises must be visible in both the report and on stderr
+    -- not silently downgraded to an empty, clean-looking result
+    indistinguishable from 'this project has zero coupling issues'."""
+    import pyfusa.coupling_analysis as ca
+
+    class _Boom:
+        rule_id = "COUP001"
+
+        def run(self, project_root, cfg):
+            raise RuntimeError("boom")
+
+    findings, errors = ca._run_rules([_Boom()], "/tmp", None)
+    assert findings == []
+    assert errors == ["rule COUP001: boom"]
+
+    orig = ca._run_rules
+    ca._run_rules = lambda rules, root, cfg: ([], ["rule COUP001: boom"])
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            err = io.StringIO()
+            code = run(["coupling", "--dir", tmpdir, "--format", "json"], stderr=err)
+            assert code == pyfusa.EXIT_OK
+            assert "boom" in err.getvalue()
+    finally:
+        ca._run_rules = orig
+
+
 # ---------------------------------------------------------------------------
 # tara
 # ---------------------------------------------------------------------------

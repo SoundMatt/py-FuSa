@@ -1164,6 +1164,8 @@ def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     report = _coupling.run(project_root, cfg)
+    for err in report.get("errors", []):
+        print(f"pyfusa coupling: warning: {err}", file=stderr)
 
     out_path = ns.output
     w = stdout
