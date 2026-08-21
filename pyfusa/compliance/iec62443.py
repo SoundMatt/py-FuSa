@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timezone
 
 import pyfusa
+from pyfusa.compliance._evidence import evidence_present
 from pyfusa.config import Config
 
 SL_LEVELS = ["SL-1", "SL-2", "SL-3", "SL-4"]
@@ -87,7 +88,7 @@ def run(project_root: str, cfg: Config, sl: str = "SL-2") -> dict:
         req_rank = _SL_RANK.get(sl_min, 1)
         if sl_rank < req_rank:
             status, evidence = "partial", []
-        elif os.path.exists(os.path.join(project_root, evidence_file)):
+        elif evidence_present(project_root, evidence_file):
             status, evidence = "satisfied", [evidence_file]
         else:
             status, evidence = "gap", []

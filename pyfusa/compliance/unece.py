@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timezone
 
 import pyfusa
+from pyfusa.compliance._evidence import evidence_present
 from pyfusa.config import Config
 
 _OBJECTIVES = [
@@ -37,7 +38,7 @@ def run(project_root: str, cfg: Config) -> dict:
     objectives = []
     counts = {"satisfied": 0, "gap": 0}
     for obj_id, clause, title, evidence_file in _OBJECTIVES:
-        if os.path.exists(os.path.join(project_root, evidence_file)):
+        if evidence_present(project_root, evidence_file):
             status, evidence = "satisfied", [evidence_file]
         else:
             status, evidence = "gap", []
