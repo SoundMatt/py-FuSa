@@ -1515,7 +1515,11 @@ def cmd_badge(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if not os.path.exists(report_path):
             print(f"pyfusa badge: {report_path} not found", file=stderr)
             return EXIT_RUNTIME
-        svg = _badge.from_report(report_path)
+        try:
+            svg = _badge.from_report(report_path)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"pyfusa badge: {report_path}: {e}", file=stderr)
+            return EXIT_RUNTIME
 
     out_path = (
         ns.output if os.path.isabs(ns.output) else os.path.join(project_root, ns.output)
@@ -1584,8 +1588,12 @@ def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         data = _req_mgmt.load(project_root)
         csv_text = _req_mgmt.to_csv(data.get("requirements", []))
         if ns.file:
-            with open(ns.file, "w", encoding="utf-8") as f:
-                f.write(csv_text)
+            try:
+                with open(ns.file, "w", encoding="utf-8") as f:
+                    f.write(csv_text)
+            except OSError as e:
+                print(f"pyfusa req export: {e}", file=stderr)
+                return EXIT_RUNTIME
             print(f"exported to {ns.file}", file=stdout)
         else:
             print(csv_text, file=stdout, end="")
@@ -1594,8 +1602,12 @@ def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if not ns.file:
             print("pyfusa req import: --file required", file=stderr)
             return EXIT_USAGE
-        with open(ns.file, encoding="utf-8") as f:
-            csv_text = f.read()
+        try:
+            with open(ns.file, encoding="utf-8") as f:
+                csv_text = f.read()
+        except OSError as e:
+            print(f"pyfusa req import: {e}", file=stderr)
+            return EXIT_RUNTIME
         reqs = _req_mgmt.from_csv(csv_text)
         data = _req_mgmt.load(project_root)
         existing_ids = {r["id"] for r in data.get("requirements", [])}
@@ -1825,7 +1837,7 @@ def cmd_pr(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--description", default="")
     p.add_argument("--phase", default="development", choices=_pr.PHASES)
     p.add_argument("--severity", default="minor", choices=_pr.SEVERITIES)
-    p.add_argument("--status", default="open")
+    p.add_argument("--status", default="open", choices=_pr.STATUSES)
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -2652,13 +2664,22 @@ def cmd_verify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if f_out:
             f_out.close()
 
-    # Auto-save evidence bundle
-    if not out_path or out_path.endswith(".json"):
-        if not out_path:
-            _verify.save(doc, project_root)
-            print(f"wrote {_verify.EVIDENCE_FILE}", file=stdout)
-        elif out_path:
-            print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    if out_path:
+        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
+    # Always persist the canonical evidence bundle (.fusa-evidence.json)
+    # too, unless --output already wrote exactly that file (redundant to
+    # write it twice under two names). A prior version only did this when
+    # --output was empty or happened to end in ".json" -- verify --output
+    # report.txt --format text silently skipped it, leaving no machine-
+    # readable trail and no confirmation printed at all, and --output
+    # anything.json (other than the canonical name) silently skipped it
+    # too, even though other rules (VERIFY001/VERIFY002) check for the
+    # evidence bundle specifically at its canonical path.
+    canonical_path = os.path.join(project_root, _verify.EVIDENCE_FILE)
+    if not out_path or os.path.abspath(out_path) != os.path.abspath(canonical_path):
+        _verify.save(doc, project_root)
+        print(f"wrote {_verify.EVIDENCE_FILE}", file=stdout)
 
     s = doc.get("summary", {})
     return EXIT_GATE_FAIL if (s.get("failed", 0) + s.get("errored", 0)) > 0 else EXIT_OK
