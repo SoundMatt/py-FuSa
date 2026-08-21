@@ -240,6 +240,37 @@ pyfusa iec62443 --sl SL-3 --format json --output iec62443-gap.json
 pyfusa slsa --level L3 --format json --output slsa-gap.json
 ```
 
+## Baseline and rule lookup
+
+Not part of the x-FuSa spec — workflow-parity features matching c-FuSa.
+
+`pyfusa disposition add` is a reviewed, one-at-a-time judgment call on a
+single finding. That doesn't scale to enabling the gate on an existing
+codebase with hundreds of pre-existing findings nobody has reviewed yet.
+`pyfusa baseline` snapshots every current finding's fingerprint into
+`.fusa-baseline.json`; `check`/`lint` then exclude baselined findings from
+the exit-code gate the same way an accepted disposition is — findings stay
+visible in output, tagged `dispositionSource: "baseline"` so a report reader
+can tell "predates baseline" apart from "reviewed and accepted". Genuinely
+new findings introduced after the snapshot still fail the gate as normal.
+Re-running `pyfusa baseline` overwrites the file with a fresh snapshot of
+whatever findings exist right now — it's a bulk, regenerable starting point,
+not a durable record.
+
+```bash
+pyfusa baseline               # snapshot every current finding into .fusa-baseline.json
+pyfusa check                  # only NEW findings (introduced after the snapshot) now gate
+```
+
+`pyfusa explain <RULE-ID>` prints a rule's family, standard/clause citation,
+and description in one place — an onboarding aid so a finding's `ruleId`
+doesn't send you to grep the source.
+
+```bash
+pyfusa explain LINT001        # case/separator-insensitive: "lint-001" also matches
+pyfusa explain --list         # every registered rule id, grouped by family
+```
+
 ## Source annotations
 
 Mark requirements and tests in your Python source with `#fusa:` comments:
