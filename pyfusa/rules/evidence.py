@@ -7,7 +7,7 @@ import os
 from typing import List
 
 import pyfusa
-from pyfusa.config import Config
+from pyfusa.config import Config, load_dispositions
 from pyfusa.rules import Rule
 
 # NOTE (x-FuSa spec §1.6.1 "Who runs this" — MUST): the §1.6/§1.6.1
@@ -511,15 +511,13 @@ class DISP001(Rule):
             return []
 
         findings_list = doc.get("findings", [])
+        # Use the shared §1.2.3 reader — it already knows the canonical
+        # {"dispositions": [...]} shape. Reading this file "raw" here used to
+        # crash (the parsed document is an object, not a list) whenever a
+        # real .fusa-dispositions.json was present; the crash was silently
+        # swallowed by engine.py's per-rule try/except.
         disp_path = os.path.join(project_root, ".fusa-dispositions.json")
-        if os.path.exists(disp_path):
-            try:
-                with open(disp_path, encoding="utf-8") as f:
-                    dispositions = json.load(f)
-            except (OSError, json.JSONDecodeError):
-                dispositions = []
-        else:
-            dispositions = []
+        dispositions = load_dispositions(disp_path)
 
         disposed_fps = {
             d.get("fingerprint", "") for d in dispositions if d.get("fingerprint")
