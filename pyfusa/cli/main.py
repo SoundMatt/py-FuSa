@@ -28,6 +28,7 @@ from typing import Optional
 import pyfusa
 import pyfusa.auditpack as _auditpack
 import pyfusa.badge as _badge
+import pyfusa.baseline as _baseline
 import pyfusa.boundary as _boundary
 import pyfusa.comp as _comp
 import pyfusa.config as _config
@@ -37,6 +38,7 @@ import pyfusa.coverage as _coverage
 import pyfusa.diff as _diff
 import pyfusa.disposition_mgmt as _disp_mgmt
 import pyfusa.engine as _engine
+import pyfusa.explain as _explain
 import pyfusa.fmea as _fmea
 import pyfusa.hara as _hara
 import pyfusa.impact as _impact
@@ -223,6 +225,8 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "sign",
             "vuln",
             "disposition",
+            "baseline",
+            "explain",
             "pr",
             "impact",
             "metrics",
@@ -1828,6 +1832,98 @@ def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 
 
 # ---------------------------------------------------------------------------
+# baseline
+# ---------------------------------------------------------------------------
+
+
+# fusa:req REQ-BASELINE001 REQ-BASELINE002
+def cmd_baseline(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa baseline", add_help=True)
+    p.add_argument("--dir", default="")
+    p.epilog = (
+        "Snapshots every current finding's fingerprint into "
+        ".fusa-baseline.json. pyfusa check/lint then exclude baselined "
+        "findings from the exit-code gate -- they stay visible in output, "
+        "just don't fail the build. New findings introduced after the "
+        "snapshot still fail the gate as normal.\n\n"
+        "Re-running this command OVERWRITES the file with a fresh snapshot "
+        "of whatever findings exist right now. Use 'pyfusa disposition "
+        "add' instead for a durable, reviewed exception to one specific "
+        "finding."
+    )
+    p.formatter_class = argparse.RawDescriptionHelpFormatter
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    project_root = _resolve_dir(ns.dir)
+    cfg = _load_config(project_root)
+    doc, skipped = _baseline.build(project_root, cfg)
+
+    out_path = os.path.join(project_root, _config.BASELINE_FILE)
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(doc, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    except OSError as e:
+        print(f"pyfusa baseline: {e}", file=stderr)
+        return EXIT_RUNTIME
+
+    print(
+        _baseline.render_summary(
+            doc, skipped, os.path.relpath(out_path, project_root)
+        ),
+        file=stdout,
+    )
+    return EXIT_OK
+
+
+# ---------------------------------------------------------------------------
+# explain
+# ---------------------------------------------------------------------------
+
+
+# fusa:req REQ-EXPLAIN001 REQ-EXPLAIN002 REQ-EXPLAIN003
+def cmd_explain(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa explain", add_help=True)
+    p.add_argument("rule_id", nargs="?", default="")
+    p.add_argument(
+        "--list", dest="list_all", action="store_true", help="list every registered rule id"
+    )
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    rules = _engine.Default.rules
+
+    if ns.list_all:
+        print(_explain.render_list_text(rules), file=stdout)
+        return EXIT_OK
+
+    if not ns.rule_id:
+        print("pyfusa explain: missing RULE-ID", file=stderr)
+        print(
+            "Usage: pyfusa explain <RULE-ID>   (or: pyfusa explain --list)",
+            file=stderr,
+        )
+        return EXIT_USAGE
+
+    rule = _explain.find_rule(rules, ns.rule_id)
+    if rule is None:
+        print(f"pyfusa explain: unknown rule '{ns.rule_id}'", file=stderr)
+        print(
+            "Run 'pyfusa explain --list' to see every registered rule id.",
+            file=stderr,
+        )
+        return EXIT_GATE_FAIL
+
+    print(_explain.render_text(rule), file=stdout)
+    return EXIT_OK
+
+
+# ---------------------------------------------------------------------------
 # impact
 # ---------------------------------------------------------------------------
 
@@ -2504,6 +2600,8 @@ _COMMANDS = {
     "vuln": cmd_vuln,
     "pr": cmd_pr,
     "disposition": cmd_disposition,
+    "baseline": cmd_baseline,
+    "explain": cmd_explain,
     "impact": cmd_impact,
     "metrics": cmd_metrics,
     "safety-case": cmd_safety_case,
@@ -2596,6 +2694,11 @@ def _usage(w=sys.stdout) -> None:
         file=w,
     )
     print("  disposition   Manage finding disposition entries", file=w)
+    print(
+        "  baseline      Snapshot current findings so only new ones gate the build",
+        file=w,
+    )
+    print("  explain       Show a rule's description, standard, and clause", file=w)
     print("  pr            Manage software problem reports (DO-178C §11.17)", file=w)
     print("  impact        Analyse change impact on requirements", file=w)
     print("  metrics       Track safety metrics over time", file=w)

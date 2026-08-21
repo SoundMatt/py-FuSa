@@ -6,7 +6,13 @@ import os
 from dataclasses import dataclass, field
 
 import pyfusa
-from pyfusa.config import Config, load_dispositions, load_requirements
+from pyfusa.config import (
+    BASELINE_FILE,
+    Config,
+    load_baseline,
+    load_dispositions,
+    load_requirements,
+)
 from pyfusa.rules import Rule
 from pyfusa.rules import analyze as _ana_rules
 from pyfusa.rules import comp as _comp_rules
@@ -79,6 +85,12 @@ class Engine:
         disp_path = os.path.join(project_root, ".fusa-dispositions.json")
         dispositions = load_dispositions(disp_path)
 
+        # Load the baseline fingerprint set (not an x-FuSa spec file — see
+        # pyfusa/baseline.py). Loaded up front alongside dispositions so
+        # `_apply_baseline` below never re-reads the file mid-run.
+        baseline_path = os.path.join(project_root, BASELINE_FILE)
+        baseline_fingerprints = load_baseline(baseline_path)
+
         # Load requirements and validate duplicates (§1.2.2)
         reqs_path = os.path.join(project_root, ".fusa-reqs.json")
         _, req_errors = load_requirements(reqs_path)
@@ -102,6 +114,11 @@ class Engine:
 
         # Apply dispositions (§4.1)
         _apply_dispositions(result.findings, dispositions, project_root, result)
+
+        # Apply the baseline (not spec — see pyfusa/baseline.py). Runs
+        # after real dispositions so a real disposition always wins and is
+        # never overwritten by a baseline entry for the same finding.
+        _apply_baseline(result.findings, baseline_fingerprints)
 
         return result
 
@@ -159,6 +176,29 @@ def _apply_dispositions(
                     remediation="remove the stale disposition entry from .fusa-dispositions.json",
                 )
             )
+
+
+def _apply_baseline(
+    findings: list[pyfusa.Finding], baseline_fingerprints: set[str]
+) -> None:
+    """Exclude baselined findings from the gate (not spec — see
+    pyfusa/baseline.py). Only applies to a finding with no real disposition
+    already matched, so a real `disposition add` decision always wins and
+    is never masked or overwritten by a stale baseline entry.
+
+    Unlike dispositions, no orphan warning is emitted for a baseline entry
+    that matches nothing: a baselined finding that's since been fixed
+    dropping silently out of relevance is the whole point of `baseline`
+    being a disposable, regenerable snapshot rather than a durable record.
+    """
+    if not baseline_fingerprints:
+        return
+    for finding in findings:
+        if finding.disposition:
+            continue
+        if finding.fingerprint in baseline_fingerprints:
+            finding.disposition = pyfusa.DISPOSITION_ACCEPTED
+            finding.disposition_source = "baseline"
 
 
 def _build_default() -> Engine:
