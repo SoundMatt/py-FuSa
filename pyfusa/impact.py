@@ -45,8 +45,15 @@ def _load_reqs(project_root: str) -> List[dict]:
     path = os.path.join(project_root, REQS_FILE)
     if not os.path.exists(path):
         return []
-    with open(path, encoding="utf-8") as f:
-        return json.load(f).get("requirements", [])
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f).get("requirements", [])
+    except (OSError, json.JSONDecodeError):
+        # Matches config.load_dispositions()/load_requirements()'s
+        # convention: an unreadable/malformed sibling input file degrades
+        # to "nothing to enrich with" rather than crashing the whole
+        # impact report over what's incidental context for it.
+        return []
 
 
 def _load_trace_matrix(project_root: str) -> dict:
@@ -54,8 +61,11 @@ def _load_trace_matrix(project_root: str) -> dict:
     trace_path = os.path.join(project_root, "trace-matrix.json")
     if not os.path.exists(trace_path):
         return {}
-    with open(trace_path, encoding="utf-8") as f:
-        doc = json.load(f)
+    try:
+        with open(trace_path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
     result: dict = {}
     for req in doc.get("requirements", []):
         req_id = req.get("id", "")
