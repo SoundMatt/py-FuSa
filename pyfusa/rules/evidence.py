@@ -7,7 +7,7 @@ import os
 from typing import List
 
 import pyfusa
-from pyfusa.config import Config
+from pyfusa.config import Config, load_dispositions
 from pyfusa.rules import Rule
 
 # NOTE (x-FuSa spec §1.6.1 "Who runs this" — MUST): the §1.6/§1.6.1
@@ -21,40 +21,6 @@ from pyfusa.rules import Rule
 # An earlier revision added FUSASTUB001/002 Rule classes here that scanned
 # those committed sibling files and fed `check`'s own exit code — that
 # contradicted the spec and has been removed.
-
-
-def _presence(
-    rule_id: str,
-    filename: str,
-    message: str,
-    remediation: str,
-    severity: str = pyfusa.SEVERITY_INFO,
-) -> type:
-    """Factory that creates a presence-check Rule class."""
-
-    class _Rule(Rule):
-        pass
-
-    _Rule.rule_id = rule_id
-    _Rule.__name__ = f"Rule{rule_id}"
-
-    def _run(self, project_root: str, cfg: Config) -> List[pyfusa.Finding]:
-        path = os.path.join(project_root, filename)
-        if os.path.exists(path):
-            return []
-        return [
-            pyfusa.Finding(
-                rule_id=self.rule_id,
-                severity=severity,
-                message=message,
-                location=pyfusa.Location(file=filename),
-                category=pyfusa.CATEGORY_CONFIG,
-                remediation=remediation,
-            )
-        ]
-
-    _Rule.run = _run
-    return _Rule
 
 
 # ── Release artefacts ─────────────────────────────────────────────────────────
@@ -511,15 +477,13 @@ class DISP001(Rule):
             return []
 
         findings_list = doc.get("findings", [])
+        # Use the shared §1.2.3 reader — it already knows the canonical
+        # {"dispositions": [...]} shape. Reading this file "raw" here used to
+        # crash (the parsed document is an object, not a list) whenever a
+        # real .fusa-dispositions.json was present; the crash was silently
+        # swallowed by engine.py's per-rule try/except.
         disp_path = os.path.join(project_root, ".fusa-dispositions.json")
-        if os.path.exists(disp_path):
-            try:
-                with open(disp_path, encoding="utf-8") as f:
-                    dispositions = json.load(f)
-            except (OSError, json.JSONDecodeError):
-                dispositions = []
-        else:
-            dispositions = []
+        dispositions = load_dispositions(disp_path)
 
         disposed_fps = {
             d.get("fingerprint", "") for d in dispositions if d.get("fingerprint")

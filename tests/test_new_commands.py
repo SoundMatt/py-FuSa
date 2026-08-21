@@ -1,6 +1,7 @@
 """Tests for new commands: cyber, analyze, fmea, boundary, coupling, tara,
-hara, diff, badge, sign, vuln, pr, disposition, impact, metrics, safety-case,
-compliance gap reports, sas, sci, coverage, template, misra."""
+hara, diff, badge, sign, vuln, pr, disposition, baseline, explain, impact,
+metrics, safety-case, compliance gap reports, sas, sci, coverage, template,
+misra."""
 
 from __future__ import annotations
 
@@ -215,6 +216,35 @@ def test_coupling_json_schema():
         assert doc["kind"] == "coupling-report"
         assert "dataCoupling" in doc
         assert "controlCoupling" in doc
+
+
+# fusa:test REQ-COUPLING001
+def test_coupling_rule_crash_is_surfaced_not_swallowed():
+    """A rule that raises must be visible in both the report and on stderr
+    -- not silently downgraded to an empty, clean-looking result
+    indistinguishable from 'this project has zero coupling issues'."""
+    import pyfusa.coupling_analysis as ca
+
+    class _Boom:
+        rule_id = "COUP001"
+
+        def run(self, project_root, cfg):
+            raise RuntimeError("boom")
+
+    findings, errors = ca._run_rules([_Boom()], "/tmp", None)
+    assert findings == []
+    assert errors == ["rule COUP001: boom"]
+
+    orig = ca._run_rules
+    ca._run_rules = lambda rules, root, cfg: ([], ["rule COUP001: boom"])
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            err = io.StringIO()
+            code = run(["coupling", "--dir", tmpdir, "--format", "json"], stderr=err)
+            assert code == pyfusa.EXIT_OK
+            assert "boom" in err.getvalue()
+    finally:
+        ca._run_rules = orig
 
 
 # ---------------------------------------------------------------------------
@@ -460,6 +490,199 @@ def test_disposition_add_and_list():
         code = run(["disposition", "list", "--dir", tmpdir], stdout=out)
         assert code == pyfusa.EXIT_OK
         assert "LINT001" in out.getvalue()
+
+
+# fusa:test REQ-CLI009
+# fusa:test REQ-ENGINE001
+def test_disposition_add_suppresses_the_gate():
+    """An accepted disposition MUST suppress the gate on a matching finding
+    (§4.1) — regression test for the three-way schema mismatch between
+    disposition_mgmt.add(), config.load_dispositions(), and DISP001, where
+    entries written by `disposition add` were invisible to the gate."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # FUSA001/FUSA002 must be satisfied so only SEC001 gates the run.
+        with open(os.path.join(tmpdir, ".fusa.json"), "w") as f:
+            json.dump({"project": {"name": "t"}, "sourceDirs": ["."]}, f)
+        with open(os.path.join(tmpdir, "pyproject.toml"), "w") as f:
+            f.write("[project]\nname = 't'\n")
+        with open(os.path.join(tmpdir, "mod.py"), "w") as f:
+            f.write("def risky():\n    try:\n        pass\n    except:\n        pass\n")
+
+        report_path = os.path.join(tmpdir, "check-report.json")
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "json", "--output", report_path],
+            stdout=io.StringIO(),
+        )
+        assert code == pyfusa.EXIT_GATE_FAIL
+        with open(report_path) as f:
+            doc = json.load(f)
+        sec001 = next(f for f in doc["findings"] if f["ruleId"] == "SEC001")
+        fingerprint = sec001["fingerprint"]
+        assert fingerprint
+
+        code = run(
+            [
+                "disposition",
+                "add",
+                "--dir",
+                tmpdir,
+                "--rule",
+                "SEC001",
+                "--rationale",
+                "reviewed — acceptable for this legacy handler",
+                "--action",
+                "accept",
+                "--fingerprint",
+                fingerprint,
+            ],
+            stdout=io.StringIO(),
+        )
+        assert code == pyfusa.EXIT_OK
+
+        with open(os.path.join(tmpdir, ".fusa-dispositions.json")) as f:
+            disp_doc = json.load(f)
+        assert disp_doc["dispositions"][0]["status"] == "accepted"
+
+        code = run(
+            ["check", "--dir", tmpdir, "--format", "json", "--output", report_path],
+            stdout=io.StringIO(),
+        )
+        assert code == pyfusa.EXIT_OK
+        with open(report_path) as f:
+            doc = json.load(f)
+        sec001 = next(f for f in doc["findings"] if f["ruleId"] == "SEC001")
+        assert sec001["disposition"] == "accepted"
+
+
+# ---------------------------------------------------------------------------
+# baseline
+# ---------------------------------------------------------------------------
+
+
+def _project_with_a_finding(tmpdir: str) -> None:
+    open(os.path.join(tmpdir, ".fusa.json"), "w").write('{"project":{"name":"t"}}')
+    open(os.path.join(tmpdir, "mod.py"), "w").write(
+        "def f():\n    try:\n        pass\n    except:\n        pass\n"
+    )
+
+
+# fusa:test REQ-BASELINE001
+def test_baseline_writes_file_and_suppresses_gate():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _project_with_a_finding(tmpdir)
+
+        # Before baselining, check must fail the gate (there's a real SEC001
+        # ERROR finding in the project).
+        pre = run(
+            ["check", "--dir", tmpdir, "--format", "json"], stdout=io.StringIO()
+        )
+        assert pre == pyfusa.EXIT_GATE_FAIL
+
+        out = io.StringIO()
+        code = run(["baseline", "--dir", tmpdir], stdout=out)
+        assert code == pyfusa.EXIT_OK
+        assert "finding(s) baselined" in out.getvalue()
+
+        baseline_path = os.path.join(tmpdir, ".fusa-baseline.json")
+        assert os.path.exists(baseline_path)
+        doc = json.loads(open(baseline_path).read())
+        assert doc["baseline"]
+        assert {"id", "rule", "fingerprint", "action"} <= set(doc["baseline"][0])
+        assert doc["baseline"][0]["action"] == "baseline"
+
+        # After baselining, the same pre-existing findings no longer gate.
+        post_out = io.StringIO()
+        post = run(
+            ["check", "--dir", tmpdir, "--format", "json"], stdout=post_out
+        )
+        assert post == pyfusa.EXIT_OK
+        checkdoc = json.loads(post_out.getvalue())
+        sec001 = next(f for f in checkdoc["findings"] if f["ruleId"] == "SEC001")
+        assert sec001["disposition"] == "accepted"
+        assert sec001["dispositionSource"] == "baseline"
+
+
+# fusa:test REQ-BASELINE001
+def test_baseline_rerun_does_not_lose_still_present_findings():
+    """Re-running baseline with nothing changed must reproduce the same
+    entry count -- a naive implementation that skips anything already
+    disposition_source=='baseline' when building the new snapshot would
+    silently shrink the file on every re-run."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _project_with_a_finding(tmpdir)
+        run(["baseline", "--dir", tmpdir], stdout=io.StringIO())
+        first = json.loads(open(os.path.join(tmpdir, ".fusa-baseline.json")).read())
+
+        run(["baseline", "--dir", tmpdir], stdout=io.StringIO())
+        second = json.loads(open(os.path.join(tmpdir, ".fusa-baseline.json")).read())
+
+        assert len(first["baseline"]) == len(second["baseline"])
+
+
+# fusa:test REQ-BASELINE001
+def test_baseline_excludes_findings_with_a_real_disposition():
+    """A finding already covered by a reviewed disposition must not be
+    duplicated into the baseline snapshot."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _project_with_a_finding(tmpdir)
+        run(["baseline", "--dir", tmpdir], stdout=io.StringIO())
+
+        # Canonical §1.2.3/§4.1 shape (config.load_dispositions()'s contract).
+        with open(os.path.join(tmpdir, ".fusa-dispositions.json"), "w") as f:
+            json.dump({"dispositions": [{"ruleId": "SEC001", "status": "accepted"}]}, f)
+
+        out = io.StringIO()
+        run(["baseline", "--dir", tmpdir], stdout=out)
+        assert "already covered by a disposition" in out.getvalue()
+        doc = json.loads(open(os.path.join(tmpdir, ".fusa-baseline.json")).read())
+        assert not any(e["rule"] == "SEC001" for e in doc["baseline"])
+
+
+# ---------------------------------------------------------------------------
+# explain
+# ---------------------------------------------------------------------------
+
+
+# fusa:test REQ-EXPLAIN001
+def test_explain_known_rule():
+    out = io.StringIO()
+    code = run(["explain", "LINT001"], stdout=out)
+    assert code == pyfusa.EXIT_OK
+    assert "LINT001" in out.getvalue()
+    assert "do178c" in out.getvalue()
+
+
+# fusa:test REQ-EXPLAIN002
+def test_explain_loose_match_is_case_and_separator_insensitive():
+    out = io.StringIO()
+    code = run(["explain", "lint-001"], stdout=out)
+    assert code == pyfusa.EXIT_OK
+    assert "LINT001" in out.getvalue()
+
+
+# fusa:test REQ-EXPLAIN002
+def test_explain_list_groups_by_family():
+    out = io.StringIO()
+    code = run(["explain", "--list"], stdout=out)
+    assert code == pyfusa.EXIT_OK
+    text = out.getvalue()
+    assert "LINT:" in text
+    assert "LINT001" in text
+
+
+# fusa:test REQ-EXPLAIN003
+def test_explain_unknown_rule():
+    err = io.StringIO()
+    code = run(["explain", "NOSUCH999"], stdout=io.StringIO(), stderr=err)
+    assert code == pyfusa.EXIT_USAGE
+    assert "unknown rule" in err.getvalue()
+    assert "--list" in err.getvalue()
+
+
+def test_explain_missing_arg_is_usage_error():
+    err = io.StringIO()
+    code = run(["explain"], stdout=io.StringIO(), stderr=err)
+    assert code == pyfusa.EXIT_USAGE
 
 
 # ---------------------------------------------------------------------------

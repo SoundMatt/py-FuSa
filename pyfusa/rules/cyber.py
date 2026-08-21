@@ -53,16 +53,23 @@ def _parse(path: str):
         return None, []
 
 
-def _call_name(node: ast.Call) -> str:
-    if isinstance(node.func, ast.Name):
-        return node.func.id
-    if isinstance(node.func, ast.Attribute):
-        if isinstance(node.func.value, ast.Name):
-            return f"{node.func.value.id}.{node.func.attr}"
-        if isinstance(node.func.value, ast.Attribute):
-            if isinstance(node.func.value.value, ast.Name):
-                return f"{node.func.value.value.id}.{node.func.value.attr}.{node.func.attr}"
+def _dotted_name(node: ast.expr) -> str:
+    """Resolve a Name or an arbitrary-depth Attribute chain to a dotted
+    string, e.g. `Crypto.Cipher.DES.new` -> "Crypto.Cipher.DES.new". ""
+    for anything else (a subscript, a call result, ...). A prior
+    hand-unrolled version capped at 3 levels, one short of what
+    Crypto.Cipher.DES.new needs."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = _dotted_name(node.value)
+        if base:
+            return f"{base}.{node.attr}"
     return ""
+
+
+def _call_name(node: ast.Call) -> str:
+    return _dotted_name(node.func)
 
 
 def _import_names(tree) -> set:
@@ -131,33 +138,52 @@ class CYBER002(Rule):
     rule_id = "CYBER002"
     description = "Weak symmetric cipher (DES/RC4) — CWE-327"
 
+    # Actual usage (a call to instantiate/construct the cipher), not just an
+    # import of the package it lives in -- a prior version flagged *any*
+    # import from Crypto.Cipher or cryptography...ciphers, so importing
+    # `algorithms` to use only AES falsely flagged TripleDES/Blowfish, which
+    # were never referenced anywhere in the file.
+    _WEAK_CIPHER_CALLS = {
+        "Crypto.Cipher.DES.new",
+        "DES.new",
+        "Crypto.Cipher.DES3.new",
+        "DES3.new",
+        "Crypto.Cipher.ARC4.new",
+        "ARC4.new",
+        "algorithms.TripleDES",
+        "cryptography.hazmat.primitives.ciphers.algorithms.TripleDES",
+        "algorithms.Blowfish",
+        "cryptography.hazmat.primitives.ciphers.algorithms.Blowfish",
+    }
+
     def run(self, project_root: str, cfg: Config) -> List[Finding]:
         findings: List[Finding] = []
-        WEAK = {
-            "Crypto.Cipher.DES",
-            "Crypto.Cipher.ARC4",
-            "cryptography.hazmat.primitives.ciphers.algorithms.TripleDES",
-            "cryptography.hazmat.primitives.ciphers.algorithms.Blowfish",
-        }
         for path in _python_files(project_root, cfg):
             tree, _ = _parse(path)
             if tree is None:
                 continue
             rel = _rel(path, project_root)
-            imports = _import_names(tree)
-            for weak in WEAK:
-                if any(weak in imp or imp in weak for imp in imports):
-                    findings.append(
-                        Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_ERROR,
-                            message=f"weak cipher imported: {weak}",
-                            location=Location(file=rel, line=1),
-                            standard="iso26262",
-                            clause="CWE-327",
-                            remediation="use AES-256-GCM (cryptography.hazmat.primitives.ciphers.algorithms.AES)",
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call):
+                    name = _call_name(node)
+                    if name in self._WEAK_CIPHER_CALLS:
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_ERROR,
+                                message=f"weak cipher constructed: {name}(...)",
+                                location=Location(
+                                    file=rel,
+                                    line=getattr(node, "lineno", 0),
+                                    end_line=getattr(node, "end_lineno", 0),
+                                    end_column=getattr(node, "end_col_offset", -1)
+                                    + 1,
+                                ),
+                                standard="iso26262",
+                                clause="CWE-327",
+                                remediation="use AES-256-GCM (cryptography.hazmat.primitives.ciphers.algorithms.AES)",
+                            )
                         )
-                    )
         return findings
 
 
@@ -228,20 +254,31 @@ class CYBER004(Rule):
             if tree is None:
                 continue
             rel = _rel(path, project_root)
-            imports = _import_names(tree)
-            for imp in imports:
-                if any(u in imp for u in UNSAFE):
-                    findings.append(
-                        Finding(
-                            rule_id=self.rule_id,
-                            severity=SEVERITY_WARNING,
-                            message=f"unsafe memory access via '{imp}' — must be reviewed and justified",
-                            location=Location(file=rel, line=1),
-                            standard="iso26262",
-                            clause="CWE-242",
-                            remediation="document rationale; add #fusa:accept with reviewer and justification",
+            # Walk the actual import nodes (not _import_names()'s flat,
+            # line-less name set) so the finding points at the real import
+            # statement instead of a hardcoded line 1 for every hit in the
+            # file.
+            for node in ast.walk(tree):
+                names = []
+                if isinstance(node, ast.Import):
+                    names = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    names = [node.module]
+                for imp in names:
+                    if any(u in imp for u in UNSAFE):
+                        findings.append(
+                            Finding(
+                                rule_id=self.rule_id,
+                                severity=SEVERITY_WARNING,
+                                message=f"unsafe memory access via '{imp}' — must be reviewed and justified",
+                                location=Location(
+                                    file=rel, line=getattr(node, "lineno", 0)
+                                ),
+                                standard="iso26262",
+                                clause="CWE-242",
+                                remediation="document rationale; add #fusa:accept with reviewer and justification",
+                            )
                         )
-                    )
         return findings
 
 
@@ -891,7 +928,12 @@ class CYBER017(Rule):
                     name = _call_name(node)
                     if name in ("open", "os.open", "io.open"):
                         for kw in node.keywords:
-                            if kw.arg in ("mode", "opener") and isinstance(
+                            # "opener" is a callable factory (e.g.
+                            # os.open) -- never an int permission-bits
+                            # value, so checking it here was dead weight:
+                            # code that actually ran would never pass an
+                            # int for opener= in the first place.
+                            if kw.arg == "mode" and isinstance(
                                 kw.value, ast.Constant
                             ):
                                 if isinstance(
@@ -947,18 +989,25 @@ class CYBER018(Rule):
             rel = _rel(path, project_root)
             user_vars: set = set()
             for node in ast.walk(tree):
-                if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                if not isinstance(node, ast.Assign):
+                    continue
+                # node.value can't be both a Call and a Subscript at once --
+                # these were previously nested (the Subscript branch inside
+                # the Call check), making the Subscript case unreachable and
+                # the single most common pattern (request.args["file"],
+                # sys.argv[1]) undetectable.
+                if isinstance(node.value, ast.Call):
                     if _call_name(node.value) in self._USER_SOURCES:
                         for t in node.targets:
                             if isinstance(t, ast.Name):
                                 user_vars.add(t.id)
-                    if isinstance(node.value, ast.Subscript):
-                        if isinstance(node.value.value, ast.Attribute):
-                            full = f"{getattr(node.value.value.value, 'id', '')}.{node.value.value.attr}"
-                            if full in self._USER_SOURCES:
-                                for t in node.targets:
-                                    if isinstance(t, ast.Name):
-                                        user_vars.add(t.id)
+                elif isinstance(node.value, ast.Subscript):
+                    if isinstance(node.value.value, ast.Attribute):
+                        full = f"{getattr(node.value.value.value, 'id', '')}.{node.value.value.attr}"
+                        if full in self._USER_SOURCES:
+                            for t in node.targets:
+                                if isinstance(t, ast.Name):
+                                    user_vars.add(t.id)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and node.args:
                     name = _call_name(node)
@@ -1012,7 +1061,8 @@ class CYBER019(Rule):
                         arg = node.args[0]
                         if isinstance(arg, ast.Name):
                             checks.append((getattr(node, "lineno", 0), arg.id))
-            # Look for an open() within 5 lines of each check
+            # Look for an open() within 10 lines of each check (the actual
+            # bound enforced below; this comment previously said 5)
             if not checks:
                 continue
             for node in ast.walk(tree):

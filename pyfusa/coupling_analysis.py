@@ -14,7 +14,7 @@ def run(project_root: str, cfg: Config) -> dict:
     """Run coupling-specific rules and return coupling-report.json payload."""
     from pyfusa.rules.coupling import COUP001, COUP002
 
-    findings = _run_rules([COUP001(), COUP002()], project_root, cfg)
+    findings, errors = _run_rules([COUP001(), COUP002()], project_root, cfg)
 
     data = []
     control = []
@@ -31,7 +31,7 @@ def run(project_root: str, cfg: Config) -> dict:
             control.append(entry)
 
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    return {
+    doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "coupling-report",
         "tool": pyfusa.TOOL,
@@ -42,13 +42,21 @@ def run(project_root: str, cfg: Config) -> dict:
         "dataCoupling": data,
         "controlCoupling": control,
     }
+    # A rule that crashed must never be indistinguishable from "this project
+    # genuinely has zero coupling issues" -- surface it rather than swallow
+    # it (mirrors engine.RunResult.errors' visibility, adapted to this
+    # module's own dict-shaped report since there's no RunResult here).
+    if errors:
+        doc["errors"] = errors
+    return doc
 
 
-def _run_rules(rules, project_root: str, cfg: Config) -> List:
-    findings = []
+def _run_rules(rules, project_root: str, cfg: Config) -> tuple[List, List[str]]:
+    findings: List = []
+    errors: List[str] = []
     for rule in rules:
         try:
             findings.extend(rule.run(project_root, cfg))
-        except Exception:
-            pass
-    return findings
+        except Exception as e:
+            errors.append(f"rule {rule.rule_id}: {e}")
+    return findings, errors
