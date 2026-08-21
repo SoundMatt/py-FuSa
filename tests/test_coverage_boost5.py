@@ -1017,15 +1017,39 @@ class TestCyberRules:
             findings = CYBER001().run(tmpdir, _cyber_cfg(tmpdir))
             assert isinstance(findings, list)
 
-    def test_cyber002_weak_cipher_import(self):
-        """CYBER002 flags import of weak cipher module."""
+    def test_cyber002_weak_cipher_construction(self):
+        """CYBER002 flags actual construction of a weak cipher, not just an
+        import of the module it lives in (a prior version's import-based
+        substring match falsely flagged e.g. AES-only code that merely
+        imported the same `algorithms` module TripleDES/Blowfish also live
+        in -- see test_cyber002_import_alone_without_usage_is_clean)."""
         from pyfusa.rules.cyber import CYBER002
 
-        code = "from Crypto.Cipher import DES\n"
+        code = "from Crypto.Cipher import DES\ncipher = DES.new(key, DES.MODE_ECB)\n"
         with tempfile.TemporaryDirectory() as tmpdir:
             _write(tmpdir, "c.py", code)
             findings = CYBER002().run(tmpdir, _cyber_cfg(tmpdir))
             assert any(f.rule_id == "CYBER002" for f in findings)
+
+    def test_cyber002_import_alone_without_usage_is_clean(self):
+        """Importing the module a weak cipher lives in, without ever
+        constructing it, must not be flagged -- regression test for the
+        substring-match false positive (`imp in weak`) that treated any
+        import from Crypto.Cipher/cryptography...ciphers as if every weak
+        cipher in that package had been used, even ones the file never
+        references."""
+        from pyfusa.rules.cyber import CYBER002
+
+        code = (
+            "from cryptography.hazmat.primitives.ciphers import algorithms, "
+            "modes, Cipher\n"
+            "def encrypt(key, iv, data):\n"
+            "    return Cipher(algorithms.AES(key), modes.GCM(iv))\n"
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _write(tmpdir, "c.py", code)
+            findings = CYBER002().run(tmpdir, _cyber_cfg(tmpdir))
+            assert findings == []
 
     def test_cyber003_random_in_security_context(self):
         """CYBER003 flags random.randint used on a line mentioning 'token'."""
