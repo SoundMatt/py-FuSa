@@ -434,7 +434,15 @@ def quality_findings(doc: dict) -> List[pyfusa.Finding]:
     findings = content_quality.scan_placeholder(
         entries, ["threat", "asset"], TARA_FILE
     )
+    # "mitigations" is the field a reviewer actually acts on -- verified
+    # that 12 entries sharing the identical fallback default
+    # ("identify and implement a specific control for this threat", set
+    # at tara.py:335 when no current_control is known) previously passed
+    # unflagged: only "threat" was checked here, even though the same
+    # blanket-fallback pattern applies to mitigations just as much.
     findings.extend(
-        content_quality.scan_blanket_fallback(entries, ["threat"], TARA_FILE)
+        content_quality.scan_blanket_fallback(
+            entries, ["threat", "mitigations"], TARA_FILE
+        )
     )
     return findings

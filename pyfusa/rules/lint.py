@@ -9,6 +9,7 @@ import os
 import pyfusa
 from pyfusa.config import Config
 from pyfusa.rules import Rule
+from pyfusa.rules.comp import cyclomatic_complexity
 
 _MAX_FUNC_LINES = 60
 _MAX_FILE_LINES = 500
@@ -65,35 +66,6 @@ def _parse_file(abs_path: str) -> tuple[ast.Module | None, str]:
         return None, ""
 
 
-def _cyclomatic_complexity(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
-    """Approximate cyclomatic complexity for a function."""
-    complexity = 1
-    for child in ast.walk(node):
-        if isinstance(
-            child,
-            (
-                ast.If,
-                ast.While,
-                ast.For,
-                ast.AsyncFor,
-                ast.ExceptHandler,
-                ast.With,
-                ast.AsyncWith,
-            ),
-        ):
-            complexity += 1
-        elif (
-            isinstance(child, ast.BoolOp)
-            and isinstance(child.op, ast.And)
-            or isinstance(child, ast.BoolOp)
-            and isinstance(child.op, ast.Or)
-        ):
-            complexity += len(child.values) - 1
-        elif isinstance(child, ast.comprehension) or isinstance(child, ast.IfExp):
-            complexity += 1
-    return complexity
-
-
 def _max_nesting(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
     """Find maximum block nesting depth inside a function."""
     _BLOCK_NODES = (
@@ -124,7 +96,7 @@ class RuleFunctionLength(Rule):
     rule_id = "LINT001"
     standard = "do178c"
     clause = "6.3.4"
-    description = f"Functions must not exceed {_MAX_FUNC_LINES} lines (excluding blank lines and comments)."
+    description = f"Functions must not exceed {_MAX_FUNC_LINES} physical lines (span from `def` to the last line of the body, blank lines and comments included)."
 
     def run(self, project_root: str, cfg: Config) -> list[pyfusa.Finding]:
         findings = []
@@ -242,7 +214,7 @@ class RuleCyclomaticComplexity(Rule):
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
-                cc = _cyclomatic_complexity(node)
+                cc = cyclomatic_complexity(node)
                 if cc > _MAX_COMPLEXITY:
                     findings.append(
                         pyfusa.Finding(

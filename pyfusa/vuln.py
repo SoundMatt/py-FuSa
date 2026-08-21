@@ -76,7 +76,6 @@ def scan(project_root: str, cfg: Config, timeout: int = 30) -> dict:
                     "id": v.get("id", ""),
                     "aliases": v.get("aliases", []),
                     "summary": v.get("summary", ""),
-                    "call_graph": [],
                 }
             )
 

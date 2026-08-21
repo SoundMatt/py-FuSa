@@ -14,10 +14,14 @@ from pyfusa.rules.comp import (
     _DAL_THRESHOLD,
     _DEFAULT_THRESHOLD,
     _SKIP_DIRS,
-    _complexity,
+    cyclomatic_complexity,
 )
 
 COMP_REPORT = "comp-report.json"
+
+# x-FuSa spec §9.2: "A ≤ 4, B ≤ 10 (default), C ≤ 15, D ≤ 20" — same mapping
+# rules/comp.py already uses for DAL, reused here for the --dal CLI override.
+DAL_THRESHOLD = _DAL_THRESHOLD
 
 
 class FunctionComplexity(NamedTuple):
@@ -29,12 +33,21 @@ class FunctionComplexity(NamedTuple):
 
 
 # fusa:req REQ-CLI009
-def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], int]:
-    """Return (results, threshold) for all non-private, non-test functions."""
-    level = cfg.asil or cfg.dal or ""
-    threshold = _ASIL_THRESHOLD.get(
-        level, _DAL_THRESHOLD.get(level, _DEFAULT_THRESHOLD)
-    )
+def analyze(
+    project_root: str, cfg: Config, threshold_override: int | None = None
+) -> tuple[list[FunctionComplexity], int]:
+    """Return (results, threshold) for all non-private, non-test functions.
+
+    `threshold_override` — set from `--threshold`/`--dal` (§9.2) — takes
+    precedence over the project's configured ASIL/DAL when given.
+    """
+    if threshold_override is not None:
+        threshold = threshold_override
+    else:
+        level = cfg.asil or cfg.dal or ""
+        threshold = _ASIL_THRESHOLD.get(
+            level, _DAL_THRESHOLD.get(level, _DEFAULT_THRESHOLD)
+        )
     source_dirs = cfg.source_dirs or ["."]
 
     results: list[FunctionComplexity] = []
@@ -64,7 +77,7 @@ def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], i
                         continue
                     if node.name.startswith("_"):
                         continue
-                    cc = _complexity(node)
+                    cc = cyclomatic_complexity(node)
                     results.append(
                         FunctionComplexity(
                             file=rel,
@@ -78,13 +91,26 @@ def analyze(project_root: str, cfg: Config) -> tuple[list[FunctionComplexity], i
 
 
 # fusa:req REQ-CLI009
-def run(project_root: str, cfg: Config) -> dict:
-    results, threshold = analyze(project_root, cfg)
+def run(
+    project_root: str,
+    cfg: Config,
+    threshold_override: int | None = None,
+    dal: str = "",
+) -> dict:
+    """Build a §9.2/§13 canonical comp-report.
+
+    Field names/shape MUST match FuSaOps's `comp.Report` decoder exactly —
+    `totalFunctions`/`violations`/`results[].{name,exceedsThreshold}`, not an
+    ad hoc `summary`/`functions[].{function,status}` shape. This is the one
+    schema FuSaOps decodes directly off stdout (no `--output`), so a field
+    rename here silently zero-values the whole cross-language rollup.
+    """
+    results, threshold = analyze(project_root, cfg, threshold_override)
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     module = cfg.project.name or os.path.basename(os.path.abspath(project_root))
     over = sum(1 for r in results if r.status == "FAIL")
 
-    return {
+    doc = {
         "schemaVersion": pyfusa.SPEC_VERSION,
         "kind": "comp-report",
         "tool": pyfusa.TOOL,
@@ -93,40 +119,42 @@ def run(project_root: str, cfg: Config) -> dict:
         "generatedAt": now,
         "projectRoot": os.path.abspath(project_root),
         "project": module,
-        "standard": "DO-178C §6.3.4",
         "threshold": threshold,
-        "summary": {
-            "total": len(results),
-            "pass": len(results) - over,
-            "fail": over,
-        },
-        "functions": [
+        "totalFunctions": len(results),
+        "violations": over,
+        "results": [
             {
                 "file": r.file,
-                "function": r.function,
-                "complexity": r.complexity,
                 "line": r.line,
-                "status": r.status,
+                "name": r.function,
+                "complexity": r.complexity,
+                "exceedsThreshold": r.status == "FAIL",
             }
             for r in results
         ],
     }
+    # dal (MAY) — omit when the threshold came from an explicit --threshold
+    # rather than a DAL level, per §9.2.
+    if dal:
+        doc["dal"] = dal
+    return doc
 
 
 # fusa:req REQ-CLI009
 def render_text(doc: dict) -> str:
-    s = doc["summary"]
+    total = doc["totalFunctions"]
+    violations = doc["violations"]
     lines = [
         f"Cyclomatic complexity report  project={doc['project']}  threshold={doc['threshold']}",
-        f"total={s['total']}  pass={s['pass']}  fail={s['fail']}",
+        f"total={total}  pass={total - violations}  fail={violations}",
         "",
     ]
-    fails = [f for f in doc["functions"] if f["status"] == "FAIL"]
+    fails = [f for f in doc["results"] if f["exceedsThreshold"]]
     if fails:
         lines.append("FAIL (over threshold):")
         for f in sorted(fails, key=lambda x: -x["complexity"]):
             lines.append(
-                f"  ✗ V(G)={f['complexity']:3d}  {f['file']}:{f['line']}  {f['function']}"
+                f"  ✗ V(G)={f['complexity']:3d}  {f['file']}:{f['line']}  {f['name']}"
             )
     else:
         lines.append("All functions within threshold.")

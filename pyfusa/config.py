@@ -14,6 +14,9 @@ REQS_FILE = ".fusa-reqs.json"
 DISPOSITIONS_FILE = ".fusa-dispositions.json"
 HARA_FILE = ".fusa-hara.json"
 EVIDENCE_FILE = ".fusa-evidence.json"
+# Not part of the x-FuSa spec — a py-FuSa/c-FuSa workflow-parity feature.
+# See pyfusa/baseline.py for the rationale.
+BASELINE_FILE = ".fusa-baseline.json"
 
 CONFIG_VERSION = "1.0"
 
@@ -122,6 +125,24 @@ def load_dispositions(path: str) -> list[dict]:
         except json.JSONDecodeError:
             return []
     return data.get("dispositions", [])
+
+
+# fusa:req REQ-CONFIG001
+def load_baseline(path: str) -> set[str]:
+    """Load the fingerprint set from .fusa-baseline.json. Not an x-FuSa spec
+    file (see pyfusa/baseline.py) — returns an empty set if absent/invalid."""
+    if not os.path.exists(path):
+        return set()
+    with open(path, encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            return set()
+    return {
+        e.get("fingerprint", "")
+        for e in data.get("baseline", [])
+        if e.get("fingerprint")
+    }
 
 
 # fusa:req REQ-CONFIG001

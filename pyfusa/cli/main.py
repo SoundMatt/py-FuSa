@@ -28,6 +28,7 @@ from typing import Optional
 import pyfusa
 import pyfusa.auditpack as _auditpack
 import pyfusa.badge as _badge
+import pyfusa.baseline as _baseline
 import pyfusa.boundary as _boundary
 import pyfusa.comp as _comp
 import pyfusa.config as _config
@@ -37,6 +38,7 @@ import pyfusa.coverage as _coverage
 import pyfusa.diff as _diff
 import pyfusa.disposition_mgmt as _disp_mgmt
 import pyfusa.engine as _engine
+import pyfusa.explain as _explain
 import pyfusa.fmea as _fmea
 import pyfusa.hara as _hara
 import pyfusa.impact as _impact
@@ -104,6 +106,54 @@ def _load_config(project_root: str) -> _config.Config:
     except ValueError as e:
         print(f"pyfusa: {e}", file=sys.stderr)
         return _config.default(project_name=os.path.basename(project_root))
+
+
+def _write_output(
+    render,
+    out_path: str,
+    project_root: str,
+    stdout,
+    stderr,
+    command_name: str,
+    announce: bool = True,
+):
+    """Shared 'write to --output (with a wrote-X confirmation) or straight
+    to stdout' pattern -- this exact shape (open, try/finally close, print
+    a confirmation only when a file was written) was hand-copied at
+    ~20 call sites across this file with subtle inconsistencies between
+    them (a badge/impact/req call that forgot the try/except around
+    open(), a verify call whose confirmation print was gated on the wrong
+    condition, ...). `render(stream)` writes the report body; this
+    function owns everything around that write.
+
+    `announce=False` skips the "wrote X" confirmation entirely -- required
+    for check/report/trace/qualify/audit-pack, the five commands §2.2
+    governs: "--output MUST write the report to that file and MUST NOT
+    also write it to stdout", verified by an explicit spec-conformance
+    test per command asserting stdout is completely empty. Every other
+    command here is tool-defined (not spec-consumed this way), so the
+    confirmation is a reasonable convenience and stays on by default.
+
+    Returns None on success, or an exit code the caller should `return`
+    immediately on I/O failure.
+    """
+    w = stdout
+    f_out = None
+    if out_path:
+        try:
+            f_out = open(out_path, "w", encoding="utf-8")
+            w = f_out
+        except OSError as e:
+            print(f"{command_name}: {e}", file=stderr)
+            return EXIT_RUNTIME
+    try:
+        render(w)
+    finally:
+        if f_out:
+            f_out.close()
+    if out_path and announce:
+        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    return None
 
 
 # fusa:req REQ-QUALBASE006
@@ -223,6 +273,8 @@ def cmd_capabilities(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> i
             "sign",
             "vuln",
             "disposition",
+            "baseline",
+            "explain",
             "pr",
             "impact",
             "metrics",
@@ -397,6 +449,19 @@ def cmd_check(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     except SystemExit:
         return EXIT_USAGE
 
+    # §2.3: an unrecognized --format is a usage error (exit 2), not a
+    # silent fallback to text — every other reporting command already
+    # enforces this via argparse `choices=`; check/report used an empty-
+    # string default (to defer to .fusa.json's configured format) that
+    # bypassed that check, so validate explicitly here instead.
+    if ns.fmt and ns.fmt.lower() not in _report.VALID_FORMATS:
+        print(
+            f"pyfusa check: argument --format: invalid choice: '{ns.fmt}' "
+            f"(choose from {', '.join(sorted(_report.VALID_FORMATS))})",
+            file=stderr,
+        )
+        return EXIT_USAGE
+
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
 
@@ -498,6 +563,16 @@ def cmd_report(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     if ns.strict:
         print("pyfusa report: --strict is not valid for report", file=stderr)
+        return EXIT_USAGE
+
+    # §2.3: an unrecognized --format is a usage error (exit 2) — see the
+    # matching comment in cmd_check.
+    if ns.fmt and ns.fmt.lower() not in _report.VALID_FORMATS:
+        print(
+            f"pyfusa report: argument --format: invalid choice: '{ns.fmt}' "
+            f"(choose from {', '.join(sorted(_report.VALID_FORMATS))})",
+            file=stderr,
+        )
         return EXIT_USAGE
 
     project_root = _resolve_dir(ns.dir)
@@ -606,21 +681,8 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     if ns.strict_hlr_llr and matrix.hlr_violations:
         for v in matrix.hlr_violations:
             print(f"pyfusa trace: HLR/LLR violation: {v.detail}", file=stderr)
-        if ns.fmt != "json":
-            # also flush output first
-            pass
 
-    w = stdout
-    f_out = None
-    if ns.output:
-        try:
-            f_out = open(ns.output, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa trace: create output: {e}", file=stderr)
-            return EXIT_RUNTIME
-
-    try:
+    def _render(w):
         if ns.fmt == "json":
             doc = _trace.to_dict(matrix, project_root, cfg, gaps_only=ns.gaps)
             json.dump(doc, w, indent=2, ensure_ascii=False)
@@ -628,9 +690,13 @@ def cmd_trace(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         else:
             w.write(_trace.render_text(matrix, gaps_only=ns.gaps))
             w.write("\n")
-    finally:
-        if f_out:
-            f_out.close()
+
+    err = _write_output(
+        _render, ns.output, project_root, stdout, stderr, "pyfusa trace",
+        announce=False,
+    )
+    if err is not None:
+        return err
 
     cov = matrix.coverage
     total = cov.total_requirements or 1  # avoid div/0
@@ -782,9 +848,6 @@ def cmd_qualify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if f_out:
             f_out.close()
 
-    if output_path and ns.fmt != "json":
-        pass
-
     return EXIT_OK if report.failed == 0 else EXIT_GATE_FAIL
 
 
@@ -821,6 +884,44 @@ def cmd_release(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_RUNTIME
 
     if ns.full:
+        # §7: a --full run MUST emit the output of each of fmea.json,
+        # fmea.csv, boundary.dot, boundary.mermaid, and vuln.json that the
+        # tool implements (py-FuSa implements all five), SHOULD attempt all
+        # of them, and audit-pack.zip MUST run last since it bundles them.
+        for filename, generator in (
+            ("fmea.json", lambda: json.dumps(
+                _fmea.to_dict(_fmea.scan(project_root, cfg), project_root, cfg),
+                indent=2,
+                ensure_ascii=False,
+            )),
+            ("fmea.csv", lambda: _fmea.to_csv(_fmea.scan(project_root, cfg))),
+            ("boundary.dot", lambda: _boundary.to_dot(
+                _boundary.scan(project_root, cfg),
+                cfg.project.name or os.path.basename(project_root),
+            )),
+            ("boundary.mermaid", lambda: _boundary.to_mermaid(
+                _boundary.scan(project_root, cfg),
+                cfg.project.name or os.path.basename(project_root),
+            )),
+            ("vuln.json", lambda: json.dumps(
+                _vuln.scan(project_root, cfg), indent=2, ensure_ascii=False
+            )),
+        ):
+            try:
+                content = generator()
+            except Exception as e:
+                print(f"pyfusa release: skipping {filename}: {e}", file=stderr)
+                continue
+            out_path = os.path.join(output_dir, filename)
+            try:
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                    f.write("\n")
+            except OSError as e:
+                print(f"pyfusa release: skipping {filename}: {e}", file=stderr)
+                continue
+            print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
         try:
             pack_path = _auditpack.create(
                 project_root, os.path.join(project_root, "audit-pack.zip")
@@ -893,20 +994,13 @@ def cmd_lint(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         eng.register(r)
     result = eng.run(project_root, cfg)
 
-    w = stdout
-    f_out = None
-    if ns.output:
-        try:
-            f_out = open(ns.output, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa lint: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
-        _report.render(w, result, ns.fmt, project_root, cfg)
-    finally:
-        if f_out:
-            f_out.close()
+    err = _write_output(
+        lambda w: _report.render(w, result, ns.fmt, project_root, cfg),
+        ns.output, project_root, stdout, stderr, "pyfusa lint",
+        announce=False,
+    )
+    if err is not None:
+        return err
 
     if result.has_errors():
         return EXIT_GATE_FAIL
@@ -946,20 +1040,13 @@ def cmd_analyze(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         eng.register(r)
     result = eng.run(project_root, cfg)
 
-    w = stdout
-    f_out = None
-    if ns.output:
-        try:
-            f_out = open(ns.output, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa analyze: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
-        _report.render(w, result, ns.fmt, project_root, cfg)
-    finally:
-        if f_out:
-            f_out.close()
+    err = _write_output(
+        lambda w: _report.render(w, result, ns.fmt, project_root, cfg),
+        ns.output, project_root, stdout, stderr, "pyfusa analyze",
+        announce=False,
+    )
+    if err is not None:
+        return err
 
     if result.has_errors():
         return EXIT_GATE_FAIL
@@ -999,20 +1086,13 @@ def cmd_cyber(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         eng.register(r)
     result = eng.run(project_root, cfg)
 
-    w = stdout
-    f_out = None
-    if ns.output:
-        try:
-            f_out = open(ns.output, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa cyber: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
-        _report.render(w, result, ns.fmt, project_root, cfg)
-    finally:
-        if f_out:
-            f_out.close()
+    err = _write_output(
+        lambda w: _report.render(w, result, ns.fmt, project_root, cfg),
+        ns.output, project_root, stdout, stderr, "pyfusa cyber",
+        announce=False,
+    )
+    if err is not None:
+        return err
 
     if result.has_errors():
         return EXIT_GATE_FAIL
@@ -1047,17 +1127,7 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     entries = _fmea.scan(project_root, cfg)
     doc = _fmea.to_dict(entries, project_root, cfg)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa fmea: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
@@ -1066,15 +1136,10 @@ def cmd_fmea(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         else:
             for e in entries:
                 print(f"{e['item']}  [{e['severity']}]  {e['failureMode']}", file=w)
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(
-            f"wrote {os.path.relpath(out_path, project_root) if not ns.output else out_path}",
-            file=stdout,
-        )
+    err = _write_output(_render, ns.output, project_root, stdout, stderr, "pyfusa fmea")
+    if err is not None:
+        return err
 
     require_attestation = ns.require_attestation or ns.strict
     gate_failed = _quality_gate(
@@ -1115,17 +1180,7 @@ def cmd_boundary(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     graph = _boundary.scan(project_root, cfg)
     module = cfg.project.name or os.path.basename(project_root)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa boundary: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             doc = _boundary.to_dict(graph, project_root, cfg)
             json.dump(doc, w, indent=2, ensure_ascii=False)
@@ -1136,12 +1191,12 @@ def cmd_boundary(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         else:
             w.write(_boundary.to_dot(graph, module))
             w.write("\n")
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(
+        _render, ns.output, project_root, stdout, stderr, "pyfusa boundary"
+    )
+    if err is not None:
+        return err
     return EXIT_OK
 
 
@@ -1164,18 +1219,10 @@ def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     report = _coupling.run(project_root, cfg)
+    for err in report.get("errors", []):
+        print(f"pyfusa coupling: warning: {err}", file=stderr)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa coupling: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(report, w, indent=2, ensure_ascii=False)
             w.write("\n")
@@ -1183,12 +1230,12 @@ def cmd_coupling(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
             dc = len(report.get("dataCoupling", []))
             cc = len(report.get("controlCoupling", []))
             print(f"data coupling: {dc}  control coupling: {cc}", file=w)
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(
+        _render, ns.output, project_root, stdout, stderr, "pyfusa coupling"
+    )
+    if err is not None:
+        return err
     return EXIT_OK
 
 
@@ -1247,29 +1294,17 @@ def cmd_tara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     module = cfg.project.name or os.path.basename(project_root)
     doc = _tara.to_dict(entries, project_root, cfg)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa tara: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
         else:
             w.write(_tara.to_markdown(entries, module))
             w.write("\n")
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(_render, ns.output, project_root, stdout, stderr, "pyfusa tara")
+    if err is not None:
+        return err
 
     require_attestation = ns.require_attestation or ns.strict
     gate_failed = _quality_gate(
@@ -1357,17 +1392,7 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         return EXIT_OK
 
     # show
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa hara: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             report_doc = _hara.to_report_dict(data, project_root, cfg)
             json.dump(report_doc, w, indent=2, ensure_ascii=False)
@@ -1380,12 +1405,10 @@ def cmd_hara(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
                 f"{comp['danglingReferences']} dangling references",
                 file=w,
             )
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(_render, ns.output, project_root, stdout, stderr, "pyfusa hara")
+    if err is not None:
+        return err
 
     return EXIT_GATE_FAIL if quality_gate_failed else EXIT_OK
 
@@ -1448,7 +1471,11 @@ def cmd_badge(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if not os.path.exists(report_path):
             print(f"pyfusa badge: {report_path} not found", file=stderr)
             return EXIT_RUNTIME
-        svg = _badge.from_report(report_path)
+        try:
+            svg = _badge.from_report(report_path)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"pyfusa badge: {report_path}: {e}", file=stderr)
+            return EXIT_RUNTIME
 
     out_path = (
         ns.output if os.path.isabs(ns.output) else os.path.join(project_root, ns.output)
@@ -1517,8 +1544,12 @@ def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         data = _req_mgmt.load(project_root)
         csv_text = _req_mgmt.to_csv(data.get("requirements", []))
         if ns.file:
-            with open(ns.file, "w", encoding="utf-8") as f:
-                f.write(csv_text)
+            try:
+                with open(ns.file, "w", encoding="utf-8") as f:
+                    f.write(csv_text)
+            except OSError as e:
+                print(f"pyfusa req export: {e}", file=stderr)
+                return EXIT_RUNTIME
             print(f"exported to {ns.file}", file=stdout)
         else:
             print(csv_text, file=stdout, end="")
@@ -1527,8 +1558,12 @@ def cmd_req(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if not ns.file:
             print("pyfusa req import: --file required", file=stderr)
             return EXIT_USAGE
-        with open(ns.file, encoding="utf-8") as f:
-            csv_text = f.read()
+        try:
+            with open(ns.file, encoding="utf-8") as f:
+                csv_text = f.read()
+        except OSError as e:
+            print(f"pyfusa req import: {e}", file=stderr)
+            return EXIT_RUNTIME
         reqs = _req_mgmt.from_csv(csv_text)
         data = _req_mgmt.load(project_root)
         existing_ids = {r["id"] for r in data.get("requirements", [])}
@@ -1709,17 +1744,7 @@ def cmd_vuln(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     print("scanning installed packages via OSV API...", file=stderr)
     report = _vuln.scan(project_root, cfg, timeout=ns.timeout)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa vuln: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(report, w, indent=2, ensure_ascii=False)
             w.write("\n")
@@ -1734,12 +1759,10 @@ def cmd_vuln(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
                     f"  {f['module']}@{f['version']}  {f['id']}  {f.get('summary', '')[:80]}",
                     file=w,
                 )
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(_render, ns.output, project_root, stdout, stderr, "pyfusa vuln")
+    if err is not None:
+        return err
 
     return EXIT_GATE_FAIL if report.get("findings") else EXIT_OK
 
@@ -1758,7 +1781,7 @@ def cmd_pr(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--description", default="")
     p.add_argument("--phase", default="development", choices=_pr.PHASES)
     p.add_argument("--severity", default="minor", choices=_pr.SEVERITIES)
-    p.add_argument("--status", default="open")
+    p.add_argument("--status", default="open", choices=_pr.STATUSES)
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -1828,6 +1851,102 @@ def cmd_disposition(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
 
 
 # ---------------------------------------------------------------------------
+# baseline
+# ---------------------------------------------------------------------------
+
+
+# fusa:req REQ-BASELINE001 REQ-BASELINE002
+def cmd_baseline(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa baseline", add_help=True)
+    p.add_argument("--dir", default="")
+    p.epilog = (
+        "Snapshots every current finding's fingerprint into "
+        ".fusa-baseline.json. pyfusa check/lint then exclude baselined "
+        "findings from the exit-code gate -- they stay visible in output, "
+        "just don't fail the build. New findings introduced after the "
+        "snapshot still fail the gate as normal.\n\n"
+        "Re-running this command OVERWRITES the file with a fresh snapshot "
+        "of whatever findings exist right now. Use 'pyfusa disposition "
+        "add' instead for a durable, reviewed exception to one specific "
+        "finding."
+    )
+    p.formatter_class = argparse.RawDescriptionHelpFormatter
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    project_root = _resolve_dir(ns.dir)
+    cfg = _load_config(project_root)
+    doc, skipped = _baseline.build(project_root, cfg)
+
+    out_path = os.path.join(project_root, _config.BASELINE_FILE)
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(doc, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    except OSError as e:
+        print(f"pyfusa baseline: {e}", file=stderr)
+        return EXIT_RUNTIME
+
+    print(
+        _baseline.render_summary(
+            doc, skipped, os.path.relpath(out_path, project_root)
+        ),
+        file=stdout,
+    )
+    return EXIT_OK
+
+
+# ---------------------------------------------------------------------------
+# explain
+# ---------------------------------------------------------------------------
+
+
+# fusa:req REQ-EXPLAIN001 REQ-EXPLAIN002 REQ-EXPLAIN003
+def cmd_explain(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
+    p = argparse.ArgumentParser(prog="pyfusa explain", add_help=True)
+    p.add_argument("rule_id", nargs="?", default="")
+    p.add_argument(
+        "--list", dest="list_all", action="store_true", help="list every registered rule id"
+    )
+    try:
+        ns = p.parse_args(args)
+    except SystemExit:
+        return EXIT_USAGE
+
+    rules = _engine.Default.rules
+
+    if ns.list_all:
+        print(_explain.render_list_text(rules), file=stdout)
+        return EXIT_OK
+
+    if not ns.rule_id:
+        print("pyfusa explain: missing RULE-ID", file=stderr)
+        print(
+            "Usage: pyfusa explain <RULE-ID>   (or: pyfusa explain --list)",
+            file=stderr,
+        )
+        return EXIT_USAGE
+
+    rule = _explain.find_rule(rules, ns.rule_id)
+    if rule is None:
+        print(f"pyfusa explain: unknown rule '{ns.rule_id}'", file=stderr)
+        print(
+            "Run 'pyfusa explain --list' to see every registered rule id.",
+            file=stderr,
+        )
+        # A rule id that doesn't exist is a bad argument value, not a gate
+        # failure (no analysis actually ran) -- EXIT_USAGE (2), matching
+        # every other command's convention for an invalid input, not
+        # EXIT_GATE_FAIL (1).
+        return EXIT_USAGE
+
+    print(_explain.render_text(rule), file=stdout)
+    return EXIT_OK
+
+
+# ---------------------------------------------------------------------------
 # impact
 # ---------------------------------------------------------------------------
 
@@ -1849,17 +1968,7 @@ def cmd_impact(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     cfg = _load_config(project_root)
     report = _impact.run(project_root, cfg, ns.from_ref, ns.to_ref)
 
-    w = stdout
-    f_out = None
-    out_path = ns.output
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa impact: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(report, w, indent=2, ensure_ascii=False)
             w.write("\n")
@@ -1878,9 +1987,13 @@ def cmd_impact(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
                 )
             for a in stale:
                 print(f"  stale: {a['file']}  ({a['reason']})", file=w)
-    finally:
-        if f_out:
-            f_out.close()
+
+    err = _write_output(
+        _render, ns.output, project_root, stdout, stderr, "pyfusa impact",
+        announce=False,
+    )
+    if err is not None:
+        return err
 
     return EXIT_OK
 
@@ -1948,17 +2061,7 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
     cfg = _load_config(project_root)
     doc = _safetycase.assemble(project_root, cfg)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa safety-case: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
@@ -1968,12 +2071,12 @@ def cmd_safety_case(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> in
         else:
             w.write(_safetycase.to_mermaid(doc))
             w.write("\n")
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(
+        _render, ns.output, project_root, stdout, stderr, "pyfusa safety-case"
+    )
+    if err is not None:
+        return err
 
     require_attestation = ns.require_attestation or ns.strict
     gate_failed = _quality_gate(
@@ -2012,29 +2115,19 @@ def _cmd_gap_report(name: str, runner, render_fn, default_level: str, level_arg:
         level = getattr(ns, level_arg)
         doc = runner(project_root, cfg, level)
 
-        out_path = ns.output
-        w = stdout
-        f_out = None
-        if out_path:
-            try:
-                f_out = open(out_path, "w", encoding="utf-8")
-                w = f_out
-            except OSError as e:
-                print(f"pyfusa {name}: {e}", file=stderr)
-                return EXIT_RUNTIME
-        try:
+        def _render(w):
             if ns.fmt == "json":
                 json.dump(doc, w, indent=2, ensure_ascii=False)
                 w.write("\n")
             else:
                 w.write(render_fn(doc))
                 w.write("\n")
-        finally:
-            if f_out:
-                f_out.close()
 
-        if out_path:
-            print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+        err = _write_output(
+            _render, ns.output, project_root, stdout, stderr, f"pyfusa {name}"
+        )
+        if err is not None:
+            return err
 
         return EXIT_GATE_FAIL if doc.get("summary", {}).get("gaps", 0) > 0 else EXIT_OK
 
@@ -2072,29 +2165,17 @@ def cmd_unece(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     cfg = _load_config(project_root)
     doc = _unece.run(project_root, cfg)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa unece: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
         else:
             w.write(_unece.render_text(doc))
             w.write("\n")
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(_render, ns.output, project_root, stdout, stderr, "pyfusa unece")
+    if err is not None:
+        return err
     return EXIT_GATE_FAIL if doc.get("summary", {}).get("gaps", 0) > 0 else EXIT_OK
 
 
@@ -2122,18 +2203,9 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
     doc = _sas.generate(project_root, cfg, ns.dal)
-
     out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa sas: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+
+    def _render(w):
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
@@ -2143,12 +2215,10 @@ def cmd_sas(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         else:
             w.write(_sas.render_text(doc))
             w.write("\n")
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(_render, out_path, project_root, stdout, stderr, "pyfusa sas")
+    if err is not None:
+        return err
 
     # x-FuSa spec §9.3 sas MUST: the human-readable sas.md companion is
     # written unconditionally alongside whatever --format/--output was
@@ -2197,29 +2267,17 @@ def cmd_sci(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     cfg = _load_config(project_root)
     doc = _sci.generate(project_root, cfg)
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa sci: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
         else:
             w.write(_sci.render_text(doc))
             w.write("\n")
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(_render, ns.output, project_root, stdout, stderr, "pyfusa sci")
+    if err is not None:
+        return err
     return EXIT_OK
 
 
@@ -2271,17 +2329,7 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         mcdc_threshold=ns.mcdc_threshold,
     )
 
-    out_path = ns.output
-    w = stdout
-    f_out = None
-    if out_path:
-        try:
-            f_out = open(out_path, "w", encoding="utf-8")
-            w = f_out
-        except OSError as e:
-            print(f"pyfusa coverage: {e}", file=stderr)
-            return EXIT_RUNTIME
-    try:
+    def _render(w):
         if ns.fmt == "json":
             json.dump(doc, w, indent=2, ensure_ascii=False)
             w.write("\n")
@@ -2303,12 +2351,12 @@ def cmd_coverage(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
                         f"  uncovered functions: {', '.join(mc['uncoveredFunctions'])}",
                         file=w,
                     )
-    finally:
-        if f_out:
-            f_out.close()
 
-    if out_path:
-        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    err = _write_output(
+        _render, ns.output, project_root, stdout, stderr, "pyfusa coverage"
+    )
+    if err is not None:
+        return err
     return EXIT_OK if doc["passed"] else EXIT_GATE_FAIL
 
 
@@ -2365,6 +2413,10 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
     p.add_argument("--dir", default="")
     p.add_argument("--format", default="text", dest="fmt", choices=["text", "json"])
     p.add_argument("--output", default="")
+    p.add_argument("--threshold", type=int, default=None)
+    p.add_argument(
+        "--dal", default="", choices=["DAL-A", "DAL-B", "DAL-C", "DAL-D"]
+    )
     try:
         ns = p.parse_args(args)
     except SystemExit:
@@ -2372,28 +2424,53 @@ def cmd_comp(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
 
     project_root = _resolve_dir(ns.dir)
     cfg = _load_config(project_root)
-    doc = _comp.run(project_root, cfg)
+    # §9.2: "--dal overrides --threshold".
+    threshold_override = _comp.DAL_THRESHOLD.get(ns.dal) if ns.dal else ns.threshold
+    doc = _comp.run(project_root, cfg, threshold_override=threshold_override, dal=ns.dal)
 
-    out_path = ns.output or os.path.join(project_root, _comp.COMP_REPORT)
-    try:
-        with open(out_path, "w", encoding="utf-8") as f:
-            if ns.fmt == "json":
-                json.dump(doc, f, indent=2, ensure_ascii=False)
-                f.write("\n")
-            else:
+    if ns.output:
+        try:
+            with open(ns.output, "w", encoding="utf-8") as f:
+                if ns.fmt == "json":
+                    json.dump(doc, f, indent=2, ensure_ascii=False)
+                    f.write("\n")
+                else:
+                    f.write(_comp.render_text(doc))
+                    f.write("\n")
+        except OSError as e:
+            print(f"pyfusa comp: {e}", file=stderr)
+            return EXIT_RUNTIME
+        print(
+            f"Complexity: {doc['totalFunctions']} functions, "
+            f"{doc['violations']} over threshold={doc['threshold']}",
+            file=stdout,
+        )
+        print(f"wrote {os.path.relpath(ns.output, project_root)}", file=stdout)
+    elif ns.fmt == "json":
+        # §2.2: no --output means the report goes to stdout as a clean
+        # stream — this is the invocation FuSaOps's Comp()/comp adapter
+        # decodes directly (no file is ever read for this case).
+        json.dump(doc, stdout, indent=2, ensure_ascii=False)
+        stdout.write("\n")
+    else:
+        # No --output and text format: preserve the documented convenience
+        # default of writing comp-report.json at the project root.
+        out_path = os.path.join(project_root, _comp.COMP_REPORT)
+        try:
+            with open(out_path, "w", encoding="utf-8") as f:
                 f.write(_comp.render_text(doc))
                 f.write("\n")
-    except OSError as e:
-        print(f"pyfusa comp: {e}", file=stderr)
-        return EXIT_RUNTIME
+        except OSError as e:
+            print(f"pyfusa comp: {e}", file=stderr)
+            return EXIT_RUNTIME
+        print(
+            f"Complexity: {doc['totalFunctions']} functions, "
+            f"{doc['violations']} over threshold={doc['threshold']}",
+            file=stdout,
+        )
+        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
 
-    s = doc["summary"]
-    print(
-        f"Complexity: {s['total']} functions, {s['fail']} over threshold={doc['threshold']}",
-        file=stdout,
-    )
-    print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
-    return EXIT_GATE_FAIL if s["fail"] > 0 else EXIT_OK
+    return EXIT_GATE_FAIL if doc["violations"] > 0 else EXIT_OK
 
 
 # ---------------------------------------------------------------------------
@@ -2460,13 +2537,22 @@ def cmd_verify(args: list[str], stdout=sys.stdout, stderr=sys.stderr) -> int:
         if f_out:
             f_out.close()
 
-    # Auto-save evidence bundle
-    if not out_path or out_path.endswith(".json"):
-        if not out_path:
-            _verify.save(doc, project_root)
-            print(f"wrote {_verify.EVIDENCE_FILE}", file=stdout)
-        elif out_path:
-            print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+    if out_path:
+        print(f"wrote {os.path.relpath(out_path, project_root)}", file=stdout)
+
+    # Always persist the canonical evidence bundle (.fusa-evidence.json)
+    # too, unless --output already wrote exactly that file (redundant to
+    # write it twice under two names). A prior version only did this when
+    # --output was empty or happened to end in ".json" -- verify --output
+    # report.txt --format text silently skipped it, leaving no machine-
+    # readable trail and no confirmation printed at all, and --output
+    # anything.json (other than the canonical name) silently skipped it
+    # too, even though other rules (VERIFY001/VERIFY002) check for the
+    # evidence bundle specifically at its canonical path.
+    canonical_path = os.path.join(project_root, _verify.EVIDENCE_FILE)
+    if not out_path or os.path.abspath(out_path) != os.path.abspath(canonical_path):
+        _verify.save(doc, project_root)
+        print(f"wrote {_verify.EVIDENCE_FILE}", file=stdout)
 
     s = doc.get("summary", {})
     return EXIT_GATE_FAIL if (s.get("failed", 0) + s.get("errored", 0)) > 0 else EXIT_OK
@@ -2504,6 +2590,8 @@ _COMMANDS = {
     "vuln": cmd_vuln,
     "pr": cmd_pr,
     "disposition": cmd_disposition,
+    "baseline": cmd_baseline,
+    "explain": cmd_explain,
     "impact": cmd_impact,
     "metrics": cmd_metrics,
     "safety-case": cmd_safety_case,
@@ -2596,6 +2684,11 @@ def _usage(w=sys.stdout) -> None:
         file=w,
     )
     print("  disposition   Manage finding disposition entries", file=w)
+    print(
+        "  baseline      Snapshot current findings so only new ones gate the build",
+        file=w,
+    )
+    print("  explain       Show a rule's description, standard, and clause", file=w)
     print("  pr            Manage software problem reports (DO-178C §11.17)", file=w)
     print("  impact        Analyse change impact on requirements", file=w)
     print("  metrics       Track safety metrics over time", file=w)

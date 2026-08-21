@@ -179,6 +179,11 @@ class Finding:
     remediation: str = ""
     disposition: str = ""
     fingerprint: str = ""
+    # Not an x-FuSa spec field. Distinguishes a disposition automatically
+    # applied by `pyfusa baseline` ("baseline") from one a reviewer entered
+    # via `disposition add` (empty — a real, reviewed disposition needs no
+    # further explanation). See pyfusa/baseline.py.
+    disposition_source: str = ""
 
     def __post_init__(self) -> None:
         if not self.category:
@@ -204,4 +209,6 @@ class Finding:
             d["clause"] = self.clause
         if self.disposition:
             d["disposition"] = self.disposition
+        if self.disposition_source:
+            d["dispositionSource"] = self.disposition_source
         return d

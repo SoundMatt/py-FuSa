@@ -52,67 +52,73 @@ def _parse(path: str):
         return None, []
 
 
-# fusa:req REQ-ANA002
-class _ThreadVisitor(ast.NodeVisitor):
-    """Walk looking for threading.Thread / asyncio.create_task usages."""
-
-    def __init__(self):
-        self.threads: List[ast.Call] = []
-        self.thread_in_loop: List[ast.Call] = []
-        self.sleep_in_thread: List[ast.Call] = []
-        self._in_loop_depth = 0
-        self._in_thread_body = False
-
-    def visit_For(self, node):
-        self._in_loop_depth += 1
-        self._check_thread_in_loop(node)
-        self.generic_visit(node)
-        self._in_loop_depth -= 1
-
-    def visit_While(self, node):
-        self._in_loop_depth += 1
-        self._check_thread_in_loop(node)
-        self.generic_visit(node)
-        self._in_loop_depth -= 1
-
-    def _check_thread_in_loop(self, node):
-        for child in ast.walk(node):
-            if isinstance(child, ast.Call):
-                name = _call_name(child)
-                if name in (
-                    "threading.Thread",
-                    "Thread",
-                    "asyncio.create_task",
-                    "asyncio.ensure_future",
-                    "loop.create_task",
-                ):
-                    self.thread_in_loop.append(child)
-
-
-def _call_name(node: ast.Call) -> str:
-    if isinstance(node.func, ast.Name):
-        return node.func.id
-    if isinstance(node.func, ast.Attribute):
-        if isinstance(node.func.value, ast.Name):
-            return f"{node.func.value.id}.{node.func.attr}"
+def _dotted_name(node: ast.expr) -> str:
+    """Resolve a Name or an arbitrary-depth Attribute chain to a dotted
+    string, e.g. `os.environ.get` -> "os.environ.get". "" for anything
+    else (a subscript, a call result, ...) -- a 2-level-only version of
+    this used to make `os.environ.get(...)` (3 levels) unmatchable
+    against a call-name set that explicitly lists it."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = _dotted_name(node.value)
+        if base:
+            return f"{base}.{node.attr}"
     return ""
 
 
-# fusa:req REQ-ANA001
-class _AsyncEmptyVisitor(ast.NodeVisitor):
-    """Find async defs with no await."""
+def _call_name(node: ast.Call) -> str:
+    return _dotted_name(node.func)
 
-    def __init__(self):
-        self.empties: List[ast.AsyncFunctionDef] = []
 
-    def visit_AsyncFunctionDef(self, node):
-        has_await = any(
-            isinstance(n, (ast.Await, ast.AsyncFor, ast.AsyncWith))
-            for n in ast.walk(node)
-        )
-        if not has_await:
-            self.empties.append(node)
-        self.generic_visit(node)
+def _scope_signal_names(scope_node, signal_names_kw: set) -> set:
+    """Params + local Event()-typed assigns + bare signal-name references,
+    restricted to `scope_node`'s own body -- does not descend into a
+    nested function/lambda's body, since that establishes its own scope
+    (used by ANA001, see below)."""
+    names: set = set()
+    if isinstance(scope_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        for arg in scope_node.args.args + scope_node.args.kwonlyargs:
+            if arg.arg in signal_names_kw:
+                names.add(arg.arg)
+
+    def walk_own_scope(node):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue
+            if isinstance(child, ast.Name) and child.id in signal_names_kw:
+                names.add(child.id)
+            if isinstance(child, ast.Assign) and isinstance(child.value, ast.Call):
+                if _call_name(child.value) in ("threading.Event", "Event"):
+                    for t in child.targets:
+                        if isinstance(t, ast.Name):
+                            names.add(t.id)
+            walk_own_scope(child)
+
+    for stmt in getattr(scope_node, "body", []):
+        walk_own_scope(stmt)
+    return names
+
+
+def _thread_calls_with_scope(tree, call_names: set, signal_names_kw: set):
+    """Yield (call_node, has_signal) for every call matching `call_names`
+    in `tree`, where has_signal reflects only the enclosing function's own
+    scope (module scope for top-level code) -- not the whole file."""
+    results = []
+
+    def visit(node, enclosing_scope):
+        if isinstance(node, ast.Call) and _call_name(node) in call_names:
+            results.append(
+                (node, bool(_scope_signal_names(enclosing_scope, signal_names_kw)))
+            )
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                visit(child, child)
+            else:
+                visit(child, enclosing_scope)
+
+    visit(tree, tree)  # tree (ast.Module) is the module-level pseudo-scope
+    return results
 
 
 # fusa:req REQ-ANA009
@@ -179,52 +185,6 @@ class _SleepInThreadVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-# fusa:req REQ-ANA008
-class _GlobalMutationVisitor(ast.NodeVisitor):
-    """Find global variable mutations inside functions (ANA008)."""
-
-    def __init__(self):
-        self.globals_mutated: List[ast.Global] = []
-
-    def visit_FunctionDef(self, node):
-        for stmt in ast.walk(node):
-            if isinstance(stmt, ast.Global):
-                for child in ast.walk(node):
-                    if isinstance(child, ast.Assign):
-                        for t in child.targets:
-                            if isinstance(t, ast.Name) and t.id in stmt.names:
-                                self.globals_mutated.append(stmt)
-                                break
-        self.generic_visit(node)
-
-    def visit_AsyncFunctionDef(self, node):
-        self.visit_FunctionDef(node)
-
-
-# fusa:req REQ-ANA007
-class _NoneDerefVisitor(ast.NodeVisitor):
-    """Find potential None dereferences: var = x.get(...) followed by var.attr (ANA007)."""
-
-    def __init__(self):
-        self.hits: List[ast.Attribute] = []
-        self._none_sources: set = set()
-
-    def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call):
-            name = _call_name(node.value)
-            if name.endswith((".get", ".find", ".search", ".match", ".pop")):
-                for t in node.targets:
-                    if isinstance(t, ast.Name):
-                        self._none_sources.add(t.id)
-        self.generic_visit(node)
-
-    def visit_Attribute(self, node):
-        if isinstance(node.value, ast.Name) and node.value.id in self._none_sources:
-            # Check it's not inside an `if var is not None:` guard
-            self.hits.append(node)
-        self.generic_visit(node)
-
-
 # ---------------------------------------------------------------------------
 # ANA001 — thread/task creation without termination signal
 # ---------------------------------------------------------------------------
@@ -261,39 +221,31 @@ class ANA001(Rule):
             if tree is None:
                 continue
             rel = _rel(path, project_root)
-            # Collect names that look like signals
-            signal_names: set = set()
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Call) and _call_name(node) in SIGNALS:
-                    pass
-                if isinstance(node, ast.Name) and node.id in SIGNALS:
-                    signal_names.add(node.id)
-                if isinstance(node, ast.Assign):
-                    if isinstance(node.value, ast.Call):
-                        if _call_name(node.value) in ("threading.Event", "Event"):
-                            for t in node.targets:
-                                if isinstance(t, ast.Name):
-                                    signal_names.add(t.id)
 
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Call) and _call_name(node) in ALL:
-                    # Check if any sibling/ancestor scope has a signal var
-                    has_signal = bool(signal_names)
-                    if not has_signal:
-                        findings.append(
-                            Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_WARNING,
-                                message="thread/task created without apparent stop-event signal",
-                                location=Location(
-                                    file=rel,
-                                    line=getattr(node, "lineno", 0),
-                                    end_line=getattr(node, "end_lineno", 0),
-                                    end_column=getattr(node, "end_col_offset", -1) + 1,
-                                ),
-                                remediation="create a threading.Event() and pass it to the worker; check it in the loop",
-                            )
+            # For each thread/task-creation call, only the signal names
+            # visible in *that call's own enclosing function* (params,
+            # local Event()-typed assigns, bare signal-name references --
+            # not descending into a further-nested function/lambda's own
+            # body) count. A prior version collected signal_names once for
+            # the whole file, so a variable named e.g. "stop" ANYWHERE in
+            # the file silenced this check for every thread in the file,
+            # including genuinely-unsignaled ones in unrelated functions.
+            for node, has_signal in _thread_calls_with_scope(tree, ALL, SIGNALS):
+                if not has_signal:
+                    findings.append(
+                        Finding(
+                            rule_id=self.rule_id,
+                            severity=SEVERITY_WARNING,
+                            message="thread/task created without apparent stop-event signal",
+                            location=Location(
+                                file=rel,
+                                line=getattr(node, "lineno", 0),
+                                end_line=getattr(node, "end_lineno", 0),
+                                end_column=getattr(node, "end_col_offset", -1) + 1,
+                            ),
+                            remediation="create a threading.Event() and pass it to the worker; check it in the loop",
                         )
+                    )
         return findings
 
 
@@ -550,6 +502,54 @@ class ANA006(Rule):
         return findings
 
 
+def _is_none_guard(test: ast.expr, varname: str) -> bool:
+    """`if <varname> is not None:` or a truthy `if <varname>:` check."""
+    if (
+        isinstance(test, ast.Compare)
+        and isinstance(test.left, ast.Name)
+        and test.left.id == varname
+        and len(test.ops) == 1
+        and isinstance(test.ops[0], ast.IsNot)
+        and len(test.comparators) == 1
+    ):
+        comp = test.comparators[0]
+        if isinstance(comp, ast.Constant) and comp.value is None:
+            return True
+    if isinstance(test, ast.Name) and test.id == varname:
+        return True
+    return False
+
+
+def _unguarded_none_accesses(tree, nullable_vars: set) -> list:
+    """Attribute accesses on a nullable var, excluding ones inside an
+    `if <var> is not None:` (or truthy `if <var>:`) guard body for that
+    same var.
+
+    Deliberately does not (yet) recognize an early-exit guard
+    (`if v is None: return` followed by unguarded use of v) -- a documented
+    scope limit, not a silent gap: that pattern requires tracking whether a
+    block always exits, which this single-pass check doesn't attempt.
+    """
+    findings: list = []
+
+    def visit(node, guarded: frozenset) -> None:
+        if isinstance(node, ast.If):
+            newly_guarded = {v for v in nullable_vars if _is_none_guard(node.test, v)}
+            for child in node.body:
+                visit(child, guarded | newly_guarded)
+            for child in node.orelse:
+                visit(child, guarded)
+            return
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            if node.value.id in nullable_vars and node.value.id not in guarded:
+                findings.append(node)
+        for child in ast.iter_child_nodes(node):
+            visit(child, guarded)
+
+    visit(tree, frozenset())
+    return findings
+
+
 # ---------------------------------------------------------------------------
 # ANA007 — potential None dereference
 # ---------------------------------------------------------------------------
@@ -580,23 +580,21 @@ class ANA007(Rule):
                         for t in node.targets:
                             if isinstance(t, ast.Name):
                                 nullable_vars.add(t.id)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
-                    if node.value.id in nullable_vars:
-                        findings.append(
-                            Finding(
-                                rule_id=self.rule_id,
-                                severity=SEVERITY_WARNING,
-                                message=f"'{node.value.id}' may be None; attribute access '.{node.attr}' is unsafe",
-                                location=Location(
-                                    file=rel,
-                                    line=getattr(node, "lineno", 0),
-                                    end_line=getattr(node, "end_lineno", 0),
-                                    end_column=getattr(node, "end_col_offset", -1) + 1,
-                                ),
-                                remediation=f"guard with 'if {node.value.id} is not None:' before accessing attributes",
-                            )
-                        )
+            for node in _unguarded_none_accesses(tree, nullable_vars):
+                findings.append(
+                    Finding(
+                        rule_id=self.rule_id,
+                        severity=SEVERITY_WARNING,
+                        message=f"'{node.value.id}' may be None; attribute access '.{node.attr}' is unsafe",
+                        location=Location(
+                            file=rel,
+                            line=getattr(node, "lineno", 0),
+                            end_line=getattr(node, "end_lineno", 0),
+                            end_column=getattr(node, "end_col_offset", -1) + 1,
+                        ),
+                        remediation=f"guard with 'if {node.value.id} is not None:' before accessing attributes",
+                    )
+                )
         return findings
 
 
@@ -618,35 +616,49 @@ class ANA008(Rule):
             if tree is None:
                 continue
             rel = _rel(path, project_root)
+            # target=worker (a Name referencing a function defined in this
+            # same file) is the realistic pattern -- a prior version only
+            # ever inspected an inline `target=lambda: ...`, so this branch
+            # was effectively dead: `global` inside a lambda body is a
+            # SyntaxError, so no valid Python file could ever trigger it.
+            functions_by_name = {
+                n.name: n
+                for n in ast.walk(tree)
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and _call_name(node) in THREAD_CALLS:
                     for kw in node.keywords:
-                        if kw.arg == "target" and isinstance(
-                            kw.value, (ast.Name, ast.Lambda)
+                        if kw.arg != "target":
+                            continue
+                        body_node = None
+                        if isinstance(kw.value, ast.Lambda):
+                            body_node = kw.value
+                        elif isinstance(kw.value, ast.Name):
+                            body_node = functions_by_name.get(kw.value.id)
+                        if body_node is None:
+                            continue
+                        if any(
+                            isinstance(child, ast.Global)
+                            for child in ast.walk(body_node)
                         ):
-                            # If target is a lambda that assigns to outer vars, flag it
-                            if isinstance(kw.value, ast.Lambda):
-                                for child in ast.walk(kw.value):
-                                    if isinstance(child, ast.Global):
-                                        findings.append(
-                                            Finding(
-                                                rule_id=self.rule_id,
-                                                severity=SEVERITY_WARNING,
-                                                message="thread target modifies shared mutable state via 'global' — use a Lock",
-                                                location=Location(
-                                                    file=rel,
-                                                    line=getattr(node, "lineno", 0),
-                                                    end_line=getattr(
-                                                        node, "end_lineno", 0
-                                                    ),
-                                                    end_column=getattr(
-                                                        node, "end_col_offset", -1
-                                                    )
-                                                    + 1,
-                                                ),
-                                                remediation="protect shared mutable state with threading.Lock()",
-                                            )
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_WARNING,
+                                    message="thread target modifies shared mutable state via 'global' — use a Lock",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(
+                                            node, "end_col_offset", -1
                                         )
+                                        + 1,
+                                    ),
+                                    remediation="protect shared mutable state with threading.Lock()",
+                                )
+                            )
         return findings
 
 

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import List
 
 import pyfusa
+from pyfusa.compliance._evidence import evidence_present
 from pyfusa.config import Config
 
 DAL_LEVELS = ["DAL-A", "DAL-B", "DAL-C", "DAL-D"]
@@ -197,8 +198,7 @@ def _status(
 ) -> tuple:
     if dal not in dals_apply:
         return "partial", []
-    path = os.path.join(project_root, evidence_file)
-    if os.path.exists(path):
+    if evidence_present(project_root, evidence_file):
         return "satisfied", [evidence_file]
     return "gap", []
 

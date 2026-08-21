@@ -57,16 +57,33 @@ def _run_pytest_cov(project_root: str, source: str) -> Optional[float]:
 
 
 def _read_coverage_xml(path: str) -> Optional[float]:
-    """Parse coverage.xml for line-rate."""
+    """Parse coverage.xml (Cobertura format) for the overall line-rate.
+
+    Uses a real XML parser against the document's root <coverage> element
+    specifically, rather than a prior version's
+    `re.search(r'line-rate="...")` over the raw file text. The regex had
+    no way to confirm the file was actually well-formed Cobertura XML at
+    all -- verified: a file containing only the incidental substring
+    line-rate="0.99" in an unrelated log line "succeeded" with a fake
+    99.0% coverage figure. A real parser correctly rejects it as
+    unparseable instead. Targeting the root element's own attribute (not
+    just the first `line-rate=` occurrence anywhere) is also more robust
+    against a nested <package>/<class> element's line-rate landing before
+    the root's in the raw text under non-standard formatting.
+    """
     try:
-        with open(path, encoding="utf-8") as f:
-            content = f.read()
-        m = re.search(r'line-rate="([0-9.]+)"', content)
-        if m:
-            return float(m.group(1)) * 100
-    except OSError:
-        pass
-    return None
+        import xml.etree.ElementTree as ET
+
+        root = ET.parse(path).getroot()
+    except (OSError, ET.ParseError):
+        return None
+    rate = root.get("line-rate")
+    if rate is None:
+        return None
+    try:
+        return float(rate) * 100
+    except ValueError:
+        return None
 
 
 def _parse_llvm_mcdc(path: str) -> dict:  # fusa:req REQ-COV001

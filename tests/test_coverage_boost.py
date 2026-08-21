@@ -98,9 +98,13 @@ def test_verify_parse_pytest_output_summary_only():
 def test_verify_parse_pytest_output_errors():
     from pyfusa.verify import _parse_pytest_output
 
-    output = "ERROR tests/test_foo.py::test_bad\n"
+    # Real pytest output always carries a summary line ("1 error in
+    # 0.1s") -- aggregate counts are derived from it, not from the
+    # per-test list, so a synthetic fixture needs one too to be realistic.
+    output = "ERROR tests/test_foo.py::test_bad - RuntimeError: boom\n1 error in 0.1s"
     result = _parse_pytest_output(output, 2)
     assert result["summary"]["errored"] >= 1
+    assert any(r["status"] == "error" for r in result["results"])
 
 
 def test_verify_run_no_tests():
@@ -1038,6 +1042,34 @@ def test_disp001_no_unresolved():
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, "check-report.json"), "w") as f:
             json.dump({"findings": [{"severity": "WARNING", "ruleId": "LINT001"}]}, f)
+        assert DISP001().run(tmpdir, default()) == []
+
+
+# fusa:test REQ-EVIDENCE016
+def test_disp001_reads_canonical_dispositions_shape_without_crashing():
+    """Regression: DISP001 used to `json.load()` .fusa-dispositions.json raw
+    and iterate it as if it were a bare list. A real §1.2.3 file is an object
+    ({"dispositions": [...]}), so every real-world run raised
+    AttributeError: 'str' object has no attribute 'get' — swallowed silently
+    by engine.py's per-rule try/except, so it never surfaced as a test
+    failure or a visible error to the user."""
+    from pyfusa.rules.evidence import DISP001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "check-report.json"), "w") as f:
+            json.dump(
+                {"findings": [{"severity": "ERROR", "ruleId": "SEC001"}]}, f
+            )
+        with open(os.path.join(tmpdir, ".fusa-dispositions.json"), "w") as f:
+            json.dump(
+                {
+                    "dispositions": [
+                        {"ruleId": "SEC001", "status": "accepted"},
+                    ]
+                },
+                f,
+            )
+        # Must not raise, and the disposed rule must be suppressed.
         assert DISP001().run(tmpdir, default()) == []
 
 
