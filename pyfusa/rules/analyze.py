@@ -52,43 +52,6 @@ def _parse(path: str):
         return None, []
 
 
-# fusa:req REQ-ANA002
-class _ThreadVisitor(ast.NodeVisitor):
-    """Walk looking for threading.Thread / asyncio.create_task usages."""
-
-    def __init__(self):
-        self.threads: List[ast.Call] = []
-        self.thread_in_loop: List[ast.Call] = []
-        self.sleep_in_thread: List[ast.Call] = []
-        self._in_loop_depth = 0
-        self._in_thread_body = False
-
-    def visit_For(self, node):
-        self._in_loop_depth += 1
-        self._check_thread_in_loop(node)
-        self.generic_visit(node)
-        self._in_loop_depth -= 1
-
-    def visit_While(self, node):
-        self._in_loop_depth += 1
-        self._check_thread_in_loop(node)
-        self.generic_visit(node)
-        self._in_loop_depth -= 1
-
-    def _check_thread_in_loop(self, node):
-        for child in ast.walk(node):
-            if isinstance(child, ast.Call):
-                name = _call_name(child)
-                if name in (
-                    "threading.Thread",
-                    "Thread",
-                    "asyncio.create_task",
-                    "asyncio.ensure_future",
-                    "loop.create_task",
-                ):
-                    self.thread_in_loop.append(child)
-
-
 def _dotted_name(node: ast.expr) -> str:
     """Resolve a Name or an arbitrary-depth Attribute chain to a dotted
     string, e.g. `os.environ.get` -> "os.environ.get". "" for anything
@@ -158,23 +121,6 @@ def _thread_calls_with_scope(tree, call_names: set, signal_names_kw: set):
     return results
 
 
-# fusa:req REQ-ANA001
-class _AsyncEmptyVisitor(ast.NodeVisitor):
-    """Find async defs with no await."""
-
-    def __init__(self):
-        self.empties: List[ast.AsyncFunctionDef] = []
-
-    def visit_AsyncFunctionDef(self, node):
-        has_await = any(
-            isinstance(n, (ast.Await, ast.AsyncFor, ast.AsyncWith))
-            for n in ast.walk(node)
-        )
-        if not has_await:
-            self.empties.append(node)
-        self.generic_visit(node)
-
-
 # fusa:req REQ-ANA009
 class _DeadCodeVisitor(ast.NodeVisitor):
     """Find unreachable statements after return/raise/break/continue."""
@@ -236,52 +182,6 @@ class _SleepInThreadVisitor(ast.NodeVisitor):
                             "sleep",
                         ):
                             self.hits.append(n)
-        self.generic_visit(node)
-
-
-# fusa:req REQ-ANA008
-class _GlobalMutationVisitor(ast.NodeVisitor):
-    """Find global variable mutations inside functions (ANA008)."""
-
-    def __init__(self):
-        self.globals_mutated: List[ast.Global] = []
-
-    def visit_FunctionDef(self, node):
-        for stmt in ast.walk(node):
-            if isinstance(stmt, ast.Global):
-                for child in ast.walk(node):
-                    if isinstance(child, ast.Assign):
-                        for t in child.targets:
-                            if isinstance(t, ast.Name) and t.id in stmt.names:
-                                self.globals_mutated.append(stmt)
-                                break
-        self.generic_visit(node)
-
-    def visit_AsyncFunctionDef(self, node):
-        self.visit_FunctionDef(node)
-
-
-# fusa:req REQ-ANA007
-class _NoneDerefVisitor(ast.NodeVisitor):
-    """Find potential None dereferences: var = x.get(...) followed by var.attr (ANA007)."""
-
-    def __init__(self):
-        self.hits: List[ast.Attribute] = []
-        self._none_sources: set = set()
-
-    def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call):
-            name = _call_name(node.value)
-            if name.endswith((".get", ".find", ".search", ".match", ".pop")):
-                for t in node.targets:
-                    if isinstance(t, ast.Name):
-                        self._none_sources.add(t.id)
-        self.generic_visit(node)
-
-    def visit_Attribute(self, node):
-        if isinstance(node.value, ast.Name) and node.value.id in self._none_sources:
-            # Check it's not inside an `if var is not None:` guard
-            self.hits.append(node)
         self.generic_visit(node)
 
 
@@ -716,35 +616,49 @@ class ANA008(Rule):
             if tree is None:
                 continue
             rel = _rel(path, project_root)
+            # target=worker (a Name referencing a function defined in this
+            # same file) is the realistic pattern -- a prior version only
+            # ever inspected an inline `target=lambda: ...`, so this branch
+            # was effectively dead: `global` inside a lambda body is a
+            # SyntaxError, so no valid Python file could ever trigger it.
+            functions_by_name = {
+                n.name: n
+                for n in ast.walk(tree)
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and _call_name(node) in THREAD_CALLS:
                     for kw in node.keywords:
-                        if kw.arg == "target" and isinstance(
-                            kw.value, (ast.Name, ast.Lambda)
+                        if kw.arg != "target":
+                            continue
+                        body_node = None
+                        if isinstance(kw.value, ast.Lambda):
+                            body_node = kw.value
+                        elif isinstance(kw.value, ast.Name):
+                            body_node = functions_by_name.get(kw.value.id)
+                        if body_node is None:
+                            continue
+                        if any(
+                            isinstance(child, ast.Global)
+                            for child in ast.walk(body_node)
                         ):
-                            # If target is a lambda that assigns to outer vars, flag it
-                            if isinstance(kw.value, ast.Lambda):
-                                for child in ast.walk(kw.value):
-                                    if isinstance(child, ast.Global):
-                                        findings.append(
-                                            Finding(
-                                                rule_id=self.rule_id,
-                                                severity=SEVERITY_WARNING,
-                                                message="thread target modifies shared mutable state via 'global' — use a Lock",
-                                                location=Location(
-                                                    file=rel,
-                                                    line=getattr(node, "lineno", 0),
-                                                    end_line=getattr(
-                                                        node, "end_lineno", 0
-                                                    ),
-                                                    end_column=getattr(
-                                                        node, "end_col_offset", -1
-                                                    )
-                                                    + 1,
-                                                ),
-                                                remediation="protect shared mutable state with threading.Lock()",
-                                            )
+                            findings.append(
+                                Finding(
+                                    rule_id=self.rule_id,
+                                    severity=SEVERITY_WARNING,
+                                    message="thread target modifies shared mutable state via 'global' — use a Lock",
+                                    location=Location(
+                                        file=rel,
+                                        line=getattr(node, "lineno", 0),
+                                        end_line=getattr(node, "end_lineno", 0),
+                                        end_column=getattr(
+                                            node, "end_col_offset", -1
                                         )
+                                        + 1,
+                                    ),
+                                    remediation="protect shared mutable state with threading.Lock()",
+                                )
+                            )
         return findings
 
 
