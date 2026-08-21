@@ -180,6 +180,110 @@ def _test_derive_category_cwe() -> bool:
     return pyfusa.derive_category("CWE-787") == pyfusa.CATEGORY_SECURITY
 
 
+def _with_temp_source(content: str, run_rule):
+    """Write `content` to a temp module, run `run_rule(root, cfg)` against
+    it, and return the result. Shared by the detection-correctness tests
+    below."""
+    import tempfile
+
+    from pyfusa.config import default
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "m.py"), "w", encoding="utf-8") as f:
+            f.write(content)
+        cfg = default()
+        cfg.source_dirs = ["."]
+        return run_rule(tmpdir, cfg)
+
+
+def _test_sec001_detects_bare_except() -> bool:
+    """§6's own self-tests previously covered only internal plumbing
+    (Finding serialization, fingerprint hashing) -- none of them verified
+    that the safety-relevant detection rules the tool exists to run
+    actually detect anything. This and the tests below exercise a
+    representative sample end to end: real source in, a real Finding out."""
+    from pyfusa.rules.security import RuleBareExcept as SEC001
+
+    findings = _with_temp_source(
+        "def f():\n    try:\n        pass\n    except:\n        pass\n",
+        lambda root, cfg: SEC001().run(root, cfg),
+    )
+    return any(f.rule_id == "SEC001" for f in findings)
+
+
+def _test_sec001_silent_on_scoped_except() -> bool:
+    """A rule that fires on everything is exactly as useless as one that
+    fires on nothing -- confirm the negative case too."""
+    from pyfusa.rules.security import RuleBareExcept as SEC001
+
+    findings = _with_temp_source(
+        "def f():\n    try:\n        pass\n    except ValueError:\n        pass\n",
+        lambda root, cfg: SEC001().run(root, cfg),
+    )
+    return findings == []
+
+
+def _test_cyber006_detects_hardcoded_credential() -> bool:
+    from pyfusa.rules.cyber import CYBER006
+
+    findings = _with_temp_source(
+        'password = "supersecret123"\n',
+        lambda root, cfg: CYBER006().run(root, cfg),
+    )
+    return any(f.rule_id == "CYBER006" for f in findings)
+
+
+def _test_lint001_detects_overlong_function() -> bool:
+    from pyfusa.rules.lint import RuleFunctionLength
+
+    body = "\n".join(f"    x{i} = {i}" for i in range(70))
+    findings = _with_temp_source(
+        f"def f():\n{body}\n    return x0\n",
+        lambda root, cfg: RuleFunctionLength().run(root, cfg),
+    )
+    return any(f.rule_id == "LINT001" for f in findings)
+
+
+def _test_engine_disposition_actually_suppresses_the_gate() -> bool:
+    """End-to-end: a real ERROR finding, dispositioned as accepted via the
+    same §1.2.3/§4.1 file format the CLI writes, must actually stop the
+    gate -- exercises the full detect -> fingerprint -> match -> suppress
+    pipeline, not just Finding's own serialization in isolation."""
+    import json as _json
+    import tempfile
+
+    from pyfusa.config import default
+    from pyfusa.engine import Engine
+    from pyfusa.rules.security import RuleBareExcept as SEC001
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "m.py"), "w", encoding="utf-8") as f:
+            f.write("def f():\n    try:\n        pass\n    except:\n        pass\n")
+        cfg = default()
+        cfg.source_dirs = ["."]
+        eng = Engine()
+        eng.register(SEC001())
+
+        result = eng.run(tmpdir, cfg)
+        if not result.has_errors():
+            return False
+        finding = next(f for f in result.findings if f.rule_id == "SEC001")
+
+        with open(
+            os.path.join(tmpdir, ".fusa-dispositions.json"), "w", encoding="utf-8"
+        ) as f:
+            _json.dump(
+                {
+                    "dispositions": [
+                        {"fingerprint": finding.fingerprint, "status": "accepted"}
+                    ]
+                },
+                f,
+            )
+        result2 = eng.run(tmpdir, cfg)
+        return not result2.has_errors()
+
+
 _ALL_TESTS: list[tuple[str, Callable[[], bool]]] = [
     ("fingerprint-known-answer", _test_fingerprint_known_answer),
     ("fingerprint-digit-normalisation", _test_fingerprint_digit_norm),
@@ -196,6 +300,14 @@ _ALL_TESTS: list[tuple[str, Callable[[], bool]]] = [
     ("derive-category-fusa", _test_derive_category_fusa),
     ("derive-category-conc", _test_derive_category_conc),
     ("derive-category-cwe", _test_derive_category_cwe),
+    ("sec001-detects-bare-except", _test_sec001_detects_bare_except),
+    ("sec001-silent-on-scoped-except", _test_sec001_silent_on_scoped_except),
+    ("cyber006-detects-hardcoded-credential", _test_cyber006_detects_hardcoded_credential),
+    ("lint001-detects-overlong-function", _test_lint001_detects_overlong_function),
+    (
+        "engine-disposition-suppresses-gate",
+        _test_engine_disposition_actually_suppresses_the_gate,
+    ),
 ]
 
 
@@ -219,15 +331,6 @@ def compute_hash(report: QualifyReport) -> str:
     return "sha256:" + digest
 
 
-def _qualification_badge(report: QualifyReport) -> str:  # fusa:req REQ-QUAL001
-    """Compute qualification badge string."""
-    if report.qualification_method == "independent" or report.qualifier_identity:
-        return BADGE_INDEPENDENT
-    if report.qualification_method == "self":
-        return BADGE_SELF
-    return BADGE_UNQUALIFIED
-
-
 def _independence_status(report: QualifyReport) -> str:  # fusa:req REQ-QUAL002
     """Compute V&V independence status."""
     author = report.implementation_author
@@ -237,6 +340,33 @@ def _independence_status(report: QualifyReport) -> str:  # fusa:req REQ-QUAL002
     if author == reviewer:
         return INDEPENDENCE_SAME_AUTHOR
     return INDEPENDENCE_INDEPENDENT
+
+
+def _qualification_badge(report: QualifyReport) -> str:  # fusa:req REQ-QUAL001
+    """Compute qualification badge string.
+
+    "independently-qualified" requires BOTH an explicit
+    qualification_method="independent" declaration AND a reviewer identity
+    that actually differs from the implementation author -- the same bar
+    §1.6.2's attestation mechanism uses elsewhere in this codebase
+    (content_quality.attestation_valid()). A prior version granted this
+    badge off `qualification_method == "independent" OR qualifier_identity`
+    -- the `or` meant setting --qualifier alone, even alongside an
+    explicit --qualification-method self, still produced
+    "independently-qualified" (verified: run(qualification_method="self",
+    qualifier_identity="Bob") produced the independent badge, directly
+    contradicting the method the caller explicitly declared).
+    qualifier_identity records who *ran* qualification (self or
+    independent); it was never meant to be sufficient on its own to prove
+    independence -- independent_reviewer is the field that means that.
+    """
+    if report.qualification_method == "independent":
+        if _independence_status(report) == INDEPENDENCE_INDEPENDENT:
+            return BADGE_INDEPENDENT
+        return BADGE_SELF
+    if report.qualification_method == "self" or report.qualifier_identity:
+        return BADGE_SELF
+    return BADGE_UNQUALIFIED
 
 
 # fusa:req REQ-QUAL001

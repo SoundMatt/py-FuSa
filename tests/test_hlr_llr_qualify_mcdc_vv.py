@@ -9,12 +9,9 @@ import os
 import tempfile
 
 import pyfusa
-import pyfusa.trace as trace
-import pyfusa.qualify as qualify
-import pyfusa.coverage as coverage
+from pyfusa import coverage, qualify, trace
 from pyfusa.cli.main import run
 from pyfusa.config import default
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -333,17 +330,41 @@ def test_qualify_badge_self_qualified():
 # fusa:test REQ-QUAL001
 # fusa:test REQ-QUAL001-LLR1
 def test_qualify_badge_independently_qualified_by_method():
-    """qualification_method='independent' returns independently-qualified badge."""
-    report = qualify.run(qualification_method="independent")
+    """qualification_method='independent' with a reviewer identity that
+    actually differs from the implementation author returns the
+    independently-qualified badge."""
+    report = qualify.run(
+        qualification_method="independent",
+        implementation_author="Alice",
+        independent_reviewer="Jane Doe <jane@example.com>",
+    )
     assert qualify._qualification_badge(report) == qualify.BADGE_INDEPENDENT
 
 
 # fusa:test REQ-QUAL001
 # fusa:test REQ-QUAL001-LLR1
-def test_qualify_badge_independently_qualified_by_identity():
-    """qualifier_identity alone is sufficient for independently-qualified badge."""
+def test_qualify_badge_independent_method_without_reviewer_is_self():
+    """qualification_method='independent' with no independent_reviewer
+    (or one identical to implementation_author) downgrades to
+    self-qualified -- a declared method alone isn't enough, matching the
+    same independence bar §1.6.2's attestation mechanism uses elsewhere.
+    Regression test: a prior version granted the independent badge off
+    `qualification_method == "independent" OR qualifier_identity`, so
+    declaring the method (or merely setting --qualifier) alone -- with no
+    distinct reviewer -- was sufficient."""
+    report = qualify.run(qualification_method="independent")
+    assert qualify._qualification_badge(report) == qualify.BADGE_SELF
+
+
+# fusa:test REQ-QUAL001
+# fusa:test REQ-QUAL001-LLR1
+def test_qualify_badge_identity_alone_is_self_not_independent():
+    """qualifier_identity records who *ran* qualification -- it was never
+    meant to be sufficient on its own to prove independence
+    (independent_reviewer is the field that means that). Regression test
+    for the same bug as above, via the identity-only path."""
     report = qualify.run(qualifier_identity="AuditOrg Inc")
-    assert qualify._qualification_badge(report) == qualify.BADGE_INDEPENDENT
+    assert qualify._qualification_badge(report) == qualify.BADGE_SELF
 
 
 # fusa:test REQ-QUAL001
@@ -378,7 +399,9 @@ def test_qualify_badge_in_to_dict():
 # fusa:test REQ-QUAL001
 # fusa:test REQ-QUAL001-LLR2
 def test_qualify_cli_qualification_flags_json():
-    """CLI --qualification-method and --qualifier flags appear in JSON output."""
+    """CLI --qualification-method/--qualifier/--independent-reviewer flags
+    appear in JSON output, and a real distinct reviewer earns the
+    independently-qualified badge."""
     with tempfile.TemporaryDirectory() as tmpdir:
         out = io.StringIO()
         code = run(
@@ -394,6 +417,10 @@ def test_qualify_cli_qualification_flags_json():
                 "TestOrg",
                 "--record-uri",
                 "https://dossier.example/q1",
+                "--implementation-author",
+                "Alice",
+                "--independent-reviewer",
+                "Jane Doe <jane@example.com>",
             ],
             stdout=out,
         )
